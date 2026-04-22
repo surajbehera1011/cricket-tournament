@@ -91,6 +91,9 @@ export default function ManagePage() {
 
   const handleAssign = async (playerId: string) => {
     if (!selectedTeamId) return;
+    const playerToAssign = pool.find((p) => p.id === playerId);
+    if (!playerToAssign) return;
+
     setActionLoading(playerId);
     try {
       const res = await fetch(`/api/teams/${selectedTeamId}/assign`, {
@@ -102,10 +105,41 @@ export default function ManagePage() {
         const data = await res.json();
         throw new Error(data.error);
       }
+
+      // Update state directly instead of re-fetching
+      setPool((prev) => prev.filter((p) => p.id !== playerId));
+      setTeams((prev) =>
+        prev.map((t) => {
+          if (t.id !== selectedTeamId) return t;
+          const newPlayer: Player = {
+            id: playerToAssign.id,
+            fullName: playerToAssign.fullName,
+            preferredRole: playerToAssign.preferredRole,
+            gender: playerToAssign.gender,
+            membershipType: "DRAFT_PICK",
+            positionSlot: null,
+          };
+          const newPlayers = [...t.players, newPlayer];
+          const newMemberCount = newPlayers.length;
+          const newFemaleCount = newPlayers.filter((p) => p.gender === "FEMALE").length;
+          return {
+            ...t,
+            players: newPlayers,
+            memberCount: newMemberCount,
+            femaleCount: newFemaleCount,
+            slotsRemaining: Math.max(0, t.teamSize - newMemberCount),
+            status:
+              newMemberCount >= t.teamSize && newFemaleCount >= t.minFemaleRequired
+                ? "COMPLETE"
+                : "INCOMPLETE",
+          };
+        })
+      );
+
       showMessage("Player assigned successfully", "success");
-      await fetchData();
     } catch (err) {
       showMessage(err instanceof Error ? err.message : "Failed to assign", "error");
+      fetchData();
     } finally {
       setActionLoading(null);
     }
@@ -113,6 +147,10 @@ export default function ManagePage() {
 
   const handleRemove = async (playerId: string) => {
     if (!selectedTeamId) return;
+    const team = teams.find((t) => t.id === selectedTeamId);
+    const playerToRemove = team?.players.find((p) => p.id === playerId);
+    if (!playerToRemove) return;
+
     setActionLoading(playerId);
     try {
       const res = await fetch(`/api/teams/${selectedTeamId}/remove`, {
@@ -124,10 +162,42 @@ export default function ManagePage() {
         const data = await res.json();
         throw new Error(data.error);
       }
+
+      // Update state directly instead of re-fetching
+      setTeams((prev) =>
+        prev.map((t) => {
+          if (t.id !== selectedTeamId) return t;
+          const newPlayers = t.players.filter((p) => p.id !== playerId);
+          const newMemberCount = newPlayers.length;
+          const newFemaleCount = newPlayers.filter((p) => p.gender === "FEMALE").length;
+          return {
+            ...t,
+            players: newPlayers,
+            memberCount: newMemberCount,
+            femaleCount: newFemaleCount,
+            slotsRemaining: Math.max(0, t.teamSize - newMemberCount),
+            status:
+              newMemberCount >= t.teamSize && newFemaleCount >= t.minFemaleRequired
+                ? "COMPLETE"
+                : "INCOMPLETE",
+          };
+        })
+      );
+      setPool((prev) => [
+        ...prev,
+        {
+          id: playerToRemove.id,
+          fullName: playerToRemove.fullName,
+          preferredRole: playerToRemove.preferredRole,
+          experienceLevel: "",
+          gender: playerToRemove.gender,
+        },
+      ]);
+
       showMessage("Player removed successfully", "success");
-      await fetchData();
     } catch (err) {
       showMessage(err instanceof Error ? err.message : "Failed to remove", "error");
+      fetchData();
     } finally {
       setActionLoading(null);
     }

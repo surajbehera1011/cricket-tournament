@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/Card";
 import { TeamForm } from "@/components/registration/TeamForm";
 import { IndividualForm } from "@/components/registration/IndividualForm";
@@ -9,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 export default function RegisterPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [tab, setTab] = useState<"team" | "individual">("team");
   const [success, setSuccess] = useState("");
 
@@ -32,10 +34,13 @@ export default function RegisterPage() {
   const handleSuccess = () => {
     setSuccess(
       tab === "team"
-        ? "Team registered successfully! View it on the dashboard."
-        : "Individual registration successful! You've been added to the player pool."
+        ? "Team registered successfully! Redirecting to dashboard..."
+        : "Individual registration successful! Redirecting to dashboard..."
     );
-    setTimeout(() => setSuccess(""), 5000);
+    // Wait 1.5s then redirect to dashboard so Neon DB replication catches up
+    setTimeout(() => {
+      router.push("/?_t=" + Date.now());
+    }, 1500);
   };
 
   return (
