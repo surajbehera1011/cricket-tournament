@@ -15,13 +15,16 @@ export const teamRegistrationSchema = z.object({
   comments: z.string().optional().default(""),
   submitterEmail: z.string().email(),
   submitterName: z.string().min(1),
-});
+}).refine((data) => {
+  const emails = [data.captainEmail, ...data.players.map((p) => p.email)].map((e) => e.toLowerCase());
+  return new Set(emails).size === emails.length;
+}, { message: "All player emails must be unique", path: ["players"] });
 
 export const individualRegistrationSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters").max(100),
   email: z.string().email("Valid email is required"),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]),
-  preferredRole: z.array(z.string()).min(1, "Select at least one role"),
+  preferredRole: z.array(z.string()).min(1, "Select at least one role").max(2, "Maximum 2 roles allowed"),
   experienceLevel: z.enum(["Beginner", "Intermediate", "Advanced"]),
   comments: z.string().optional().default(""),
   submitterEmail: z.string().email(),

@@ -98,8 +98,8 @@ function DashboardContent() {
               <span className="text-sm text-white/90 font-medium">Live Tournament Dashboard</span>
             </div>
             <h1 className={`font-black text-white tracking-tight ${tvMode ? "text-tv-3xl" : "text-4xl sm:text-5xl"}`}>
-              Office Cricket Cup
-              <span className="text-cricket-300"> 2026</span>
+              Align Cricket
+              <span className="text-cricket-300"> Tournament</span>
             </h1>
             <p className={`mt-3 text-cricket-200/80 max-w-lg mx-auto ${tvMode ? "text-tv-base" : "text-base"}`}>
               Track teams, player pool, and tournament progress in real-time

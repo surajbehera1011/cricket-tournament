@@ -23,13 +23,13 @@ export default function RegisterPage() {
     <div>
       {/* Hero */}
       <div className="cricket-hero cricket-field-pattern">
-        <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-14 text-center">
-          <span className="text-4xl mb-3 block">🏏</span>
+        <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-20 text-center">
+          <span className="text-5xl mb-4 block">🏏</span>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Join the Tournament
+            Join the Align Cricket Tournament
           </h1>
-          <p className="mt-2 text-cricket-200/80 max-w-md mx-auto">
-            Register your team or sign up as an individual player for the office cricket tournament
+          <p className="mt-3 text-cricket-200/80 max-w-md mx-auto">
+            Register your team or sign up as an individual player for the tournament
           </p>
         </div>
       </div>

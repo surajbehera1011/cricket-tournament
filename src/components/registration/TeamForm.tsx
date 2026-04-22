@@ -94,6 +94,17 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       }
     }
 
+    // Check for duplicate emails
+    const allEmails = [captainEmail.trim().toLowerCase(), ...validPlayers.map((p) => p.email.trim().toLowerCase())];
+    const seen = new Set<string>();
+    for (const email of allEmails) {
+      if (seen.has(email)) {
+        setError(`Duplicate email found: ${email}. Each player must have a unique email.`);
+        return;
+      }
+      seen.add(email);
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/register/team", {

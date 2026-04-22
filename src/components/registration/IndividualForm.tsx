@@ -24,12 +24,13 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
   const [error, setError] = useState("");
 
   const toggleRole = (role: string) => {
-    setForm((prev) => ({
-      ...prev,
-      preferredRole: prev.preferredRole.includes(role)
-        ? prev.preferredRole.filter((r) => r !== role)
-        : [...prev.preferredRole, role],
-    }));
+    setForm((prev) => {
+      if (prev.preferredRole.includes(role)) {
+        return { ...prev, preferredRole: prev.preferredRole.filter((r) => r !== role) };
+      }
+      if (prev.preferredRole.length >= 2) return prev;
+      return { ...prev, preferredRole: [...prev.preferredRole, role] };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,7 +137,7 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Role(s) *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Role(s) * <span className="text-gray-400 font-normal">(max 2)</span></label>
         <div className="flex flex-wrap gap-2">
           {ROLES.map((role) => (
             <button

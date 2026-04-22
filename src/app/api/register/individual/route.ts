@@ -4,6 +4,7 @@ export const fetchCache = "force-no-store";
 import { NextRequest, NextResponse } from "next/server";
 import { individualRegistrationSchema } from "@/lib/validators";
 import { registerIndividual } from "@/lib/business/registration";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,8 +16,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (!parsed.success) {
+      const flat = parsed.error.flatten();
+      const msg = Object.values(flat.fieldErrors).flat()[0] || flat.formErrors[0] || "Validation failed";
+      return NextResponse.json({ error: msg, details: flat }, { status: 400 });
+    }
+
+    const existing = await prisma.player.findFirst({
+      where: { email: { equals: parsed.data.email, mode: "insensitive" } },
+      select: { email: true, fullName: true },
+    });
+
+    if (existing) {
       return NextResponse.json(
-        { error: "Validation failed", details: parsed.error.flatten() },
+        { error: `A player with email ${existing.email} is already registered (${existing.fullName}).` },
         { status: 400 }
       );
     }

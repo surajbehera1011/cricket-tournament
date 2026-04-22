@@ -31,8 +31,8 @@ export function Navbar() {
             <Link href="/" className="flex items-center gap-2.5 group">
               <span className="text-2xl group-hover:scale-110 transition-transform">🏏</span>
               <div>
-                <span className="font-extrabold text-lg text-white tracking-tight">Cricket Cup</span>
-                <span className="hidden sm:block text-[10px] text-cricket-300 font-medium -mt-0.5">Office Tournament 2026</span>
+                <span className="font-extrabold text-lg text-white tracking-tight">Align Sports League</span>
+                <span className="hidden sm:block text-[10px] text-cricket-300 font-medium -mt-0.5">Align Cricket Tournament 2026</span>
               </div>
             </Link>
 
