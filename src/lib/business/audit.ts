@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { AuditAction } from "@prisma/client";
+import { AuditAction, Prisma } from "@prisma/client";
 
 export async function createAuditLog(params: {
   actorUserId: string;
@@ -15,8 +15,8 @@ export async function createAuditLog(params: {
       action: params.action,
       entityType: params.entityType,
       entityId: params.entityId,
-      before: params.before ?? undefined,
-      after: params.after ?? undefined,
+      before: (params.before as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+      after: (params.after as Prisma.InputJsonValue) ?? Prisma.JsonNull,
     },
   });
 }

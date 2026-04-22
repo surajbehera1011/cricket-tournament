@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { TeamStatus, PoolStatus, MembershipType, AuditAction } from "@prisma/client";
+import { TeamStatus, PoolStatus, MembershipType, AuditAction, Prisma } from "@prisma/client";
 import { createAuditLog } from "./audit";
 import { sseManager } from "@/lib/sse";
 import type { TeamRegistrationInput, IndividualRegistrationInput } from "@/lib/validators";
@@ -82,10 +82,10 @@ export async function registerTeam(
         teamName: input.teamName,
         captainName: input.captainName,
         teamSize: input.teamSize,
-        teamPlayersJson: playerNames.reduce(
+        teamPlayersJson: playerNames.reduce<Record<string, string>>(
           (acc, name, idx) => ({ ...acc, [`Player${idx + 1}`]: name }),
           {}
-        ),
+        ) as Prisma.InputJsonValue,
         comments: input.comments,
         poolStatus: PoolStatus.NONE,
       },
