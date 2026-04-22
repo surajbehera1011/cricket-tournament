@@ -17,6 +17,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [recomputing, setRecomputing] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
 
   useEffect(() => {
@@ -57,6 +58,24 @@ export default function SettingsPage() {
       setMessage({ text: err instanceof Error ? err.message : "Failed to save", type: "error" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleRecompute = async () => {
+    setRecomputing(true);
+    try {
+      const res = await fetch("/api/admin/recompute", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Recompute failed");
+      }
+      const data = await res.json();
+      setMessage({ text: `Recomputed ${data.count} team(s). ${data.fixed} status(es) corrected.`, type: "success" });
+      setTimeout(() => setMessage({ text: "", type: "" }), 5000);
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : "Recompute failed", type: "error" });
+    } finally {
+      setRecomputing(false);
     }
   };
 
@@ -174,10 +193,22 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-3">
         <Button onClick={handleSave} loading={saving} size="lg" className="w-full">
           Save Settings
         </Button>
+        <Button
+          onClick={handleRecompute}
+          loading={recomputing}
+          variant="secondary"
+          size="lg"
+          className="w-full"
+        >
+          Recompute All Team Statuses
+        </Button>
+        <p className="text-xs text-gray-400 text-center">
+          Use this to fix stale team statuses after changing rules. Also runs automatically on save.
+        </p>
       </div>
     </div>
   );

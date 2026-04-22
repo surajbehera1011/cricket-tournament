@@ -3,6 +3,7 @@ export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
 import { prisma } from "@/lib/prisma";
+import { TeamStatus } from "@prisma/client";
 import { jsonResponse } from "@/lib/api-utils";
 import { getSettings } from "@/lib/business/registration";
 
@@ -24,19 +25,31 @@ export async function GET() {
       orderBy: { name: "asc" },
     });
 
+    const staleIds: { id: string; correctStatus: TeamStatus }[] = [];
+
     const formatted = teams.map((t) => {
       const femaleCount = t.memberships.filter((m) => m.player.gender === "FEMALE").length;
       const effectiveSize = settings.maxTeamSize;
+      const memberCount = t._count.memberships;
+
+      const sizeOk = memberCount >= effectiveSize;
+      const femaleOk = femaleCount >= settings.minFemalePerTeam;
+      const correctStatus: TeamStatus = sizeOk && femaleOk ? "COMPLETE" : "INCOMPLETE";
+
+      if (t.status !== correctStatus) {
+        staleIds.push({ id: t.id, correctStatus });
+      }
+
       return {
         id: t.id,
         name: t.name,
         captain: t.captain,
         teamSize: effectiveSize,
-        status: t.status,
-        memberCount: t._count.memberships,
+        status: correctStatus,
+        memberCount,
         femaleCount,
         minFemaleRequired: settings.minFemalePerTeam,
-        slotsRemaining: Math.max(0, effectiveSize - t._count.memberships),
+        slotsRemaining: Math.max(0, effectiveSize - memberCount),
         players: t.memberships.map((m) => ({
           id: m.player.id,
           fullName: m.player.fullName,
@@ -48,6 +61,14 @@ export async function GET() {
         createdAt: t.createdAt,
       };
     });
+
+    if (staleIds.length > 0) {
+      Promise.all(
+        staleIds.map(({ id, correctStatus }) =>
+          prisma.team.update({ where: { id }, data: { status: correctStatus } })
+        )
+      ).catch((err) => console.error("Auto-heal status error:", err));
+    }
 
     return jsonResponse(formatted);
   } catch (error) {

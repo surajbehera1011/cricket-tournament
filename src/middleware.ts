@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 const protectedPaths = ["/manage", "/audit", "/settings"];
-const apiMutationPaths = ["/api/register", "/api/teams/", "/api/settings"];
+const apiMutationPaths = ["/api/register", "/api/teams/", "/api/settings", "/api/admin"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -48,5 +48,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/manage/:path*", "/audit/:path*", "/settings/:path*", "/api/register/:path*", "/api/teams/:path*", "/api/settings"],
+  matcher: ["/manage/:path*", "/audit/:path*", "/settings/:path*", "/api/register/:path*", "/api/teams/:path*", "/api/settings", "/api/admin/:path*"],
 };
