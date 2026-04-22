@@ -2,20 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground: #171717;
-  --background: #ffffff;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground: #ededed;
-    --background: #0a0a0a;
+@layer base {
+  body {
+    color: #171717;
+    background: #ffffff;
+    font-family: system-ui, -apple-system, sans-serif;
   }
-}
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: system-ui, -apple-system, sans-serif;
+  input, select, textarea, option {
+    color: #171717 !important;
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: #9ca3af !important;
+  }
 }

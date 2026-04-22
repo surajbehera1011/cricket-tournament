@@ -40,7 +40,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
 
   const addPlayer = () => {
     if (players.length < maxTeamSize) {
-      setPlayers((prev) => [...prev, { name: "", gender: "" }]);
+      setPlayers((prev) => [{ name: "", gender: "" }, ...prev]);
     }
   };
 
@@ -65,12 +65,6 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
         setError(`Please select gender for ${validPlayers[i].name || `Player ${i + 1}`}`);
         return;
       }
-    }
-
-    const femaleCount = validPlayers.filter((p) => p.gender === "FEMALE").length;
-    if (femaleCount < minFemale) {
-      setError(`Team must have at least ${minFemale} female player(s). Currently: ${femaleCount}`);
-      return;
     }
 
     setLoading(true);
