@@ -6,9 +6,6 @@ describe("Assignment Authorization Rules", () => {
     actorUserId: string,
     teamCaptainUserId: string | null
   ): { allowed: boolean; reason?: string } {
-    if (actorRole === UserRole.VIEWER) {
-      return { allowed: false, reason: "Viewers cannot assign players" };
-    }
     if (actorRole === UserRole.CAPTAIN && teamCaptainUserId !== actorUserId) {
       return { allowed: false, reason: "Captains can only assign to their own team" };
     }
@@ -34,12 +31,6 @@ describe("Assignment Authorization Rules", () => {
     const result = canAssign(UserRole.CAPTAIN, "captain-1", "captain-2");
     expect(result.allowed).toBe(false);
     expect(result.reason).toContain("own team");
-  });
-
-  it("denies VIEWER from assigning", () => {
-    const result = canAssign(UserRole.VIEWER, "viewer-1", "captain-1");
-    expect(result.allowed).toBe(false);
-    expect(result.reason).toContain("Viewers");
   });
 
   it("denies CAPTAIN from assigning to team with no captain", () => {

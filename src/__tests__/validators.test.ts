@@ -4,13 +4,18 @@ describe("teamRegistrationSchema", () => {
   const validTeam = {
     teamName: "Royal Strikers",
     captainName: "Rahul Sharma",
-    teamSize: 8,
-    player1: "Player One",
+    captainGender: "MALE" as const,
+    captainEmail: "rahul@company.com",
+    players: [
+      { name: "Player Two", gender: "MALE" as const, email: "p2@company.com" },
+      { name: "Player Three", gender: "FEMALE" as const, email: "p3@company.com" },
+      { name: "Player Four", gender: "MALE" as const, email: "p4@company.com" },
+    ],
     submitterEmail: "test@company.com",
     submitterName: "Test User",
   };
 
-  it("accepts valid team registration", () => {
+  it("accepts valid team registration with 4 players (1 captain + 3)", () => {
     const result = teamRegistrationSchema.safeParse(validTeam);
     expect(result.success).toBe(true);
   });
@@ -20,34 +25,45 @@ describe("teamRegistrationSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects missing player1", () => {
-    const result = teamRegistrationSchema.safeParse({ ...validTeam, player1: "" });
+  it("rejects fewer than 3 additional players (need 4 total including captain)", () => {
+    const result = teamRegistrationSchema.safeParse({
+      ...validTeam,
+      players: [
+        { name: "Player Two", gender: "MALE" as const, email: "p2@company.com" },
+        { name: "Player Three", gender: "FEMALE" as const, email: "p3@company.com" },
+      ],
+    });
     expect(result.success).toBe(false);
   });
 
-  it("rejects team size below 2", () => {
-    const result = teamRegistrationSchema.safeParse({ ...validTeam, teamSize: 1 });
+  it("rejects players without email", () => {
+    const result = teamRegistrationSchema.safeParse({
+      ...validTeam,
+      players: [
+        { name: "Player Two", gender: "MALE" as const, email: "" },
+        { name: "Player Three", gender: "FEMALE" as const, email: "p3@company.com" },
+        { name: "Player Four", gender: "MALE" as const, email: "p4@company.com" },
+      ],
+    });
     expect(result.success).toBe(false);
   });
 
-  it("rejects team size above 15", () => {
-    const result = teamRegistrationSchema.safeParse({ ...validTeam, teamSize: 16 });
+  it("rejects missing captain gender", () => {
+    const result = teamRegistrationSchema.safeParse({ ...validTeam, captainGender: undefined });
     expect(result.success).toBe(false);
   });
 
-  it("defaults optional player fields to empty string", () => {
-    const result = teamRegistrationSchema.safeParse(validTeam);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.player2).toBe("");
-      expect(result.data.player9).toBe("");
-    }
+  it("rejects missing captain email", () => {
+    const result = teamRegistrationSchema.safeParse({ ...validTeam, captainEmail: "" });
+    expect(result.success).toBe(false);
   });
 });
 
 describe("individualRegistrationSchema", () => {
   const validIndividual = {
     fullName: "Ankit Saxena",
+    email: "ankit@company.com",
+    gender: "MALE" as const,
     preferredRole: ["Batsman"],
     experienceLevel: "Intermediate" as const,
     submitterEmail: "test@company.com",
@@ -83,12 +99,12 @@ describe("individualRegistrationSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts optional email as empty string", () => {
+  it("rejects missing email", () => {
     const result = individualRegistrationSchema.safeParse({
       ...validIndividual,
       email: "",
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 });
 

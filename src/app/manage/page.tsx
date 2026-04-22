@@ -10,6 +10,7 @@ import { useSSE } from "@/lib/useSSE";
 interface Player {
   id: string;
   fullName: string;
+  email: string;
   preferredRole: string;
   gender: string;
   membershipType: string;
@@ -284,6 +285,7 @@ export default function ManagePage() {
           const newPlayer: Player = {
             id: playerToAssign.id,
             fullName: playerToAssign.fullName,
+            email: "",
             preferredRole: playerToAssign.preferredRole,
             gender: playerToAssign.gender,
             membershipType: "DRAFT_PICK",
@@ -550,6 +552,9 @@ export default function ManagePage() {
                       >
                         <div>
                           <p className="font-medium text-gray-900 text-sm">{player.fullName}</p>
+                          {player.email && (
+                            <p className="text-[11px] text-gray-400">{player.email}</p>
+                          )}
                           <div className="flex gap-1 mt-0.5 items-center">
                             <GenderSelect
                               playerId={player.id}

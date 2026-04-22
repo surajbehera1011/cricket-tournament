@@ -48,6 +48,10 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
       setError("Please select your gender");
       return;
     }
+    if (!form.email.trim()) {
+      setError("Email is required");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -99,9 +103,10 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email (optional)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
           <input
             type="email"
+            required
             value={form.email}
             onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cricket-500 focus:border-transparent"

@@ -18,7 +18,7 @@ export async function GET() {
         _count: { select: { memberships: true } },
         memberships: {
           include: {
-            player: { select: { id: true, fullName: true, preferredRole: true, gender: true } },
+            player: { select: { id: true, fullName: true, email: true, preferredRole: true, gender: true } },
           },
           orderBy: { createdAt: "asc" },
         },
@@ -61,6 +61,7 @@ export async function GET() {
         players: t.memberships.map((m) => ({
           id: m.player.id,
           fullName: m.player.fullName,
+          email: m.player.email || "",
           preferredRole: m.player.preferredRole,
           gender: m.player.gender,
           membershipType: m.membershipType,

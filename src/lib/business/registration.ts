@@ -50,11 +50,33 @@ export async function registerTeam(input: TeamRegistrationInput) {
     });
 
     const players = [];
+
+    const captainPlayer = await tx.player.create({
+      data: {
+        fullName: input.captainName,
+        email: input.captainEmail,
+        gender: input.captainGender as Gender,
+        preferredRole: "",
+        experienceLevel: "",
+        poolStatus: PoolStatus.ASSIGNED,
+      },
+    });
+    players.push(captainPlayer);
+    await tx.teamMembership.create({
+      data: {
+        teamId: team.id,
+        playerId: captainPlayer.id,
+        membershipType: MembershipType.TEAM_SUBMISSION,
+        positionSlot: "Captain",
+      },
+    });
+
     for (let i = 0; i < input.players.length; i++) {
       const entry = input.players[i];
       const player = await tx.player.create({
         data: {
           fullName: entry.name,
+          email: entry.email,
           gender: entry.gender as Gender,
           preferredRole: "",
           experienceLevel: "",
@@ -67,10 +89,20 @@ export async function registerTeam(input: TeamRegistrationInput) {
           teamId: team.id,
           playerId: player.id,
           membershipType: MembershipType.TEAM_SUBMISSION,
-          positionSlot: `Player ${i + 1}`,
+          positionSlot: `Player ${i + 2}`,
         },
       });
     }
+
+    const allPlayersJson = [
+      { slot: "Captain", name: input.captainName, gender: input.captainGender, email: input.captainEmail },
+      ...input.players.map((p, idx) => ({
+        slot: `Player ${idx + 2}`,
+        name: p.name,
+        gender: p.gender,
+        email: p.email,
+      })),
+    ];
 
     await tx.registration.create({
       data: {
@@ -80,11 +112,7 @@ export async function registerTeam(input: TeamRegistrationInput) {
         teamName: input.teamName,
         captainName: input.captainName,
         teamSize,
-        teamPlayersJson: input.players.map((p, idx) => ({
-          slot: `Player ${idx + 1}`,
-          name: p.name,
-          gender: p.gender,
-        })) as unknown as Prisma.InputJsonValue,
+        teamPlayersJson: allPlayersJson as unknown as Prisma.InputJsonValue,
         comments: input.comments,
         poolStatus: PoolStatus.NONE,
       },

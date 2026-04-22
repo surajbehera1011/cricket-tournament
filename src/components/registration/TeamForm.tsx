@@ -6,19 +6,28 @@ import { Button } from "@/components/ui/Button";
 interface PlayerEntry {
   name: string;
   gender: string;
+  email: string;
 }
 
 interface TeamFormProps {
   onSuccess: () => void;
 }
 
+const MIN_TOTAL_PLAYERS = 4;
+
 export function TeamForm({ onSuccess }: TeamFormProps) {
   const [teamName, setTeamName] = useState("");
   const [captainName, setCaptainName] = useState("");
+  const [captainGender, setCaptainGender] = useState("");
+  const [captainEmail, setCaptainEmail] = useState("");
   const [comments, setComments] = useState("");
   const [maxTeamSize, setMaxTeamSize] = useState(9);
   const [minFemale, setMinFemale] = useState(1);
-  const [players, setPlayers] = useState<PlayerEntry[]>([{ name: "", gender: "" }]);
+  const [players, setPlayers] = useState<PlayerEntry[]>([
+    { name: "", gender: "", email: "" },
+    { name: "", gender: "", email: "" },
+    { name: "", gender: "", email: "" },
+  ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -32,20 +41,23 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       .catch(() => {});
   }, []);
 
-  const updatePlayer = (idx: number, field: "name" | "gender", value: string) => {
+  const maxAdditionalPlayers = maxTeamSize - 1;
+
+  const updatePlayer = (idx: number, field: keyof PlayerEntry, value: string) => {
     setPlayers((prev) =>
       prev.map((p, i) => (i === idx ? { ...p, [field]: value } : p))
     );
   };
 
   const addPlayer = () => {
-    if (players.length < maxTeamSize) {
-      setPlayers((prev) => [{ name: "", gender: "" }, ...prev]);
+    if (players.length < maxAdditionalPlayers) {
+      setPlayers((prev) => [{ name: "", gender: "", email: "" }, ...prev]);
     }
   };
 
   const removePlayer = (idx: number) => {
-    if (players.length > 1) {
+    const minAdditional = MIN_TOTAL_PLAYERS - 1;
+    if (players.length > minAdditional) {
       setPlayers((prev) => prev.filter((_, i) => i !== idx));
     }
   };
@@ -54,15 +66,30 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
     e.preventDefault();
     setError("");
 
+    if (!captainGender) {
+      setError("Please select gender for the captain");
+      return;
+    }
+    if (!captainEmail.trim()) {
+      setError("Captain email is required");
+      return;
+    }
+
     const validPlayers = players.filter((p) => p.name.trim() !== "");
-    if (validPlayers.length === 0) {
-      setError("At least 1 player is required");
+    const totalPlayers = 1 + validPlayers.length;
+
+    if (totalPlayers < MIN_TOTAL_PLAYERS) {
+      setError(`Minimum ${MIN_TOTAL_PLAYERS} players required (including captain). You have ${totalPlayers}.`);
       return;
     }
 
     for (let i = 0; i < validPlayers.length; i++) {
       if (!validPlayers[i].gender) {
         setError(`Please select gender for ${validPlayers[i].name || `Player ${i + 1}`}`);
+        return;
+      }
+      if (!validPlayers[i].email.trim()) {
+        setError(`Please enter email for ${validPlayers[i].name || `Player ${i + 1}`}`);
         return;
       }
     }
@@ -75,6 +102,8 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
         body: JSON.stringify({
           teamName,
           captainName,
+          captainGender,
+          captainEmail,
           players: validPlayers,
           comments,
         }),
@@ -87,8 +116,14 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
 
       setTeamName("");
       setCaptainName("");
+      setCaptainGender("");
+      setCaptainEmail("");
       setComments("");
-      setPlayers([{ name: "", gender: "" }]);
+      setPlayers([
+        { name: "", gender: "", email: "" },
+        { name: "", gender: "", email: "" },
+        { name: "", gender: "", email: "" },
+      ]);
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -96,6 +131,8 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       setLoading(false);
     }
   };
+
+  const totalPlayerCount = 1 + players.length;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -106,40 +143,77 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       )}
 
       <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm">
-        Team size is set to <strong>{maxTeamSize}</strong> players. Minimum <strong>{minFemale}</strong> female player(s) required.
+        Team size: <strong>{maxTeamSize}</strong> players. Minimum <strong>{MIN_TOTAL_PLAYERS}</strong> to register (including captain).
+        Minimum <strong>{minFemale}</strong> female player(s) required for team completion.
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Team Name *</label>
-          <input
-            type="text"
-            required
-            value={teamName}
-            onChange={(e) => setTeamName(e.target.value)}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
-            placeholder="e.g. Royal Strikers"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Captain Name *</label>
-          <input
-            type="text"
-            required
-            value={captainName}
-            onChange={(e) => setCaptainName(e.target.value)}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
-            placeholder="e.g. Rahul Sharma"
-          />
+      {/* Team Name */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Team Name *</label>
+        <input
+          type="text"
+          required
+          value={teamName}
+          onChange={(e) => setTeamName(e.target.value)}
+          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
+          placeholder="e.g. Royal Strikers"
+        />
+      </div>
+
+      {/* Captain Section */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-amber-800">Captain (Player 1)</h3>
+        <div className="grid md:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Full Name *</label>
+            <input
+              type="text"
+              required
+              value={captainName}
+              onChange={(e) => setCaptainName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
+              placeholder="Captain full name"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Email *</label>
+            <input
+              type="email"
+              required
+              value={captainEmail}
+              onChange={(e) => setCaptainEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
+              placeholder="captain@company.com"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Gender *</label>
+            <select
+              value={captainGender}
+              onChange={(e) => setCaptainGender(e.target.value)}
+              required
+              className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-cricket-500 focus:border-transparent ${
+                captainGender === "FEMALE"
+                  ? "border-pink-300 bg-pink-50"
+                  : "border-gray-300"
+              }`}
+            >
+              <option value="">Select gender</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
         </div>
       </div>
 
+      {/* Additional Players */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-gray-700">
-            Players ({players.length}/{maxTeamSize})
+            Additional Players ({players.length} + 1 captain = {totalPlayerCount}/{maxTeamSize})
           </h3>
-          {players.length < maxTeamSize && (
+          {players.length < maxAdditionalPlayers && (
             <button
               type="button"
               onClick={addPlayer}
@@ -152,37 +226,45 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
 
         <div className="space-y-3">
           {players.map((player, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                {idx + 1}
+            <div key={idx} className="flex items-start gap-2 bg-gray-50 rounded-lg p-2">
+              <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-1">
+                {idx + 2}
               </span>
-              <input
-                type="text"
-                value={player.name}
-                onChange={(e) => updatePlayer(idx, "name", e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
-                placeholder={`Player ${idx + 1} name ${idx === 0 ? "*" : ""}`}
-                required={idx === 0}
-              />
-              <select
-                value={player.gender}
-                onChange={(e) => updatePlayer(idx, "gender", e.target.value)}
-                className={`w-28 px-2 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-cricket-500 focus:border-transparent ${
-                  player.gender === "FEMALE"
-                    ? "border-pink-300 bg-pink-50"
-                    : "border-gray-300"
-                }`}
-              >
-                <option value="">Gender *</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
-              </select>
-              {players.length > 1 && (
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  value={player.name}
+                  onChange={(e) => updatePlayer(idx, "name", e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
+                  placeholder={`Player ${idx + 2} name *`}
+                />
+                <input
+                  type="email"
+                  value={player.email}
+                  onChange={(e) => updatePlayer(idx, "email", e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
+                  placeholder="Email *"
+                />
+                <select
+                  value={player.gender}
+                  onChange={(e) => updatePlayer(idx, "gender", e.target.value)}
+                  className={`px-2 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-cricket-500 focus:border-transparent ${
+                    player.gender === "FEMALE"
+                      ? "border-pink-300 bg-pink-50"
+                      : "border-gray-300"
+                  }`}
+                >
+                  <option value="">Gender *</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              {players.length > MIN_TOTAL_PLAYERS - 1 && (
                 <button
                   type="button"
                   onClick={() => removePlayer(idx)}
-                  className="text-red-400 hover:text-red-600 text-lg flex-shrink-0"
+                  className="text-red-400 hover:text-red-600 text-lg flex-shrink-0 mt-1"
                 >
                   &times;
                 </button>
@@ -191,9 +273,9 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
           ))}
         </div>
 
-        {players.length < maxTeamSize && (
+        {players.length < maxAdditionalPlayers && (
           <p className="text-xs text-gray-400 mt-2">
-            You can add up to {maxTeamSize} players. Remaining slots can be filled via draft later.
+            You can add up to {maxTeamSize} players total (including captain). Remaining slots can be filled via draft later.
           </p>
         )}
       </div>

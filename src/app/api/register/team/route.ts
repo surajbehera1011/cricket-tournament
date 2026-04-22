@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = teamRegistrationSchema.safeParse({
       ...body,
-      submitterEmail: body.submitterEmail || "anonymous@public.com",
+      submitterEmail: body.captainEmail || body.submitterEmail || "anonymous@public.com",
       submitterName: body.submitterName || body.captainName || "Anonymous",
     });
 

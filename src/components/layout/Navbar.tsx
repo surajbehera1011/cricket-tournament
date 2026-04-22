@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 
 const navLinks = [
   { href: "/", label: "Dashboard" },
-  { href: "/register", label: "Register" },
   { href: "/admin", label: "Admin Panel", roles: ["ADMIN"] },
   { href: "/manage", label: "Manage Teams", roles: ["ADMIN", "CAPTAIN"] },
   { href: "/audit", label: "Audit Log", roles: ["ADMIN"] },
@@ -52,7 +51,13 @@ export function Navbar() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/register"
+              className="text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold shadow-sm hover:shadow-md"
+            >
+              Register Now
+            </Link>
             {status === "loading" && (
               <span className="text-sm text-gray-400">Loading...</span>
             )}
@@ -99,6 +104,17 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/register"
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors",
+              pathname === "/register"
+                ? "bg-red-600 text-white"
+                : "bg-red-50 text-red-600 hover:bg-red-100"
+            )}
+          >
+            Register
+          </Link>
         </div>
       </div>
     </nav>

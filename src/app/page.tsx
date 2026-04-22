@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { StatsCards } from "@/components/dashboard/StatsCards";
-import { TeamSelector } from "@/components/dashboard/TeamSelector";
-import { RosterList } from "@/components/dashboard/RosterList";
+import { TeamCards } from "@/components/dashboard/TeamCards";
 import { PoolTable } from "@/components/dashboard/PoolTable";
 import { useSSE } from "@/lib/useSSE";
 import { Suspense } from "react";
@@ -16,12 +15,14 @@ interface Team {
   memberCount: number;
   teamSize: number;
   slotsRemaining: number;
+  femaleCount: number;
   captainName: string;
   captain: { displayName: string } | null;
   players: {
     id: string;
     fullName: string;
     preferredRole: string;
+    gender?: string;
     membershipType: string;
     positionSlot: string | null;
   }[];
@@ -32,6 +33,7 @@ interface PoolPlayer {
   fullName: string;
   preferredRole: string;
   experienceLevel: string;
+  gender?: string;
   comments: string | null;
 }
 
@@ -41,9 +43,7 @@ function DashboardContent() {
 
   const [teams, setTeams] = useState<Team[]>([]);
   const [pool, setPool] = useState<PoolPlayer[]>([]);
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tvCycleIdx, setTvCycleIdx] = useState(0);
 
   const fetchData = useCallback(async () => {
     try {
@@ -69,25 +69,9 @@ function DashboardContent() {
 
   useSSE(fetchData);
 
-  // TV mode: auto-cycle through teams every 10 seconds
-  useEffect(() => {
-    if (!tvMode || teams.length === 0) return;
-    const interval = setInterval(() => {
-      setTvCycleIdx((prev) => (prev + 1) % teams.length);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [tvMode, teams.length]);
-
-  useEffect(() => {
-    if (tvMode && teams.length > 0) {
-      setSelectedTeamId(teams[tvCycleIdx]?.id ?? null);
-    }
-  }, [tvMode, tvCycleIdx, teams]);
-
   const readyTeams = teams.filter((t) => t.status === "READY").length;
   const completeTeams = teams.filter((t) => t.status === "COMPLETE").length;
   const incompleteTeams = teams.filter((t) => t.status === "INCOMPLETE").length;
-  const selectedTeam = selectedTeamId ? teams.find((t) => t.id === selectedTeamId) : null;
 
   if (loading) {
     return (
@@ -120,26 +104,11 @@ function DashboardContent() {
         />
 
         <div>
-          <h2 className={`font-semibold text-gray-900 mb-3 ${tvMode ? "text-tv-xl" : "text-lg"}`}>
+          <h2 className={`font-semibold text-gray-900 mb-4 ${tvMode ? "text-tv-xl" : "text-lg"}`}>
             Teams
           </h2>
-          <TeamSelector
-            teams={teams}
-            selectedTeamId={selectedTeamId}
-            onSelect={setSelectedTeamId}
-            tvMode={tvMode}
-          />
+          <TeamCards teams={teams} tvMode={tvMode} />
         </div>
-
-        {selectedTeam ? (
-          <RosterList team={selectedTeam} tvMode={tvMode} />
-        ) : (
-          <div className="grid md:grid-cols-2 gap-4">
-            {teams.map((team) => (
-              <RosterList key={team.id} team={team} tvMode={tvMode} />
-            ))}
-          </div>
-        )}
 
         <PoolTable players={pool} tvMode={tvMode} />
       </div>

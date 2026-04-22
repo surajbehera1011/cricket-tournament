@@ -3,12 +3,15 @@ import { z } from "zod";
 const playerEntrySchema = z.object({
   name: z.string().min(1, "Player name is required"),
   gender: z.enum(["MALE", "FEMALE", "OTHER"], { required_error: "Gender is required" }),
+  email: z.string().email("Valid email is required"),
 });
 
 export const teamRegistrationSchema = z.object({
   teamName: z.string().min(2, "Team name must be at least 2 characters").max(100),
   captainName: z.string().min(2).max(100),
-  players: z.array(playerEntrySchema).min(1, "At least 1 player is required"),
+  captainGender: z.enum(["MALE", "FEMALE", "OTHER"], { required_error: "Captain gender is required" }),
+  captainEmail: z.string().email("Captain email is required"),
+  players: z.array(playerEntrySchema).min(3, "At least 3 additional players are required (4 total including captain)"),
   comments: z.string().optional().default(""),
   submitterEmail: z.string().email(),
   submitterName: z.string().min(1),
@@ -16,7 +19,7 @@ export const teamRegistrationSchema = z.object({
 
 export const individualRegistrationSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters").max(100),
-  email: z.string().email().optional().or(z.literal("")),
+  email: z.string().email("Valid email is required"),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]),
   preferredRole: z.array(z.string()).min(1, "Select at least one role"),
   experienceLevel: z.enum(["Beginner", "Intermediate", "Advanced"]),
