@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Providers } from "@/components/layout/Providers";
 import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,11 +20,7 @@ export default function RootLayout({
         <Providers>
           <Navbar />
           <main className="min-h-[calc(100vh-4rem)]">{children}</main>
-          <footer className="border-t border-brand-100/40 bg-white/60 backdrop-blur-sm py-6 text-center">
-            <p className="text-xs text-slate-400">
-              Align Sports League &copy; {new Date().getFullYear()} &middot; Align Cricket Tournament
-            </p>
-          </footer>
+          <Footer />
         </Providers>
       </body>
     </html>
