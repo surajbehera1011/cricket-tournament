@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  CAPTAIN
+  VIEWER
+}
+
+enum TeamStatus {
+  INCOMPLETE
+  COMPLETE
+}
+
+enum RegistrationType {
+  TEAM
+  INDIVIDUAL
+}
+
+enum PoolStatus {
+  LOOKING_FOR_TEAM
+  ASSIGNED
+  NONE
+}
+
+enum RegistrationSource {
+  APP_FORM
+}
+
+enum MembershipType {
+  TEAM_SUBMISSION
+  DRAFT_PICK
+}
+
+enum AuditAction {
+  CREATE_TEAM
+  REGISTER_TEAM
+  REGISTER_INDIVIDUAL
+  ASSIGN_PLAYER
+  REMOVE_PLAYER
+  MARK_COMPLETE
+  MARK_INCOMPLETE
+}
+
+// ─── Models ─────────────────────────────────────────────
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  displayName String
+  role        UserRole @default(VIEWER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  captainOfTeams Team[]     @relation("TeamCaptain")
+  auditLogs      AuditLog[]
+
+  @@map("users")
+}
+
+model Team {
+  id            String     @id @default(uuid())
+  name          String     @unique
+  captainUserId String?
+  captain       User?      @relation("TeamCaptain", fields: [captainUserId], references: [id])
+  teamSize      Int        @default(8)
+  status        TeamStatus @default(INCOMPLETE)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  memberships TeamMembership[]
+
+  @@map("teams")
+}
+
+model Player {
+  id              String     @id @default(uuid())
+  fullName        String
+  email           String?
+  preferredRole   String     @default("")
+  experienceLevel String     @default("")
+  comments        String?
+  poolStatus      PoolStatus @default(NONE)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  memberships TeamMembership[]
+
+  @@map("players")
+}
+
+model Registration {
+  id                String             @id @default(uuid())
+  registrationType  RegistrationType
+  submitterEmail    String
+  submitterName     String
+  submittedAt       DateTime           @default(now())
+  teamName          String?
+  captainName       String?
+  teamSize          Int?
+  teamPlayersJson   Json?
+  preferredRole     String?
+  experienceLevel   String?
+  comments          String?
+  poolStatus        PoolStatus         @default(NONE)
+  source            RegistrationSource @default(APP_FORM)
+  createdAt         DateTime           @default(now())
+
+  @@map("registrations")
+}
+
+model TeamMembership {
+  id             String         @id @default(uuid())
+  teamId         String
+  team           Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  playerId       String
+  player         Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  membershipType MembershipType
+  positionSlot   String?
+  createdAt      DateTime       @default(now())
+
+  @@unique([teamId, playerId])
+  @@map("team_memberships")
+}
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  actorUserId String
+  actor       User        @relation(fields: [actorUserId], references: [id])
+  action      AuditAction
+  entityType  String
+  entityId    String
+  before      Json?
+  after       Json?
+  createdAt   DateTime    @default(now())
+
+  @@map("audit_logs")
+}
