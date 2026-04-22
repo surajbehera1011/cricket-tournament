@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 
 const ROLES = ["Batsman", "Bowler", "All-Rounder", "Wicket Keeper"];
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
+const GENDERS = ["MALE", "FEMALE", "OTHER"] as const;
 
 interface IndividualFormProps {
   onSuccess: () => void;
@@ -14,6 +15,7 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
   const [form, setForm] = useState({
     fullName: "",
     email: "",
+    gender: "" as string,
     preferredRole: [] as string[],
     experienceLevel: "",
     comments: "",
@@ -42,6 +44,10 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
       setError("Please select your experience level");
       return;
     }
+    if (!form.gender) {
+      setError("Please select your gender");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -59,6 +65,7 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
       setForm({
         fullName: "",
         email: "",
+        gender: "",
         preferredRole: [],
         experienceLevel: "",
         comments: "",
@@ -100,6 +107,26 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
             placeholder="your.email@company.com"
           />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
+        <div className="flex gap-3">
+          {GENDERS.map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => setForm((prev) => ({ ...prev, gender: g }))}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                form.gender === g
+                  ? "bg-cricket-600 text-white shadow-md"
+                  : "bg-white text-gray-700 border border-gray-300 hover:border-cricket-300"
+              }`}
+            >
+              {g === "MALE" ? "Male" : g === "FEMALE" ? "Female" : "Other"}
+            </button>
+          ))}
         </div>
       </div>
 

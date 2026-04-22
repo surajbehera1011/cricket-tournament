@@ -1,9 +1,24 @@
-import { PrismaClient, UserRole, PoolStatus, MembershipType, TeamStatus, AuditAction } from "@prisma/client";
+import { PrismaClient, UserRole, PoolStatus, MembershipType, TeamStatus, AuditAction, Gender } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("🏏 Seeding cricket tournament database...\n");
+
+  // ─── Tournament Settings ────────────────────────────
+  await prisma.tournamentSettings.upsert({
+    where: { id: "singleton" },
+    update: {},
+    create: {
+      id: "singleton",
+      maxTeamSize: 9,
+      minFemalePerTeam: 1,
+      tournamentName: "Office Cricket Tournament",
+      registrationOpen: true,
+    },
+  });
+
+  console.log("✅ Tournament settings created");
 
   // ─── Users ──────────────────────────────────────────
   const admin = await prisma.user.upsert({
@@ -48,15 +63,15 @@ async function main() {
 
   console.log("✅ Users created");
 
-  // ─── Teams ──────────────────────────────────────────
+  // ─── Teams (default size now 9) ─────────────────────
   const team1 = await prisma.team.upsert({
     where: { name: "Royal Strikers" },
     update: {},
     create: {
       name: "Royal Strikers",
       captainUserId: captain1.id,
-      teamSize: 8,
-      status: TeamStatus.COMPLETE,
+      teamSize: 9,
+      status: TeamStatus.INCOMPLETE,
     },
   });
 
@@ -66,7 +81,7 @@ async function main() {
     create: {
       name: "Thunder Hawks",
       captainUserId: captain2.id,
-      teamSize: 8,
+      teamSize: 9,
       status: TeamStatus.INCOMPLETE,
     },
   });
@@ -77,7 +92,7 @@ async function main() {
     create: {
       name: "Code Warriors",
       captainUserId: null,
-      teamSize: 6,
+      teamSize: 9,
       status: TeamStatus.INCOMPLETE,
     },
   });
@@ -88,42 +103,43 @@ async function main() {
     create: {
       name: "Debug Dragons",
       captainUserId: null,
-      teamSize: 8,
-      status: TeamStatus.COMPLETE,
+      teamSize: 9,
+      status: TeamStatus.INCOMPLETE,
     },
   });
 
   console.log("✅ Teams created");
 
   // ─── Players (team members) ─────────────────────────
+  // Gender: F = FEMALE, M = MALE
   const teamPlayers = [
-    { fullName: "Rahul Sharma", preferredRole: "Batsman", experienceLevel: "Advanced", team: team1 },
-    { fullName: "Vikram Singh", preferredRole: "Bowler", experienceLevel: "Advanced", team: team1 },
-    { fullName: "Arun Nair", preferredRole: "All-Rounder", experienceLevel: "Intermediate", team: team1 },
-    { fullName: "Deepak Reddy", preferredRole: "Batsman", experienceLevel: "Intermediate", team: team1 },
-    { fullName: "Karthik Iyer", preferredRole: "Bowler", experienceLevel: "Beginner", team: team1 },
-    { fullName: "Suresh Kumar", preferredRole: "Wicket Keeper", experienceLevel: "Advanced", team: team1 },
-    { fullName: "Manish Pandey", preferredRole: "All-Rounder", experienceLevel: "Intermediate", team: team1 },
-    { fullName: "Ravi Teja", preferredRole: "Bowler", experienceLevel: "Beginner", team: team1 },
+    { fullName: "Rahul Sharma", gender: Gender.MALE, preferredRole: "Batsman", experienceLevel: "Advanced", team: team1 },
+    { fullName: "Vikram Singh", gender: Gender.MALE, preferredRole: "Bowler", experienceLevel: "Advanced", team: team1 },
+    { fullName: "Arun Nair", gender: Gender.MALE, preferredRole: "All-Rounder", experienceLevel: "Intermediate", team: team1 },
+    { fullName: "Deepak Reddy", gender: Gender.MALE, preferredRole: "Batsman", experienceLevel: "Intermediate", team: team1 },
+    { fullName: "Karthik Iyer", gender: Gender.MALE, preferredRole: "Bowler", experienceLevel: "Beginner", team: team1 },
+    { fullName: "Suresh Kumar", gender: Gender.MALE, preferredRole: "Wicket Keeper", experienceLevel: "Advanced", team: team1 },
+    { fullName: "Manish Pandey", gender: Gender.MALE, preferredRole: "All-Rounder", experienceLevel: "Intermediate", team: team1 },
+    { fullName: "Meera Sharma", gender: Gender.FEMALE, preferredRole: "Bowler", experienceLevel: "Intermediate", team: team1 },
 
-    { fullName: "Priya Patel", preferredRole: "Batsman", experienceLevel: "Advanced", team: team2 },
-    { fullName: "Neha Gupta", preferredRole: "Bowler", experienceLevel: "Intermediate", team: team2 },
-    { fullName: "Sanjay Rao", preferredRole: "All-Rounder", experienceLevel: "Advanced", team: team2 },
-    { fullName: "Akash Mehta", preferredRole: "Batsman", experienceLevel: "Beginner", team: team2 },
-    { fullName: "Rohan Das", preferredRole: "Bowler", experienceLevel: "Intermediate", team: team2 },
+    { fullName: "Priya Patel", gender: Gender.FEMALE, preferredRole: "Batsman", experienceLevel: "Advanced", team: team2 },
+    { fullName: "Neha Gupta", gender: Gender.FEMALE, preferredRole: "Bowler", experienceLevel: "Intermediate", team: team2 },
+    { fullName: "Sanjay Rao", gender: Gender.MALE, preferredRole: "All-Rounder", experienceLevel: "Advanced", team: team2 },
+    { fullName: "Akash Mehta", gender: Gender.MALE, preferredRole: "Batsman", experienceLevel: "Beginner", team: team2 },
+    { fullName: "Rohan Das", gender: Gender.MALE, preferredRole: "Bowler", experienceLevel: "Intermediate", team: team2 },
 
-    { fullName: "Varun Joshi", preferredRole: "Batsman", experienceLevel: "Intermediate", team: team3 },
-    { fullName: "Nitin Verma", preferredRole: "All-Rounder", experienceLevel: "Advanced", team: team3 },
-    { fullName: "Pooja Sharma", preferredRole: "Bowler", experienceLevel: "Beginner", team: team3 },
+    { fullName: "Varun Joshi", gender: Gender.MALE, preferredRole: "Batsman", experienceLevel: "Intermediate", team: team3 },
+    { fullName: "Nitin Verma", gender: Gender.MALE, preferredRole: "All-Rounder", experienceLevel: "Advanced", team: team3 },
+    { fullName: "Pooja Sharma", gender: Gender.FEMALE, preferredRole: "Bowler", experienceLevel: "Beginner", team: team3 },
 
-    { fullName: "Arjun Kapoor", preferredRole: "Batsman", experienceLevel: "Advanced", team: team4 },
-    { fullName: "Kavya Menon", preferredRole: "Bowler", experienceLevel: "Advanced", team: team4 },
-    { fullName: "Tarun Bhat", preferredRole: "All-Rounder", experienceLevel: "Intermediate", team: team4 },
-    { fullName: "Sneha Reddy", preferredRole: "Wicket Keeper", experienceLevel: "Intermediate", team: team4 },
-    { fullName: "Harish Gowda", preferredRole: "Batsman", experienceLevel: "Beginner", team: team4 },
-    { fullName: "Meera Krishnan", preferredRole: "Bowler", experienceLevel: "Advanced", team: team4 },
-    { fullName: "Rajesh Pillai", preferredRole: "All-Rounder", experienceLevel: "Intermediate", team: team4 },
-    { fullName: "Divya Nambiar", preferredRole: "Batsman", experienceLevel: "Advanced", team: team4 },
+    { fullName: "Arjun Kapoor", gender: Gender.MALE, preferredRole: "Batsman", experienceLevel: "Advanced", team: team4 },
+    { fullName: "Kavya Menon", gender: Gender.FEMALE, preferredRole: "Bowler", experienceLevel: "Advanced", team: team4 },
+    { fullName: "Tarun Bhat", gender: Gender.MALE, preferredRole: "All-Rounder", experienceLevel: "Intermediate", team: team4 },
+    { fullName: "Sneha Reddy", gender: Gender.FEMALE, preferredRole: "Wicket Keeper", experienceLevel: "Intermediate", team: team4 },
+    { fullName: "Harish Gowda", gender: Gender.MALE, preferredRole: "Batsman", experienceLevel: "Beginner", team: team4 },
+    { fullName: "Meera Krishnan", gender: Gender.FEMALE, preferredRole: "Bowler", experienceLevel: "Advanced", team: team4 },
+    { fullName: "Rajesh Pillai", gender: Gender.MALE, preferredRole: "All-Rounder", experienceLevel: "Intermediate", team: team4 },
+    { fullName: "Divya Nambiar", gender: Gender.FEMALE, preferredRole: "Batsman", experienceLevel: "Advanced", team: team4 },
   ];
 
   for (let i = 0; i < teamPlayers.length; i++) {
@@ -131,6 +147,7 @@ async function main() {
     const player = await prisma.player.create({
       data: {
         fullName: p.fullName,
+        gender: p.gender,
         preferredRole: p.preferredRole,
         experienceLevel: p.experienceLevel,
         poolStatus: PoolStatus.ASSIGNED,
@@ -150,20 +167,21 @@ async function main() {
 
   // ─── Individual Pool Players ────────────────────────
   const poolPlayers = [
-    { fullName: "Ankit Saxena", preferredRole: "Batsman", experienceLevel: "Intermediate" },
-    { fullName: "Swati Jain", preferredRole: "Bowler", experienceLevel: "Advanced" },
-    { fullName: "Manoj Tiwari", preferredRole: "All-Rounder", experienceLevel: "Beginner" },
-    { fullName: "Rekha Menon", preferredRole: "Wicket Keeper", experienceLevel: "Intermediate" },
-    { fullName: "Siddharth Kulkarni", preferredRole: "Batsman", experienceLevel: "Advanced" },
-    { fullName: "Lakshmi Narayan", preferredRole: "Bowler", experienceLevel: "Intermediate" },
-    { fullName: "Pranav Desai", preferredRole: "All-Rounder", experienceLevel: "Beginner" },
-    { fullName: "Anjali Bhatt", preferredRole: "Batsman", experienceLevel: "Advanced" },
+    { fullName: "Ankit Saxena", gender: Gender.MALE, preferredRole: "Batsman", experienceLevel: "Intermediate" },
+    { fullName: "Swati Jain", gender: Gender.FEMALE, preferredRole: "Bowler", experienceLevel: "Advanced" },
+    { fullName: "Manoj Tiwari", gender: Gender.MALE, preferredRole: "All-Rounder", experienceLevel: "Beginner" },
+    { fullName: "Rekha Menon", gender: Gender.FEMALE, preferredRole: "Wicket Keeper", experienceLevel: "Intermediate" },
+    { fullName: "Siddharth Kulkarni", gender: Gender.MALE, preferredRole: "Batsman", experienceLevel: "Advanced" },
+    { fullName: "Lakshmi Narayan", gender: Gender.FEMALE, preferredRole: "Bowler", experienceLevel: "Intermediate" },
+    { fullName: "Pranav Desai", gender: Gender.MALE, preferredRole: "All-Rounder", experienceLevel: "Beginner" },
+    { fullName: "Anjali Bhatt", gender: Gender.FEMALE, preferredRole: "Batsman", experienceLevel: "Advanced" },
   ];
 
   for (const p of poolPlayers) {
     await prisma.player.create({
       data: {
         fullName: p.fullName,
+        gender: p.gender,
         preferredRole: p.preferredRole,
         experienceLevel: p.experienceLevel,
         poolStatus: PoolStatus.LOOKING_FOR_TEAM,
@@ -180,17 +198,7 @@ async function main() {
       action: AuditAction.CREATE_TEAM,
       entityType: "Team",
       entityId: team1.id,
-      after: { name: "Royal Strikers", teamSize: 8 },
-    },
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      actorUserId: admin.id,
-      action: AuditAction.REGISTER_TEAM,
-      entityType: "Team",
-      entityId: team2.id,
-      after: { name: "Thunder Hawks", teamSize: 8 },
+      after: { name: "Royal Strikers", teamSize: 9 },
     },
   });
 

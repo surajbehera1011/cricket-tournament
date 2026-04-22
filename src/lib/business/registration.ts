@@ -7,11 +7,27 @@ import type { TeamRegistrationInput, IndividualRegistrationInput } from "@/lib/v
 export async function recomputeTeamStatus(teamId: string): Promise<TeamStatus> {
   const team = await prisma.team.findUniqueOrThrow({
     where: { id: teamId },
-    include: { _count: { select: { memberships: true } } },
+    include: {
+      memberships: {
+        include: { player: { select: { gender: true } } },
+      },
+    },
   });
 
-  const newStatus =
-    team._count.memberships >= team.teamSize ? TeamStatus.COMPLETE : TeamStatus.INCOMPLETE;
+  const settings = await prisma.tournamentSettings.findUnique({
+    where: { id: "singleton" },
+  });
+  const requiredSize = team.teamSize;
+  const minFemale = settings?.minFemalePerTeam ?? 1;
+
+  const memberCount = team.memberships.length;
+  const femaleCount = team.memberships.filter(
+    (m) => m.player.gender === "FEMALE"
+  ).length;
+
+  const sizeOk = memberCount >= requiredSize;
+  const femaleOk = femaleCount >= minFemale;
+  const newStatus = sizeOk && femaleOk ? TeamStatus.COMPLETE : TeamStatus.INCOMPLETE;
 
   if (team.status !== newStatus) {
     await prisma.team.update({
@@ -94,16 +110,17 @@ export async function registerTeam(
     const memberCount = await tx.teamMembership.count({
       where: { teamId: team.id },
     });
-    const newStatus =
-      memberCount >= team.teamSize ? TeamStatus.COMPLETE : TeamStatus.INCOMPLETE;
 
     const updatedTeam = await tx.team.update({
       where: { id: team.id },
-      data: { status: newStatus },
+      data: { status: TeamStatus.INCOMPLETE },
     });
 
     return { team: updatedTeam, players, registration };
   });
+
+  // Recompute with full logic (female check etc.) outside transaction
+  await recomputeTeamStatus(result.team.id);
 
   await createAuditLog({
     actorUserId,
@@ -135,6 +152,7 @@ export async function registerIndividual(
       data: {
         fullName: input.fullName,
         email: input.email || null,
+        gender: input.gender as any,
         preferredRole: input.preferredRole.join(", "),
         experienceLevel: input.experienceLevel,
         comments: input.comments,

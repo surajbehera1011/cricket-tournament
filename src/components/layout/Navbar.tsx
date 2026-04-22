@@ -10,6 +10,7 @@ const navLinks = [
   { href: "/register", label: "Register" },
   { href: "/manage", label: "Manage Teams", roles: ["ADMIN", "CAPTAIN"] },
   { href: "/audit", label: "Audit Log", roles: ["ADMIN"] },
+  { href: "/settings", label: "Settings", roles: ["ADMIN"] },
 ];
 
 export function Navbar() {

@@ -3,7 +3,7 @@ import { z } from "zod";
 export const teamRegistrationSchema = z.object({
   teamName: z.string().min(2, "Team name must be at least 2 characters").max(100),
   captainName: z.string().min(2).max(100),
-  teamSize: z.number().int().min(2).max(15).default(8),
+  teamSize: z.number().int().min(2).max(20).default(9),
   player1: z.string().min(1, "Player 1 is required"),
   player2: z.string().optional().default(""),
   player3: z.string().optional().default(""),
@@ -21,6 +21,7 @@ export const teamRegistrationSchema = z.object({
 export const individualRegistrationSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters").max(100),
   email: z.string().email().optional().or(z.literal("")),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]),
   preferredRole: z.array(z.string()).min(1, "Select at least one role"),
   experienceLevel: z.enum(["Beginner", "Intermediate", "Advanced"]),
   comments: z.string().optional().default(""),

@@ -48,6 +48,13 @@ enum AuditAction {
   REMOVE_PLAYER
   MARK_COMPLETE
   MARK_INCOMPLETE
+  UPDATE_SETTINGS
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
 }
 
 // ─── Models ─────────────────────────────────────────────
@@ -71,7 +78,7 @@ model Team {
   name          String     @unique
   captainUserId String?
   captain       User?      @relation("TeamCaptain", fields: [captainUserId], references: [id])
-  teamSize      Int        @default(8)
+  teamSize      Int        @default(9)
   status        TeamStatus @default(INCOMPLETE)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -85,6 +92,7 @@ model Player {
   id              String     @id @default(uuid())
   fullName        String
   email           String?
+  gender          Gender     @default(MALE)
   preferredRole   String     @default("")
   experienceLevel String     @default("")
   comments        String?
@@ -143,4 +151,16 @@ model AuditLog {
   createdAt   DateTime    @default(now())
 
   @@map("audit_logs")
+}
+
+model TournamentSettings {
+  id                  String  @id @default("singleton")
+  maxTeamSize         Int     @default(9)
+  minFemalePerTeam    Int     @default(1)
+  tournamentName      String  @default("Office Cricket Tournament")
+  registrationOpen    Boolean @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("tournament_settings")
 }

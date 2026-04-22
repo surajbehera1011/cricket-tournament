@@ -11,6 +11,7 @@ interface Player {
   id: string;
   fullName: string;
   preferredRole: string;
+  gender: string;
   membershipType: string;
   positionSlot: string | null;
 }
@@ -22,6 +23,8 @@ interface Team {
   memberCount: number;
   teamSize: number;
   slotsRemaining: number;
+  femaleCount: number;
+  minFemaleRequired: number;
   captain: { id: string; displayName: string } | null;
   players: Player[];
 }
@@ -31,6 +34,7 @@ interface PoolPlayer {
   fullName: string;
   preferredRole: string;
   experienceLevel: string;
+  gender: string;
 }
 
 export default function ManagePage() {
@@ -46,9 +50,10 @@ export default function ManagePage() {
 
   const fetchData = useCallback(async () => {
     try {
+      const ts = Date.now();
       const [teamsRes, poolRes] = await Promise.all([
-        fetch("/api/teams"),
-        fetch("/api/pool"),
+        fetch(`/api/teams?_t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/pool?_t=${ts}`, { cache: "no-store" }),
       ]);
       const teamsData = await teamsRes.json();
       const poolData = await poolRes.json();
@@ -179,6 +184,9 @@ export default function ManagePage() {
               </div>
               <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">
                 <span>{team.memberCount}/{team.teamSize} players</span>
+                <span className={team.femaleCount >= team.minFemaleRequired ? "text-green-600" : "text-red-500"}>
+                  {team.femaleCount}F
+                </span>
                 {team.slotsRemaining > 0 && (
                   <span className="text-amber-600">{team.slotsRemaining} slots open</span>
                 )}
@@ -216,6 +224,9 @@ export default function ManagePage() {
                         <div>
                           <p className="font-medium text-gray-900 text-sm">{player.fullName}</p>
                           <div className="flex gap-1 mt-0.5">
+                            {player.gender === "FEMALE" && (
+                              <Badge variant="danger" className="text-[10px]">F</Badge>
+                            )}
                             {player.preferredRole && (
                               <Badge variant="info" className="text-[10px]">{player.preferredRole}</Badge>
                             )}
@@ -265,6 +276,9 @@ export default function ManagePage() {
                       <div>
                         <p className="font-medium text-gray-900 text-sm">{player.fullName}</p>
                         <div className="flex gap-1 mt-0.5">
+                          {player.gender === "FEMALE" && (
+                            <Badge variant="danger" className="text-[10px]">F</Badge>
+                          )}
                           <Badge variant="info" className="text-[10px]">{player.preferredRole}</Badge>
                           <Badge
                             variant={
