@@ -4,40 +4,39 @@ export const revalidate = 0;
 
 import { prisma } from "@/lib/prisma";
 import { jsonResponse } from "@/lib/api-utils";
+import { getSettings } from "@/lib/business/registration";
 
 export async function GET() {
   try {
-    const [teams, settings] = await Promise.all([
-      prisma.team.findMany({
-        include: {
-          captain: { select: { id: true, displayName: true, email: true } },
-          _count: { select: { memberships: true } },
-          memberships: {
-            include: {
-              player: { select: { id: true, fullName: true, preferredRole: true, gender: true } },
-            },
-            orderBy: { createdAt: "asc" },
-          },
-        },
-        orderBy: { name: "asc" },
-      }),
-      prisma.tournamentSettings.findUnique({ where: { id: "singleton" } }),
-    ]);
+    const settings = await getSettings();
 
-    const minFemale = settings?.minFemalePerTeam ?? 1;
+    const teams = await prisma.team.findMany({
+      include: {
+        captain: { select: { id: true, displayName: true, email: true } },
+        _count: { select: { memberships: true } },
+        memberships: {
+          include: {
+            player: { select: { id: true, fullName: true, preferredRole: true, gender: true } },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+      orderBy: { name: "asc" },
+    });
 
     const formatted = teams.map((t) => {
       const femaleCount = t.memberships.filter((m) => m.player.gender === "FEMALE").length;
+      const effectiveSize = settings.maxTeamSize;
       return {
         id: t.id,
         name: t.name,
         captain: t.captain,
-        teamSize: t.teamSize,
+        teamSize: effectiveSize,
         status: t.status,
         memberCount: t._count.memberships,
         femaleCount,
-        minFemaleRequired: minFemale,
-        slotsRemaining: Math.max(0, t.teamSize - t._count.memberships),
+        minFemaleRequired: settings.minFemalePerTeam,
+        slotsRemaining: Math.max(0, effectiveSize - t._count.memberships),
         players: t.memberships.map((m) => ({
           id: m.player.id,
           fullName: m.player.fullName,

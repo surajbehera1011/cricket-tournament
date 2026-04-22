@@ -91,6 +91,11 @@ export default function ManagePage() {
 
   const handleAssign = async (playerId: string) => {
     if (!selectedTeamId) return;
+    const currentTeam = teams.find((t) => t.id === selectedTeamId);
+    if (currentTeam?.status === "COMPLETE") {
+      showMessage("Team is frozen. Cannot assign players.", "error");
+      return;
+    }
     const playerToAssign = pool.find((p) => p.id === playerId);
     if (!playerToAssign) return;
 
@@ -148,6 +153,10 @@ export default function ManagePage() {
   const handleRemove = async (playerId: string) => {
     if (!selectedTeamId) return;
     const team = teams.find((t) => t.id === selectedTeamId);
+    if (team?.status === "COMPLETE") {
+      showMessage("Team is frozen. Cannot remove players.", "error");
+      return;
+    }
     const playerToRemove = team?.players.find((p) => p.id === playerId);
     if (!playerToRemove) return;
 
@@ -248,9 +257,14 @@ export default function ManagePage() {
             >
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900">{team.name}</h3>
-                <Badge variant={team.status === "COMPLETE" ? "success" : "warning"}>
-                  {team.status}
-                </Badge>
+                <div className="flex gap-1">
+                  {team.status === "COMPLETE" && (
+                    <Badge variant="default" className="bg-gray-800 text-white text-[10px]">FROZEN</Badge>
+                  )}
+                  <Badge variant={team.status === "COMPLETE" ? "success" : "warning"}>
+                    {team.status}
+                  </Badge>
+                </div>
               </div>
               <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">
                 <span>{team.memberCount}/{team.teamSize} players</span>
@@ -279,6 +293,11 @@ export default function ManagePage() {
               <CardTitle>
                 {selectedTeam ? `${selectedTeam.name} Roster` : "Select a Team"}
               </CardTitle>
+              {selectedTeam?.status === "COMPLETE" && (
+                <p className="text-xs text-gray-500 mt-1 font-normal bg-gray-100 px-2 py-1 rounded">
+                  This team is <strong>complete &amp; frozen</strong>. No changes allowed.
+                </p>
+              )}
             </CardHeader>
             <CardContent>
               {selectedTeam ? (
@@ -313,6 +332,7 @@ export default function ManagePage() {
                           size="sm"
                           onClick={() => handleRemove(player.id)}
                           loading={actionLoading === player.id}
+                          disabled={selectedTeam?.status === "COMPLETE"}
                         >
                           Remove
                         </Button>
@@ -369,7 +389,7 @@ export default function ManagePage() {
                         size="sm"
                         onClick={() => handleAssign(player.id)}
                         loading={actionLoading === player.id}
-                        disabled={!selectedTeamId}
+                        disabled={!selectedTeamId || selectedTeam?.status === "COMPLETE"}
                       >
                         Assign
                       </Button>

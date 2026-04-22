@@ -1,8 +1,20 @@
 import { prisma } from "@/lib/prisma";
-import { TeamStatus, PoolStatus, MembershipType, AuditAction, Prisma } from "@prisma/client";
+import { TeamStatus, PoolStatus, MembershipType, AuditAction, Prisma, Gender } from "@prisma/client";
 import { createAuditLog } from "./audit";
 import { sseManager } from "@/lib/sse";
 import type { TeamRegistrationInput, IndividualRegistrationInput } from "@/lib/validators";
+
+export async function getSettings() {
+  let settings = await prisma.tournamentSettings.findUnique({
+    where: { id: "singleton" },
+  });
+  if (!settings) {
+    settings = await prisma.tournamentSettings.create({
+      data: { id: "singleton" },
+    });
+  }
+  return settings;
+}
 
 export async function recomputeTeamStatus(teamId: string): Promise<TeamStatus> {
   const team = await prisma.team.findUniqueOrThrow({
@@ -14,19 +26,15 @@ export async function recomputeTeamStatus(teamId: string): Promise<TeamStatus> {
     },
   });
 
-  const settings = await prisma.tournamentSettings.findUnique({
-    where: { id: "singleton" },
-  });
-  const requiredSize = team.teamSize;
-  const minFemale = settings?.minFemalePerTeam ?? 1;
+  const settings = await getSettings();
 
   const memberCount = team.memberships.length;
   const femaleCount = team.memberships.filter(
     (m) => m.player.gender === "FEMALE"
   ).length;
 
-  const sizeOk = memberCount >= requiredSize;
-  const femaleOk = femaleCount >= minFemale;
+  const sizeOk = memberCount >= settings.maxTeamSize;
+  const femaleOk = femaleCount >= settings.minFemalePerTeam;
   const newStatus = sizeOk && femaleOk ? TeamStatus.COMPLETE : TeamStatus.INCOMPLETE;
 
   if (team.status !== newStatus) {
@@ -43,36 +51,27 @@ export async function registerTeam(
   input: TeamRegistrationInput,
   actorUserId: string
 ) {
-  const playerNames = [
-    input.player1,
-    input.player2,
-    input.player3,
-    input.player4,
-    input.player5,
-    input.player6,
-    input.player7,
-    input.player8,
-    input.player9,
-  ].filter((name) => name && name.trim() !== "");
+  const settings = await getSettings();
+  const teamSize = settings.maxTeamSize;
 
   const result = await prisma.$transaction(async (tx) => {
     const team = await tx.team.upsert({
       where: { name: input.teamName },
-      update: {
-        teamSize: input.teamSize,
-      },
+      update: { teamSize },
       create: {
         name: input.teamName,
-        teamSize: input.teamSize,
+        teamSize,
         status: TeamStatus.INCOMPLETE,
       },
     });
 
     const players = [];
-    for (let i = 0; i < playerNames.length; i++) {
+    for (let i = 0; i < input.players.length; i++) {
+      const entry = input.players[i];
       const player = await tx.player.create({
         data: {
-          fullName: playerNames[i],
+          fullName: entry.name,
+          gender: entry.gender as Gender,
           preferredRole: "",
           experienceLevel: "",
           poolStatus: PoolStatus.ASSIGNED,
@@ -97,29 +96,20 @@ export async function registerTeam(
         submitterName: input.submitterName,
         teamName: input.teamName,
         captainName: input.captainName,
-        teamSize: input.teamSize,
-        teamPlayersJson: playerNames.reduce<Record<string, string>>(
-          (acc, name, idx) => ({ ...acc, [`Player${idx + 1}`]: name }),
-          {}
-        ) as Prisma.InputJsonValue,
+        teamSize,
+        teamPlayersJson: input.players.map((p, idx) => ({
+          slot: `Player ${idx + 1}`,
+          name: p.name,
+          gender: p.gender,
+        })) as unknown as Prisma.InputJsonValue,
         comments: input.comments,
         poolStatus: PoolStatus.NONE,
       },
     });
 
-    const memberCount = await tx.teamMembership.count({
-      where: { teamId: team.id },
-    });
-
-    const updatedTeam = await tx.team.update({
-      where: { id: team.id },
-      data: { status: TeamStatus.INCOMPLETE },
-    });
-
-    return { team: updatedTeam, players, registration };
+    return { team, players, registration };
   });
 
-  // Recompute with full logic (female check etc.) outside transaction
   await recomputeTeamStatus(result.team.id);
 
   await createAuditLog({
@@ -130,8 +120,8 @@ export async function registerTeam(
     after: {
       teamName: input.teamName,
       captainName: input.captainName,
-      teamSize: input.teamSize,
-      playerCount: playerNames.length,
+      teamSize,
+      playerCount: input.players.length,
     },
   });
 
@@ -152,7 +142,7 @@ export async function registerIndividual(
       data: {
         fullName: input.fullName,
         email: input.email || null,
-        gender: input.gender as any,
+        gender: input.gender as Gender,
         preferredRole: input.preferredRole.join(", "),
         experienceLevel: input.experienceLevel,
         comments: input.comments,
@@ -182,6 +172,7 @@ export async function registerIndividual(
     entityId: result.player.id,
     after: {
       fullName: input.fullName,
+      gender: input.gender,
       preferredRole: input.preferredRole,
       experienceLevel: input.experienceLevel,
     },

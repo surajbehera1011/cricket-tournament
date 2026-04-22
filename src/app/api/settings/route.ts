@@ -8,6 +8,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/business/audit";
+import { recomputeTeamStatus } from "@/lib/business/registration";
 import { jsonResponse } from "@/lib/api-utils";
 
 const updateSettingsSchema = z.object({
@@ -61,6 +62,17 @@ export async function PUT(request: NextRequest) {
       update: parsed.data,
       create: { id: "singleton", ...parsed.data },
     });
+
+    if (parsed.data.maxTeamSize !== undefined) {
+      await prisma.team.updateMany({
+        data: { teamSize: parsed.data.maxTeamSize },
+      });
+    }
+
+    const allTeams = await prisma.team.findMany({ select: { id: true } });
+    for (const team of allTeams) {
+      await recomputeTeamStatus(team.id);
+    }
 
     await createAuditLog({
       actorUserId: session.user.id,

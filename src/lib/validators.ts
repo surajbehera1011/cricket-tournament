@@ -1,18 +1,14 @@
 import { z } from "zod";
 
+const playerEntrySchema = z.object({
+  name: z.string().min(1, "Player name is required"),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"], { required_error: "Gender is required" }),
+});
+
 export const teamRegistrationSchema = z.object({
   teamName: z.string().min(2, "Team name must be at least 2 characters").max(100),
   captainName: z.string().min(2).max(100),
-  teamSize: z.number().int().min(2).max(20).default(9),
-  player1: z.string().min(1, "Player 1 is required"),
-  player2: z.string().optional().default(""),
-  player3: z.string().optional().default(""),
-  player4: z.string().optional().default(""),
-  player5: z.string().optional().default(""),
-  player6: z.string().optional().default(""),
-  player7: z.string().optional().default(""),
-  player8: z.string().optional().default(""),
-  player9: z.string().optional().default(""),
+  players: z.array(playerEntrySchema).min(1, "At least 1 player is required"),
   comments: z.string().optional().default(""),
   submitterEmail: z.string().email(),
   submitterName: z.string().min(1),
