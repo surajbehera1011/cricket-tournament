@@ -94,6 +94,7 @@ export function PickleballDashboard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState<string | null>(null);
+  const [regCloseDate, setRegCloseDate] = useState<string | null>(null);
   const [openCat, setOpenCat] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -106,7 +107,8 @@ export function PickleballDashboard() {
       const data = await res.json();
       const settings = await settingsRes.json();
       if (Array.isArray(data)) setRegistrations(data);
-      if (settings?.tournamentStartDate) setStartDate(settings.tournamentStartDate);
+      setStartDate(settings?.pickleballStartDate || settings?.tournamentStartDate || null);
+      setRegCloseDate(settings?.pickleballRegCloseDate || null);
     } catch (err) {
       console.error("Failed to fetch pickleball data:", err);
     } finally {
@@ -161,6 +163,20 @@ export function PickleballDashboard() {
       {startDate && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4 flex justify-center">
           <Countdown targetDate={startDate} />
+        </div>
+      )}
+
+      {/* Registration closing banner */}
+      {regCloseDate && new Date(regCloseDate).getTime() > Date.now() && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3 text-sm">
+            <span className="text-lg">⏰</span>
+            <p className="text-amber-800">
+              <span className="font-bold">Register soon!</span>{" "}
+              Pickleball registration closes by{" "}
+              <span className="font-bold">{new Date(regCloseDate).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+            </p>
+          </div>
         </div>
       )}
 

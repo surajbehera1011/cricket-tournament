@@ -17,6 +17,10 @@ const updateSettingsSchema = z.object({
   tournamentName: z.string().min(1).max(200).optional(),
   registrationOpen: z.boolean().optional(),
   tournamentStartDate: z.string().nullable().optional(),
+  cricketStartDate: z.string().nullable().optional(),
+  pickleballStartDate: z.string().nullable().optional(),
+  cricketRegCloseDate: z.string().nullable().optional(),
+  pickleballRegCloseDate: z.string().nullable().optional(),
 });
 
 export async function GET() {
@@ -58,11 +62,21 @@ export async function PUT(request: NextRequest) {
       where: { id: "singleton" },
     });
 
-    const updateData: Record<string, unknown> = { ...parsed.data };
-    if (parsed.data.tournamentStartDate !== undefined) {
-      updateData.tournamentStartDate = parsed.data.tournamentStartDate
-        ? new Date(parsed.data.tournamentStartDate)
-        : null;
+    const updateData: Record<string, unknown> = {};
+    const dateFields = [
+      "tournamentStartDate",
+      "cricketStartDate",
+      "pickleballStartDate",
+      "cricketRegCloseDate",
+      "pickleballRegCloseDate",
+    ] as const;
+
+    for (const [key, value] of Object.entries(parsed.data)) {
+      if (dateFields.includes(key as any)) {
+        updateData[key] = value ? new Date(value as string) : null;
+      } else {
+        updateData[key] = value;
+      }
     }
 
     const settings = await prisma.tournamentSettings.upsert({

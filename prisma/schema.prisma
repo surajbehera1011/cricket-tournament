@@ -178,14 +178,18 @@ model AuditLog {
 }
 
 model TournamentSettings {
-  id                  String   @id @default("singleton")
-  maxTeamSize         Int      @default(9)
-  minFemalePerTeam    Int      @default(1)
-  tournamentName      String   @default("Office Cricket Tournament")
-  registrationOpen    Boolean  @default(true)
-  tournamentStartDate DateTime?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                       String   @id @default("singleton")
+  maxTeamSize              Int      @default(9)
+  minFemalePerTeam         Int      @default(1)
+  tournamentName           String   @default("Office Cricket Tournament")
+  registrationOpen         Boolean  @default(true)
+  tournamentStartDate      DateTime?
+  cricketStartDate         DateTime?
+  pickleballStartDate      DateTime?
+  cricketRegCloseDate      DateTime?
+  pickleballRegCloseDate   DateTime?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 
   @@map("tournament_settings")
 }

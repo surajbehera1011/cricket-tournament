@@ -48,6 +48,7 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState<string | null>(null);
+  const [regCloseDate, setRegCloseDate] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -62,7 +63,8 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
       const settingsData = await settingsRes.json();
       if (Array.isArray(teamsData)) setTeams(teamsData);
       if (Array.isArray(poolData)) setPool(poolData);
-      if (settingsData?.tournamentStartDate) setStartDate(settingsData.tournamentStartDate);
+      setStartDate(settingsData?.cricketStartDate || settingsData?.tournamentStartDate || null);
+      setRegCloseDate(settingsData?.cricketRegCloseDate || null);
     } catch (err) {
       console.error("Failed to fetch cricket data:", err);
     } finally {
@@ -113,6 +115,20 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
       {startDate && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4 flex justify-center">
           <Countdown targetDate={startDate} />
+        </div>
+      )}
+
+      {/* Registration closing banner */}
+      {regCloseDate && new Date(regCloseDate).getTime() > Date.now() && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3 text-sm">
+            <span className="text-lg">⏰</span>
+            <p className="text-amber-800">
+              <span className="font-bold">Register soon!</span>{" "}
+              Cricket registration closes by{" "}
+              <span className="font-bold">{new Date(regCloseDate).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+            </p>
+          </div>
         </div>
       )}
 

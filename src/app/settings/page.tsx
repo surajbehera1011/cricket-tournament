@@ -12,6 +12,25 @@ interface Settings {
   tournamentName: string;
   registrationOpen: boolean;
   tournamentStartDate: string | null;
+  cricketStartDate: string | null;
+  pickleballStartDate: string | null;
+  cricketRegCloseDate: string | null;
+  pickleballRegCloseDate: string | null;
+}
+
+function DateInput({ label, hint, value, onChange }: { label: string; hint: string; value: string | null; onChange: (v: string | null) => void }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+      <input
+        type="datetime-local"
+        value={value ? new Date(value).toISOString().slice(0, 16) : ""}
+        onChange={(e) => onChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
+        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
+      />
+      <p className="text-xs text-slate-400 mt-1">{hint}</p>
+    </div>
+  );
 }
 
 export default function SettingsPage() {
@@ -87,6 +106,8 @@ export default function SettingsPage() {
     );
   }
 
+  const set = (patch: Partial<Settings>) => setSettings({ ...settings, ...patch });
+
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
@@ -94,62 +115,86 @@ export default function SettingsPage() {
         <p className="mt-1 text-slate-500">Configure tournament rules and constraints</p>
       </div>
 
+      {/* General */}
       <Card>
         <CardHeader>
           <CardTitle>General</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Tournament Name
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Tournament Name</label>
             <input
               type="text"
               value={settings.tournamentName}
-              onChange={(e) => setSettings({ ...settings, tournamentName: e.target.value })}
+              onChange={(e) => set({ tournamentName: e.target.value })}
               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
             />
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Tournament Start Date
-            </label>
-            <input
-              type="datetime-local"
-              value={settings.tournamentStartDate ? new Date(settings.tournamentStartDate).toISOString().slice(0, 16) : ""}
-              onChange={(e) => setSettings({ ...settings, tournamentStartDate: e.target.value ? new Date(e.target.value).toISOString() : null })}
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
-            />
-            <p className="text-xs text-slate-400 mt-1">
-              Used for the countdown timer on the dashboard hero section.
-            </p>
-          </div>
-
           <div className="flex items-center justify-between">
             <div>
               <label className="text-sm font-medium text-slate-700">Registration Open</label>
-              <p className="text-xs text-slate-400 mt-0.5">Allow new registrations</p>
+              <p className="text-xs text-slate-400 mt-0.5">Allow new registrations for all sports</p>
             </div>
             <button
-              onClick={() => setSettings({ ...settings, registrationOpen: !settings.registrationOpen })}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings.registrationOpen ? "bg-brand-600" : "bg-slate-300"
-              }`}
+              onClick={() => set({ registrationOpen: !settings.registrationOpen })}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.registrationOpen ? "bg-brand-600" : "bg-slate-300"}`}
             >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  settings.registrationOpen ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.registrationOpen ? "translate-x-6" : "translate-x-1"}`} />
             </button>
           </div>
         </CardContent>
       </Card>
 
+      {/* Cricket Dates */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Team Rules</CardTitle>
+          <CardTitle>
+            <span className="inline-flex items-center gap-2">🏏 Cricket Dates</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <DateInput
+            label="Cricket Tournament Start Date"
+            hint="Countdown timer shown on the Cricket dashboard."
+            value={settings.cricketStartDate}
+            onChange={(v) => set({ cricketStartDate: v })}
+          />
+          <DateInput
+            label="Cricket Registration Close Date"
+            hint="A 'Register soon' banner will appear on the dashboard before this date."
+            value={settings.cricketRegCloseDate}
+            onChange={(v) => set({ cricketRegCloseDate: v })}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Pickleball Dates */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>
+            <span className="inline-flex items-center gap-2">🏓 Pickleball Dates</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <DateInput
+            label="Pickleball Tournament Start Date"
+            hint="Countdown timer shown on the Pickleball dashboard."
+            value={settings.pickleballStartDate}
+            onChange={(v) => set({ pickleballStartDate: v })}
+          />
+          <DateInput
+            label="Pickleball Registration Close Date"
+            hint="A 'Register soon' banner will appear on the dashboard before this date."
+            value={settings.pickleballRegCloseDate}
+            onChange={(v) => set({ pickleballRegCloseDate: v })}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Cricket Team Rules */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Cricket Team Rules</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
@@ -157,41 +202,30 @@ export default function SettingsPage() {
               Maximum Team Size: {settings.maxTeamSize} players
             </label>
             <input
-              type="range"
-              min={2}
-              max={20}
+              type="range" min={2} max={20}
               value={settings.maxTeamSize}
-              onChange={(e) => setSettings({ ...settings, maxTeamSize: parseInt(e.target.value) })}
+              onChange={(e) => set({ maxTeamSize: parseInt(e.target.value) })}
               className="w-full accent-brand-600"
             />
             <div className="flex justify-between text-xs text-slate-400 mt-1">
-              <span>2</span>
-              <span>20</span>
+              <span>2</span><span>20</span>
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Teams will be marked COMPLETE when they reach this number of players.
-            </p>
+            <p className="text-xs text-slate-400 mt-1">Teams will be marked COMPLETE when they reach this number of players.</p>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Minimum Female Players Per Team: {settings.minFemalePerTeam}
             </label>
             <input
-              type="range"
-              min={0}
-              max={10}
+              type="range" min={0} max={10}
               value={settings.minFemalePerTeam}
-              onChange={(e) => setSettings({ ...settings, minFemalePerTeam: parseInt(e.target.value) })}
+              onChange={(e) => set({ minFemalePerTeam: parseInt(e.target.value) })}
               className="w-full accent-brand-600"
             />
             <div className="flex justify-between text-xs text-slate-400 mt-1">
-              <span>0 (no requirement)</span>
-              <span>10</span>
+              <span>0 (no requirement)</span><span>10</span>
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Teams need at least this many female players to be marked COMPLETE.
-            </p>
+            <p className="text-xs text-slate-400 mt-1">Teams need at least this many female players to be marked COMPLETE.</p>
           </div>
         </CardContent>
       </Card>
@@ -200,13 +234,7 @@ export default function SettingsPage() {
         <Button onClick={handleSave} loading={saving} size="lg" className="w-full">
           Save Settings
         </Button>
-        <Button
-          onClick={handleRecompute}
-          loading={recomputing}
-          variant="secondary"
-          size="lg"
-          className="w-full"
-        >
+        <Button onClick={handleRecompute} loading={recomputing} variant="secondary" size="lg" className="w-full">
           Recompute All Team Statuses
         </Button>
         <p className="text-xs text-slate-400 text-center">
