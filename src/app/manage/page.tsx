@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useSSE } from "@/lib/useSSE";
+import { useToast } from "@/components/ui/Toast";
 
 interface Player {
   id: string;
@@ -179,12 +180,12 @@ function RejectModal({
 
 export default function ManagePage() {
   const { data: session } = useSession();
+  const { toast: showToast } = useToast();
   const [teams, setTeams] = useState<Team[]>([]);
   const [pool, setPool] = useState<PoolPlayer[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [message, setMessage] = useState({ text: "", type: "" });
   const [rejectTeam, setRejectTeam] = useState<Team | null>(null);
 
   const isAdmin = session?.user?.role === "ADMIN";
@@ -226,8 +227,7 @@ export default function ManagePage() {
   const selectedTeam = visibleTeams.find((t) => t.id === selectedTeamId);
 
   const showMessage = (text: string, type: "success" | "error") => {
-    setMessage({ text, type });
-    setTimeout(() => setMessage({ text: "", type: "" }), 3000);
+    showToast(text, type);
   };
 
   const handleGenderUpdate = (playerId: string, newGender: string) => {
@@ -455,17 +455,7 @@ export default function ManagePage() {
         <p className="mt-1 text-slate-500">Manage all teams, assign players, approve or reject</p>
       </div>
 
-      {message.text && (
-        <div
-          className={`mb-4 px-4 py-3 rounded-xl text-sm ${
-            message.type === "success"
-              ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
-              : "bg-red-50 border border-red-200 text-red-700"
-          }`}
-        >
-          {message.text}
-        </div>
-      )}
+      {/* Team selector */}
 
       {rejectTeam && (
         <RejectModal

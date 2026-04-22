@@ -50,6 +50,7 @@ export async function GET() {
         name: t.name,
         captainName: t.captainName || t.captain?.displayName || "",
         captain: t.captain,
+        color: t.color || "",
         teamSize: effectiveSize,
         status: displayStatus,
         criteriaMet,

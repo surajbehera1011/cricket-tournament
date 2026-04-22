@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { StatsCards } from "@/components/dashboard/StatsCards";
 import { TeamCards } from "@/components/dashboard/TeamCards";
 import { PoolTable } from "@/components/dashboard/PoolTable";
+import { Countdown } from "@/components/dashboard/Countdown";
 import { useSSE } from "@/lib/useSSE";
 import { Suspense } from "react";
 
@@ -17,12 +18,14 @@ interface Team {
   slotsRemaining: number;
   femaleCount: number;
   captainName: string;
+  color?: string;
   captain: { displayName: string } | null;
   players: {
     id: string;
     fullName: string;
     preferredRole: string;
     gender?: string;
+    email?: string;
     membershipType: string;
     positionSlot: string | null;
   }[];
@@ -44,18 +47,23 @@ function DashboardContent() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [pool, setPool] = useState<PoolPlayer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [startDate, setStartDate] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
       const ts = Date.now();
-      const [teamsRes, poolRes] = await Promise.all([
+      const [teamsRes, poolRes, settingsRes] = await Promise.all([
         fetch(`/api/teams?_t=${ts}`, { cache: "no-store" }),
         fetch(`/api/pool?_t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/settings?_t=${ts}`, { cache: "no-store" }),
       ]);
       const teamsData = await teamsRes.json();
       const poolData = await poolRes.json();
+      const settingsData = await settingsRes.json();
       if (Array.isArray(teamsData)) setTeams(teamsData);
       if (Array.isArray(poolData)) setPool(poolData);
+      if (settingsData?.tournamentStartDate) setStartDate(settingsData.tournamentStartDate);
     } catch (err) {
       console.error("Failed to fetch data:", err);
     } finally {
@@ -68,6 +76,22 @@ function DashboardContent() {
   }, [fetchData]);
 
   useSSE(fetchData);
+
+  const q = search.toLowerCase();
+  const filteredTeams = q
+    ? teams.filter((t) =>
+        t.name.toLowerCase().includes(q) ||
+        t.captainName?.toLowerCase().includes(q) ||
+        t.players.some((p) => p.fullName.toLowerCase().includes(q))
+      )
+    : teams;
+
+  const filteredPool = q
+    ? pool.filter((p) =>
+        p.fullName.toLowerCase().includes(q) ||
+        p.preferredRole.toLowerCase().includes(q)
+      )
+    : pool;
 
   const readyTeams = teams.filter((t) => t.status === "READY").length;
   const completeTeams = teams.filter((t) => t.status === "COMPLETE").length;
@@ -103,6 +127,7 @@ function DashboardContent() {
             <p className={`mt-3 text-white/70 max-w-lg mx-auto ${tvMode ? "text-tv-base" : "text-base"}`}>
               Track teams, player pool, and tournament progress in real-time
             </p>
+            <Countdown targetDate={startDate} />
           </div>
         </div>
       </div>
@@ -119,6 +144,30 @@ function DashboardContent() {
         />
       </div>
 
+      {/* Search Bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        <div className="relative">
+          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search teams, players, captains..."
+            className="w-full pl-12 pr-4 py-3 bg-white border border-brand-100/50 rounded-2xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent shadow-sm placeholder:text-slate-400"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              &times;
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <div>
@@ -127,9 +176,11 @@ function DashboardContent() {
             <h2 className={`font-bold text-slate-800 ${tvMode ? "text-tv-xl" : "text-xl"}`}>
               Teams
             </h2>
-            <span className="text-sm text-slate-400 font-medium">({teams.length})</span>
+            <span className="text-sm text-slate-400 font-medium">
+              ({filteredTeams.length}{search ? ` of ${teams.length}` : ""})
+            </span>
           </div>
-          <TeamCards teams={teams} tvMode={tvMode} />
+          <TeamCards teams={filteredTeams} tvMode={tvMode} />
         </div>
 
         <div>
@@ -138,9 +189,11 @@ function DashboardContent() {
             <h2 className={`font-bold text-slate-800 ${tvMode ? "text-tv-xl" : "text-xl"}`}>
               Player Pool
             </h2>
-            <span className="text-sm text-slate-400 font-medium">({pool.length})</span>
+            <span className="text-sm text-slate-400 font-medium">
+              ({filteredPool.length}{search ? ` of ${pool.length}` : ""})
+            </span>
           </div>
-          <PoolTable players={pool} tvMode={tvMode} />
+          <PoolTable players={filteredPool} tvMode={tvMode} />
         </div>
       </div>
     </div>

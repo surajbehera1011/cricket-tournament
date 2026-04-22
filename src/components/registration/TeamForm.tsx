@@ -15,8 +15,22 @@ interface TeamFormProps {
 
 const MIN_TOTAL_PLAYERS = 4;
 
+const TEAM_COLORS = [
+  { value: "#6366f1", label: "Indigo" },
+  { value: "#8b5cf6", label: "Violet" },
+  { value: "#ec4899", label: "Pink" },
+  { value: "#ef4444", label: "Red" },
+  { value: "#f97316", label: "Orange" },
+  { value: "#eab308", label: "Yellow" },
+  { value: "#22c55e", label: "Green" },
+  { value: "#14b8a6", label: "Teal" },
+  { value: "#0ea5e9", label: "Sky" },
+  { value: "#6b7280", label: "Gray" },
+];
+
 export function TeamForm({ onSuccess }: TeamFormProps) {
   const [teamName, setTeamName] = useState("");
+  const [teamColor, setTeamColor] = useState("");
   const [captainName, setCaptainName] = useState("");
   const [captainGender, setCaptainGender] = useState("");
   const [captainEmail, setCaptainEmail] = useState("");
@@ -112,6 +126,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           teamName,
+          teamColor,
           captainName,
           captainGender,
           captainEmail,
@@ -126,6 +141,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       }
 
       setTeamName("");
+      setTeamColor("");
       setCaptainName("");
       setCaptainGender("");
       setCaptainEmail("");
@@ -169,6 +185,23 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
           className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
           placeholder="e.g. Royal Strikers"
         />
+      </div>
+
+      {/* Team Color */}
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">Team Color (optional)</label>
+        <div className="flex flex-wrap gap-2">
+          {TEAM_COLORS.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => setTeamColor(teamColor === c.value ? "" : c.value)}
+              className={`w-9 h-9 rounded-xl border-2 transition-all ${teamColor === c.value ? "border-slate-800 scale-110 shadow-md" : "border-transparent hover:scale-105"}`}
+              style={{ background: c.value }}
+              title={c.label}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Captain Section */}

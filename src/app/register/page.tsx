@@ -4,19 +4,20 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { TeamForm } from "@/components/registration/TeamForm";
 import { IndividualForm } from "@/components/registration/IndividualForm";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 
 export default function RegisterPage() {
   const [tab, setTab] = useState<"team" | "individual">("team");
-  const [success, setSuccess] = useState("");
+  const { toast } = useToast();
 
   const handleSuccess = () => {
-    setSuccess(
+    toast(
       tab === "team"
         ? "Team registration submitted! It will appear on the dashboard after admin approval."
-        : "Individual registration submitted! You will appear in the player pool after admin approval."
+        : "Individual registration submitted! You will appear in the player pool after admin approval.",
+      "success"
     );
-    setTimeout(() => setSuccess(""), 8000);
   };
 
   return (
@@ -35,13 +36,6 @@ export default function RegisterPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20 pb-12">
-        {success && (
-          <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
-            <span className="text-lg">✅</span>
-            {success}
-          </div>
-        )}
-
         {/* Tab switcher */}
         <div className="flex gap-1 bg-white p-1.5 rounded-2xl mb-5 shadow-lg border border-brand-100/50">
           <button

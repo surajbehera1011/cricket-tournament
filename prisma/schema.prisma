@@ -85,6 +85,7 @@ model Team {
   id            String     @id @default(uuid())
   name          String     @unique
   captainName   String     @default("")
+  color         String     @default("")
   captainUserId String?
   captain       User?      @relation("TeamCaptain", fields: [captainUserId], references: [id])
   teamSize      Int        @default(9)
@@ -163,11 +164,12 @@ model AuditLog {
 }
 
 model TournamentSettings {
-  id                  String  @id @default("singleton")
-  maxTeamSize         Int     @default(9)
-  minFemalePerTeam    Int     @default(1)
-  tournamentName      String  @default("Office Cricket Tournament")
-  registrationOpen    Boolean @default(true)
+  id                  String   @id @default("singleton")
+  maxTeamSize         Int      @default(9)
+  minFemalePerTeam    Int      @default(1)
+  tournamentName      String   @default("Office Cricket Tournament")
+  registrationOpen    Boolean  @default(true)
+  tournamentStartDate DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

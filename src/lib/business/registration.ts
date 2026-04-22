@@ -36,17 +36,18 @@ export async function recomputeTeamStatus(teamId: string): Promise<TeamStatus> {
   return team.status;
 }
 
-export async function registerTeam(input: TeamRegistrationInput) {
+export async function registerTeam(input: TeamRegistrationInput, color = "") {
   const settings = await getSettings();
   const teamSize = settings.maxTeamSize;
 
   const result = await prisma.$transaction(async (tx) => {
     const team = await tx.team.upsert({
       where: { name: input.teamName },
-      update: { teamSize, captainName: input.captainName },
+      update: { teamSize, captainName: input.captainName, color },
       create: {
         name: input.teamName,
         captainName: input.captainName,
+        color,
         teamSize,
         status: TeamStatus.PENDING_APPROVAL,
       },

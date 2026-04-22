@@ -8,6 +8,7 @@ interface Player {
   fullName: string;
   preferredRole: string;
   gender?: string;
+  email?: string;
   membershipType: string;
   positionSlot: string | null;
 }
@@ -21,6 +22,7 @@ interface Team {
   slotsRemaining: number;
   femaleCount?: number;
   captainName: string;
+  color?: string;
   captain: { displayName: string } | null;
   players: Player[];
 }
@@ -55,7 +57,50 @@ function StatusBadge({ status }: { status: string }) {
   return <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">⏳ IN PROGRESS</span>;
 }
 
+function PlayerProfile({ player, onClose }: { player: Player; onClose: () => void }) {
+  const genderLabel = player.gender === "FEMALE" ? "Female" : player.gender === "OTHER" ? "Other" : "Male";
+  const genderColor = player.gender === "FEMALE" ? "text-pink-600 bg-pink-50" : player.gender === "OTHER" ? "text-violet-600 bg-violet-50" : "text-sky-600 bg-sky-50";
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-xs w-full p-6 border border-brand-100/50" onClick={(e) => e.stopPropagation()}>
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-2xl font-bold mx-auto mb-3">
+            {player.fullName.charAt(0).toUpperCase()}
+          </div>
+          <h3 className="text-lg font-bold text-slate-800">{player.fullName}</h3>
+          {player.email && <p className="text-xs text-slate-400 mt-0.5">{player.email}</p>}
+        </div>
+        <div className="mt-4 space-y-2">
+          {player.gender && (
+            <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-surface-50">
+              <span className="text-xs text-slate-500 font-medium">Gender</span>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${genderColor}`}>{genderLabel}</span>
+            </div>
+          )}
+          {player.preferredRole && (
+            <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-surface-50">
+              <span className="text-xs text-slate-500 font-medium">Role</span>
+              <span className="text-xs font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full">{player.preferredRole}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-surface-50">
+            <span className="text-xs text-slate-500 font-medium">Type</span>
+            <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+              {player.membershipType === "TEAM_SUBMISSION" ? "Original" : "Draft Pick"}
+            </span>
+          </div>
+        </div>
+        <button onClick={onClose} className="mt-4 w-full py-2 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-brand-50 rounded-xl transition-colors">
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TeamModal({ team, onClose }: { team: Team; onClose: () => void }) {
+  const [profilePlayer, setProfilePlayer] = useState<Player | null>(null);
   const maleCount = team.players.filter((p) => p.gender === "MALE").length;
   const femaleCount = team.players.filter((p) => p.gender === "FEMALE").length;
   const otherCount = team.players.filter((p) => p.gender === "OTHER").length;
@@ -66,16 +111,21 @@ function TeamModal({ team, onClose }: { team: Team; onClose: () => void }) {
       className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in"
       onClick={onClose}
     >
+      {profilePlayer && <PlayerProfile player={profilePlayer} onClose={() => setProfilePlayer(null)} />}
       <div
         className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-hidden border border-brand-100/50"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Colored top strip */}
-        <div className={`h-1.5 ${
-          team.status === "READY" ? "bg-gradient-to-r from-emerald-400 to-emerald-500" :
-          team.status === "COMPLETE" ? "bg-gradient-to-r from-brand-400 to-brand-500" :
-          "bg-gradient-to-r from-amber-300 to-amber-500"
-        }`} />
+        <div
+          className={`h-1.5 ${
+            team.color ? "" :
+            team.status === "READY" ? "bg-gradient-to-r from-emerald-400 to-emerald-500" :
+            team.status === "COMPLETE" ? "bg-gradient-to-r from-brand-400 to-brand-500" :
+            "bg-gradient-to-r from-amber-300 to-amber-500"
+          }`}
+          style={team.color ? { background: team.color } : undefined}
+        />
 
         {/* Header */}
         <div className="p-6 pb-4">
@@ -157,7 +207,12 @@ function TeamModal({ team, onClose }: { team: Team; onClose: () => void }) {
                       {idx === 0 ? "C" : idx + 1}
                     </span>
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">{player.fullName}</p>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setProfilePlayer(player); }}
+                        className="text-sm font-semibold text-slate-800 hover:text-brand-700 transition-colors text-left"
+                      >
+                        {player.fullName}
+                      </button>
                       {player.preferredRole && (
                         <p className="text-[11px] text-slate-400">{player.preferredRole}</p>
                       )}
@@ -215,9 +270,14 @@ export function TeamCards({ teams, tvMode }: TeamCardsProps) {
             >
               {/* Team name + status */}
               <div className="flex items-start justify-between mb-2">
-                <h3 className="text-lg font-extrabold text-slate-800 group-hover:text-brand-700 transition-colors leading-tight">
-                  {team.name}
-                </h3>
+                <div className="flex items-center gap-2">
+                  {team.color && (
+                    <span className="w-3 h-3 rounded-full flex-shrink-0 border border-white shadow-sm" style={{ background: team.color }} />
+                  )}
+                  <h3 className="text-lg font-extrabold text-slate-800 group-hover:text-brand-700 transition-colors leading-tight">
+                    {team.name}
+                  </h3>
+                </div>
               </div>
 
               <div className="mb-3">

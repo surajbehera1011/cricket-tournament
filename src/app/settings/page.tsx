@@ -4,21 +4,23 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
 
 interface Settings {
   maxTeamSize: number;
   minFemalePerTeam: number;
   tournamentName: string;
   registrationOpen: boolean;
+  tournamentStartDate: string | null;
 }
 
 export default function SettingsPage() {
   const { data: session } = useSession();
+  const { toast } = useToast();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [recomputing, setRecomputing] = useState(false);
-  const [message, setMessage] = useState({ text: "", type: "" });
 
   useEffect(() => {
     fetch("/api/settings", { cache: "no-store" })
@@ -52,10 +54,9 @@ export default function SettingsPage() {
       }
       const updated = await res.json();
       setSettings(updated);
-      setMessage({ text: "Settings saved successfully", type: "success" });
-      setTimeout(() => setMessage({ text: "", type: "" }), 3000);
+      toast("Settings saved successfully", "success");
     } catch (err) {
-      setMessage({ text: err instanceof Error ? err.message : "Failed to save", type: "error" });
+      toast(err instanceof Error ? err.message : "Failed to save", "error");
     } finally {
       setSaving(false);
     }
@@ -70,10 +71,9 @@ export default function SettingsPage() {
         throw new Error(data.error || "Recompute failed");
       }
       const data = await res.json();
-      setMessage({ text: `Recomputed ${data.count} team(s). ${data.fixed} status(es) corrected.`, type: "success" });
-      setTimeout(() => setMessage({ text: "", type: "" }), 5000);
+      toast(`Recomputed ${data.count} team(s). ${data.fixed} status(es) corrected.`, "success");
     } catch (err) {
-      setMessage({ text: err instanceof Error ? err.message : "Recompute failed", type: "error" });
+      toast(err instanceof Error ? err.message : "Recompute failed", "error");
     } finally {
       setRecomputing(false);
     }
@@ -94,18 +94,6 @@ export default function SettingsPage() {
         <p className="mt-1 text-slate-500">Configure tournament rules and constraints</p>
       </div>
 
-      {message.text && (
-        <div
-          className={`mb-4 px-4 py-3 rounded-xl text-sm ${
-            message.type === "success"
-              ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
-              : "bg-red-50 border border-red-200 text-red-700"
-          }`}
-        >
-          {message.text}
-        </div>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle>General</CardTitle>
@@ -121,6 +109,21 @@ export default function SettingsPage() {
               onChange={(e) => setSettings({ ...settings, tournamentName: e.target.value })}
               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Tournament Start Date
+            </label>
+            <input
+              type="datetime-local"
+              value={settings.tournamentStartDate ? new Date(settings.tournamentStartDate).toISOString().slice(0, 16) : ""}
+              onChange={(e) => setSettings({ ...settings, tournamentStartDate: e.target.value ? new Date(e.target.value).toISOString() : null })}
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
+            />
+            <p className="text-xs text-slate-400 mt-1">
+              Used for the countdown timer on the dashboard hero section.
+            </p>
           </div>
 
           <div className="flex items-center justify-between">

@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
 
 interface PendingPlayer {
   id: string;
@@ -46,22 +47,21 @@ interface ApprovedTeam {
 
 export default function AdminPage() {
   const { data: session } = useSession();
+  const { toast } = useToast();
   const [pendingTeams, setPendingTeams] = useState<PendingTeam[]>([]);
   const [pendingIndividuals, setPendingIndividuals] = useState<PendingIndividual[]>([]);
   const [captains, setCaptains] = useState<CaptainUser[]>([]);
   const [approvedTeams, setApprovedTeams] = useState<ApprovedTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [message, setMessage] = useState({ text: "", type: "" });
   const [tab, setTab] = useState<"pending" | "captains">("pending");
+
+  const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
+  const [selectedIndividuals, setSelectedIndividuals] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const [newCaptain, setNewCaptain] = useState({ email: "", displayName: "", password: "", teamId: "" });
   const [creatingCaptain, setCreatingCaptain] = useState(false);
-
-  const showMsg = (text: string, type: "success" | "error") => {
-    setMessage({ text, type });
-    setTimeout(() => setMessage({ text: "", type: "" }), 4000);
-  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -87,6 +87,69 @@ export default function AdminPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const toggleTeam = (id: string) => {
+    setSelectedTeams((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleIndividual = (id: string) => {
+    setSelectedIndividuals((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllTeams = () => {
+    if (selectedTeams.size === pendingTeams.length) {
+      setSelectedTeams(new Set());
+    } else {
+      setSelectedTeams(new Set(pendingTeams.map((t) => t.id)));
+    }
+  };
+
+  const toggleAllIndividuals = () => {
+    if (selectedIndividuals.size === pendingIndividuals.length) {
+      setSelectedIndividuals(new Set());
+    } else {
+      setSelectedIndividuals(new Set(pendingIndividuals.map((p) => p.id)));
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    setBulkLoading(true);
+    let approved = 0;
+    try {
+      for (const teamId of selectedTeams) {
+        const res = await fetch("/api/admin/approve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ teamId }),
+        });
+        if (res.ok) approved++;
+      }
+      for (const playerId of selectedIndividuals) {
+        const res = await fetch(`/api/players/${playerId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ approve: true }),
+        });
+        if (res.ok) approved++;
+      }
+      toast(`Approved ${approved} item(s) successfully!`, "success");
+      setSelectedTeams(new Set());
+      setSelectedIndividuals(new Set());
+      fetchData();
+    } catch {
+      toast("Some approvals failed", "error");
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   const handleApproveTeam = async (teamId: string) => {
     setActionLoading(teamId);
     try {
@@ -96,10 +159,10 @@ export default function AdminPage() {
         body: JSON.stringify({ teamId }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      showMsg("Team approved!", "success");
+      toast("Team approved!", "success");
       fetchData();
     } catch (err) {
-      showMsg(err instanceof Error ? err.message : "Failed", "error");
+      toast(err instanceof Error ? err.message : "Failed", "error");
     } finally {
       setActionLoading(null);
     }
@@ -114,10 +177,10 @@ export default function AdminPage() {
         body: JSON.stringify({ teamId }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      showMsg("Team rejected and removed.", "success");
+      toast("Team rejected and removed.", "success");
       fetchData();
     } catch (err) {
-      showMsg(err instanceof Error ? err.message : "Failed", "error");
+      toast(err instanceof Error ? err.message : "Failed", "error");
     } finally {
       setActionLoading(null);
     }
@@ -132,10 +195,10 @@ export default function AdminPage() {
         body: JSON.stringify({ approve: true }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      showMsg("Player approved and added to pool!", "success");
+      toast("Player approved and added to pool!", "success");
       fetchData();
     } catch (err) {
-      showMsg(err instanceof Error ? err.message : "Failed", "error");
+      toast(err instanceof Error ? err.message : "Failed", "error");
     } finally {
       setActionLoading(null);
     }
@@ -150,10 +213,10 @@ export default function AdminPage() {
         body: JSON.stringify({ playerId }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      showMsg("Player rejected and removed.", "success");
+      toast("Player rejected and removed.", "success");
       fetchData();
     } catch (err) {
-      showMsg(err instanceof Error ? err.message : "Failed", "error");
+      toast(err instanceof Error ? err.message : "Failed", "error");
     } finally {
       setActionLoading(null);
     }
@@ -169,11 +232,11 @@ export default function AdminPage() {
         body: JSON.stringify(newCaptain),
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      showMsg("Captain created!", "success");
+      toast("Captain created!", "success");
       setNewCaptain({ email: "", displayName: "", password: "", teamId: "" });
       fetchData();
     } catch (err) {
-      showMsg(err instanceof Error ? err.message : "Failed", "error");
+      toast(err instanceof Error ? err.message : "Failed", "error");
     } finally {
       setCreatingCaptain(false);
     }
@@ -195,15 +258,11 @@ export default function AdminPage() {
     );
   }
 
+  const totalSelected = selectedTeams.size + selectedIndividuals.size;
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-bold text-slate-800 mb-2">Admin Panel</h1>
-
-      {message.text && (
-        <div className={`mb-4 px-4 py-3 rounded-xl text-sm ${message.type === "success" ? "bg-emerald-50 border border-emerald-200 text-emerald-700" : "bg-red-50 border border-red-200 text-red-700"}`}>
-          {message.text}
-        </div>
-      )}
 
       <div className="flex gap-2 mb-6">
         <button
@@ -222,28 +281,67 @@ export default function AdminPage() {
 
       {tab === "pending" && (
         <div className="space-y-6">
+          {/* Bulk action bar */}
+          {totalSelected > 0 && (
+            <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 flex items-center justify-between animate-slide-in">
+              <span className="text-sm font-medium text-brand-700">
+                {totalSelected} item{totalSelected > 1 ? "s" : ""} selected
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleBulkApprove}
+                  loading={bulkLoading}
+                >
+                  Approve All Selected
+                </Button>
+                <button
+                  onClick={() => { setSelectedTeams(new Set()); setSelectedIndividuals(new Set()); }}
+                  className="text-sm text-slate-500 hover:text-slate-700 px-3 py-1.5"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
+
           <div>
-            <h2 className="text-lg font-semibold text-slate-800 mb-3">Pending Teams ({pendingTeams.length})</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-slate-800">Pending Teams ({pendingTeams.length})</h2>
+              {pendingTeams.length > 0 && (
+                <button onClick={toggleAllTeams} className="text-xs text-brand-600 hover:text-brand-700 font-medium">
+                  {selectedTeams.size === pendingTeams.length ? "Deselect All" : "Select All"}
+                </button>
+              )}
+            </div>
             {pendingTeams.length === 0 ? (
               <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No pending team registrations</p>
             ) : (
               <div className="space-y-4">
                 {pendingTeams.map((team) => (
-                  <Card key={team.id}>
+                  <Card key={team.id} className={selectedTeams.has(team.id) ? "ring-2 ring-brand-400" : ""}>
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-bold text-slate-800 text-lg">{team.name}</h3>
-                          <p className="text-sm text-slate-500">Captain: {team.captainName} &middot; {team.playerCount} players</p>
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {team.players.map((p) => (
-                              <span key={p.id} className="inline-flex items-center gap-1 bg-surface-50 px-2 py-1 rounded-lg text-xs border border-brand-100/30">
-                                {p.fullName}
-                                <span className={`font-bold ${p.gender === "FEMALE" ? "text-pink-600" : "text-sky-600"}`}>
-                                  {p.gender === "FEMALE" ? "F" : "M"}
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedTeams.has(team.id)}
+                            onChange={() => toggleTeam(team.id)}
+                            className="mt-1.5 w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
+                          />
+                          <div>
+                            <h3 className="font-bold text-slate-800 text-lg">{team.name}</h3>
+                            <p className="text-sm text-slate-500">Captain: {team.captainName} &middot; {team.playerCount} players</p>
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {team.players.map((p) => (
+                                <span key={p.id} className="inline-flex items-center gap-1 bg-surface-50 px-2 py-1 rounded-lg text-xs border border-brand-100/30">
+                                  {p.fullName}
+                                  <span className={`font-bold ${p.gender === "FEMALE" ? "text-pink-600" : "text-sky-600"}`}>
+                                    {p.gender === "FEMALE" ? "F" : "M"}
+                                  </span>
                                 </span>
-                              </span>
-                            ))}
+                              ))}
+                            </div>
                           </div>
                         </div>
                         <div className="flex gap-2 ml-4 flex-shrink-0">
@@ -263,23 +361,38 @@ export default function AdminPage() {
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold text-slate-800 mb-3">Pending Individuals ({pendingIndividuals.length})</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-slate-800">Pending Individuals ({pendingIndividuals.length})</h2>
+              {pendingIndividuals.length > 0 && (
+                <button onClick={toggleAllIndividuals} className="text-xs text-brand-600 hover:text-brand-700 font-medium">
+                  {selectedIndividuals.size === pendingIndividuals.length ? "Deselect All" : "Select All"}
+                </button>
+              )}
+            </div>
             {pendingIndividuals.length === 0 ? (
               <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No pending individual registrations</p>
             ) : (
               <div className="space-y-3">
                 {pendingIndividuals.map((player) => (
-                  <Card key={player.id}>
+                  <Card key={player.id} className={selectedIndividuals.has(player.id) ? "ring-2 ring-brand-400" : ""}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-slate-800">{player.fullName}</p>
-                          <div className="flex gap-1 mt-1">
-                            <Badge variant={player.gender === "FEMALE" ? "danger" : "info"} className="text-[10px]">
-                              {player.gender === "FEMALE" ? "F" : player.gender === "OTHER" ? "O" : "M"}
-                            </Badge>
-                            <Badge variant="info" className="text-[10px]">{player.preferredRole}</Badge>
-                            <Badge variant="default" className="text-[10px]">{player.experienceLevel}</Badge>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedIndividuals.has(player.id)}
+                            onChange={() => toggleIndividual(player.id)}
+                            className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
+                          />
+                          <div>
+                            <p className="font-medium text-slate-800">{player.fullName}</p>
+                            <div className="flex gap-1 mt-1">
+                              <Badge variant={player.gender === "FEMALE" ? "danger" : "info"} className="text-[10px]">
+                                {player.gender === "FEMALE" ? "F" : player.gender === "OTHER" ? "O" : "M"}
+                              </Badge>
+                              <Badge variant="info" className="text-[10px]">{player.preferredRole}</Badge>
+                              <Badge variant="default" className="text-[10px]">{player.experienceLevel}</Badge>
+                            </div>
                           </div>
                         </div>
                         <div className="flex gap-2">

@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await registerTeam(parsed.data);
+    const result = await registerTeam(parsed.data, body.teamColor || "");
 
     return NextResponse.json(
       {

@@ -16,6 +16,7 @@ const updateSettingsSchema = z.object({
   minFemalePerTeam: z.number().int().min(0).max(10).optional(),
   tournamentName: z.string().min(1).max(200).optional(),
   registrationOpen: z.boolean().optional(),
+  tournamentStartDate: z.string().nullable().optional(),
 });
 
 export async function GET() {
@@ -57,10 +58,17 @@ export async function PUT(request: NextRequest) {
       where: { id: "singleton" },
     });
 
+    const updateData: Record<string, unknown> = { ...parsed.data };
+    if (parsed.data.tournamentStartDate !== undefined) {
+      updateData.tournamentStartDate = parsed.data.tournamentStartDate
+        ? new Date(parsed.data.tournamentStartDate)
+        : null;
+    }
+
     const settings = await prisma.tournamentSettings.upsert({
       where: { id: "singleton" },
-      update: parsed.data,
-      create: { id: "singleton", ...parsed.data },
+      update: updateData,
+      create: { id: "singleton", ...updateData },
     });
 
     if (parsed.data.maxTeamSize !== undefined) {
