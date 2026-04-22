@@ -27,8 +27,8 @@ export function TeamSelector({ teams, selectedTeamId, onSelect, tvMode }: TeamSe
           "px-4 py-2 rounded-full font-medium transition-all",
           tvMode ? "text-lg px-6 py-3" : "text-sm",
           selectedTeamId === null
-            ? "bg-cricket-600 text-white shadow-md"
-            : "bg-white text-gray-700 border border-gray-200 hover:border-cricket-300 hover:bg-cricket-50"
+            ? "bg-brand-600 text-white shadow-md"
+            : "bg-white text-gray-700 border border-gray-200 hover:border-brand-300 hover:bg-brand-50"
         )}
       >
         All Teams
@@ -41,8 +41,8 @@ export function TeamSelector({ teams, selectedTeamId, onSelect, tvMode }: TeamSe
             "px-4 py-2 rounded-full font-medium transition-all flex items-center gap-2",
             tvMode ? "text-lg px-6 py-3" : "text-sm",
             selectedTeamId === team.id
-              ? "bg-cricket-600 text-white shadow-md"
-              : "bg-white text-gray-700 border border-gray-200 hover:border-cricket-300 hover:bg-cricket-50"
+              ? "bg-brand-600 text-white shadow-md"
+              : "bg-white text-gray-700 border border-gray-200 hover:border-brand-300 hover:bg-brand-50"
           )}
         >
           {team.name}

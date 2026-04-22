@@ -182,7 +182,7 @@ export default function AdminPage() {
   if (session?.user?.role !== "ADMIN") {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
+        <h1 className="text-2xl font-bold text-slate-800">Access Denied</h1>
       </div>
     );
   }
@@ -190,17 +190,17 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cricket-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600" />
       </div>
     );
   }
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Panel</h1>
+      <h1 className="text-3xl font-bold text-slate-800 mb-2">Admin Panel</h1>
 
       {message.text && (
-        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${message.type === "success" ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-700"}`}>
+        <div className={`mb-4 px-4 py-3 rounded-xl text-sm ${message.type === "success" ? "bg-emerald-50 border border-emerald-200 text-emerald-700" : "bg-red-50 border border-red-200 text-red-700"}`}>
           {message.text}
         </div>
       )}
@@ -208,13 +208,13 @@ export default function AdminPage() {
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setTab("pending")}
-          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${tab === "pending" ? "bg-cricket-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+          className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${tab === "pending" ? "bg-brand-600 text-white shadow-sm" : "bg-white text-slate-600 border border-brand-100/50 hover:bg-brand-50"}`}
         >
           Pending Approvals ({pendingTeams.length + pendingIndividuals.length})
         </button>
         <button
           onClick={() => setTab("captains")}
-          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${tab === "captains" ? "bg-cricket-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+          className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${tab === "captains" ? "bg-brand-600 text-white shadow-sm" : "bg-white text-slate-600 border border-brand-100/50 hover:bg-brand-50"}`}
         >
           Captain Management ({captains.length})
         </button>
@@ -223,9 +223,9 @@ export default function AdminPage() {
       {tab === "pending" && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Pending Teams ({pendingTeams.length})</h2>
+            <h2 className="text-lg font-semibold text-slate-800 mb-3">Pending Teams ({pendingTeams.length})</h2>
             {pendingTeams.length === 0 ? (
-              <p className="text-gray-400 text-center py-6 bg-gray-50 rounded-xl">No pending team registrations</p>
+              <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No pending team registrations</p>
             ) : (
               <div className="space-y-4">
                 {pendingTeams.map((team) => (
@@ -233,13 +233,13 @@ export default function AdminPage() {
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="font-bold text-gray-900 text-lg">{team.name}</h3>
-                          <p className="text-sm text-gray-500">Captain: {team.captainName} &middot; {team.playerCount} players</p>
+                          <h3 className="font-bold text-slate-800 text-lg">{team.name}</h3>
+                          <p className="text-sm text-slate-500">Captain: {team.captainName} &middot; {team.playerCount} players</p>
                           <div className="mt-2 flex flex-wrap gap-1">
                             {team.players.map((p) => (
-                              <span key={p.id} className="inline-flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-xs">
+                              <span key={p.id} className="inline-flex items-center gap-1 bg-surface-50 px-2 py-1 rounded-lg text-xs border border-brand-100/30">
                                 {p.fullName}
-                                <span className={`font-bold ${p.gender === "FEMALE" ? "text-pink-600" : "text-blue-600"}`}>
+                                <span className={`font-bold ${p.gender === "FEMALE" ? "text-pink-600" : "text-sky-600"}`}>
                                   {p.gender === "FEMALE" ? "F" : "M"}
                                 </span>
                               </span>
@@ -263,9 +263,9 @@ export default function AdminPage() {
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Pending Individuals ({pendingIndividuals.length})</h2>
+            <h2 className="text-lg font-semibold text-slate-800 mb-3">Pending Individuals ({pendingIndividuals.length})</h2>
             {pendingIndividuals.length === 0 ? (
-              <p className="text-gray-400 text-center py-6 bg-gray-50 rounded-xl">No pending individual registrations</p>
+              <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No pending individual registrations</p>
             ) : (
               <div className="space-y-3">
                 {pendingIndividuals.map((player) => (
@@ -273,7 +273,7 @@ export default function AdminPage() {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-gray-900">{player.fullName}</p>
+                          <p className="font-medium text-slate-800">{player.fullName}</p>
                           <div className="flex gap-1 mt-1">
                             <Badge variant={player.gender === "FEMALE" ? "danger" : "info"} className="text-[10px]">
                               {player.gender === "FEMALE" ? "F" : player.gender === "OTHER" ? "O" : "M"}
@@ -310,31 +310,31 @@ export default function AdminPage() {
               <form onSubmit={handleCreateCaptain} className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Display Name *</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Display Name *</label>
                     <input type="text" required value={newCaptain.displayName}
                       onChange={(e) => setNewCaptain((p) => ({ ...p, displayName: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
                       placeholder="Rahul Sharma" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
                     <input type="email" required value={newCaptain.email}
                       onChange={(e) => setNewCaptain((p) => ({ ...p, email: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
                       placeholder="captain@company.com" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Password *</label>
                     <input type="text" required minLength={6} value={newCaptain.password}
                       onChange={(e) => setNewCaptain((p) => ({ ...p, password: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
                       placeholder="Min 6 characters" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Assign Team (optional)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Assign Team (optional)</label>
                     <select value={newCaptain.teamId}
                       onChange={(e) => setNewCaptain((p) => ({ ...p, teamId: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cricket-500 focus:border-transparent">
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50">
                       <option value="">No team yet</option>
                       {approvedTeams.map((t) => (
                         <option key={t.id} value={t.id}>{t.name}</option>
@@ -348,9 +348,9 @@ export default function AdminPage() {
           </Card>
 
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Existing Captains</h2>
+            <h2 className="text-lg font-semibold text-slate-800 mb-3">Existing Captains</h2>
             {captains.length === 0 ? (
-              <p className="text-gray-400 text-center py-6 bg-gray-50 rounded-xl">No captains created yet</p>
+              <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No captains created yet</p>
             ) : (
               <div className="space-y-3">
                 {captains.map((cap) => (
@@ -358,8 +358,8 @@ export default function AdminPage() {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-gray-900">{cap.displayName}</p>
-                          <p className="text-sm text-gray-500">{cap.email}</p>
+                          <p className="font-medium text-slate-800">{cap.displayName}</p>
+                          <p className="text-sm text-slate-500">{cap.email}</p>
                         </div>
                         <div>
                           {cap.teams.length > 0 ? (

@@ -31,8 +31,8 @@ export default function SettingsPage() {
   if (session?.user?.role !== "ADMIN") {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
-        <p className="mt-2 text-gray-600">Only administrators can access settings.</p>
+        <h1 className="text-2xl font-bold text-slate-800">Access Denied</h1>
+        <p className="mt-2 text-slate-500">Only administrators can access settings.</p>
       </div>
     );
   }
@@ -82,7 +82,7 @@ export default function SettingsPage() {
   if (loading || !settings) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cricket-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600" />
       </div>
     );
   }
@@ -90,15 +90,15 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Tournament Settings</h1>
-        <p className="mt-1 text-gray-600">Configure tournament rules and constraints</p>
+        <h1 className="text-3xl font-bold text-slate-800">Tournament Settings</h1>
+        <p className="mt-1 text-slate-500">Configure tournament rules and constraints</p>
       </div>
 
       {message.text && (
         <div
-          className={`mb-4 px-4 py-3 rounded-lg text-sm ${
+          className={`mb-4 px-4 py-3 rounded-xl text-sm ${
             message.type === "success"
-              ? "bg-green-50 border border-green-200 text-green-700"
+              ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
               : "bg-red-50 border border-red-200 text-red-700"
           }`}
         >
@@ -112,26 +112,26 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               Tournament Name
             </label>
             <input
               type="text"
               value={settings.tournamentName}
               onChange={(e) => setSettings({ ...settings, tournamentName: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
             />
           </div>
 
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-sm font-medium text-gray-700">Registration Open</label>
-              <p className="text-xs text-gray-500 mt-0.5">Allow new registrations</p>
+              <label className="text-sm font-medium text-slate-700">Registration Open</label>
+              <p className="text-xs text-slate-400 mt-0.5">Allow new registrations</p>
             </div>
             <button
               onClick={() => setSettings({ ...settings, registrationOpen: !settings.registrationOpen })}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings.registrationOpen ? "bg-cricket-600" : "bg-gray-300"
+                settings.registrationOpen ? "bg-brand-600" : "bg-slate-300"
               }`}
             >
               <span
@@ -150,7 +150,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               Maximum Team Size: {settings.maxTeamSize} players
             </label>
             <input
@@ -159,19 +159,19 @@ export default function SettingsPage() {
               max={20}
               value={settings.maxTeamSize}
               onChange={(e) => setSettings({ ...settings, maxTeamSize: parseInt(e.target.value) })}
-              className="w-full accent-cricket-600"
+              className="w-full accent-brand-600"
             />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <div className="flex justify-between text-xs text-slate-400 mt-1">
               <span>2</span>
               <span>20</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               Teams will be marked COMPLETE when they reach this number of players.
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               Minimum Female Players Per Team: {settings.minFemalePerTeam}
             </label>
             <input
@@ -180,13 +180,13 @@ export default function SettingsPage() {
               max={10}
               value={settings.minFemalePerTeam}
               onChange={(e) => setSettings({ ...settings, minFemalePerTeam: parseInt(e.target.value) })}
-              className="w-full accent-cricket-600"
+              className="w-full accent-brand-600"
             />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <div className="flex justify-between text-xs text-slate-400 mt-1">
               <span>0 (no requirement)</span>
               <span>10</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               Teams need at least this many female players to be marked COMPLETE.
             </p>
           </div>
@@ -206,7 +206,7 @@ export default function SettingsPage() {
         >
           Recompute All Team Statuses
         </Button>
-        <p className="text-xs text-gray-400 text-center">
+        <p className="text-xs text-slate-400 text-center">
           Use this to fix stale team statuses after changing rules. Also runs automatically on save.
         </p>
       </div>

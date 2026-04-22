@@ -63,7 +63,7 @@ export function RosterList({ team, tvMode }: RosterListProps) {
                 className="flex items-center justify-between py-3"
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-cricket-100 text-cricket-700 flex items-center justify-center text-sm font-bold">
+                  <span className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-bold">
                     {idx + 1}
                   </span>
                   <div>

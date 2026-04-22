@@ -74,14 +74,14 @@ function GenderSelect({
 
   const bgColor =
     currentGender === "FEMALE"
-      ? "bg-pink-50 border-pink-300 text-pink-700"
+      ? "bg-pink-50 border-pink-200 text-pink-600"
       : currentGender === "OTHER"
-      ? "bg-purple-50 border-purple-300 text-purple-700"
-      : "bg-blue-50 border-blue-300 text-blue-700";
+      ? "bg-violet-50 border-violet-200 text-violet-600"
+      : "bg-sky-50 border-sky-200 text-sky-600";
 
   if (!isAdmin) {
     return (
-      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${bgColor}`}>
+      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${bgColor}`}>
         {currentGender === "FEMALE" ? "F" : currentGender === "OTHER" ? "O" : "M"}
       </span>
     );
@@ -92,7 +92,7 @@ function GenderSelect({
       value={currentGender}
       onChange={(e) => handleChange(e.target.value)}
       disabled={saving}
-      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border cursor-pointer ${bgColor} ${saving ? "opacity-50" : ""}`}
+      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md border cursor-pointer ${bgColor} ${saving ? "opacity-50" : ""}`}
     >
       <option value="MALE">M</option>
       <option value="FEMALE">F</option>
@@ -129,10 +129,10 @@ function RejectModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-1">Reject: {team.name}</h3>
-        <p className="text-sm text-gray-500 mb-4">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-brand-100/50">
+        <h3 className="text-lg font-bold text-slate-800 mb-1">Reject: {team.name}</h3>
+        <p className="text-sm text-slate-500 mb-4">
           Select players to move back to the pool. The team will return to INCOMPLETE.
         </p>
 
@@ -140,18 +140,18 @@ function RejectModal({
           {team.players.map((p) => (
             <label
               key={p.id}
-              className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                selected.has(p.id) ? "bg-red-50 border border-red-200" : "bg-gray-50 hover:bg-gray-100"
+              className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-colors ${
+                selected.has(p.id) ? "bg-red-50 border border-red-200" : "bg-surface-50 hover:bg-brand-50/50"
               }`}
             >
               <input
                 type="checkbox"
                 checked={selected.has(p.id)}
                 onChange={() => toggle(p.id)}
-                className="accent-red-600"
+                className="accent-red-500"
               />
-              <span className="text-sm font-medium text-gray-900">{p.fullName}</span>
-              <span className={`text-[10px] px-1 rounded ${p.gender === "FEMALE" ? "bg-pink-100 text-pink-700" : "bg-blue-100 text-blue-700"}`}>
+              <span className="text-sm font-medium text-slate-800">{p.fullName}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md border ${p.gender === "FEMALE" ? "bg-pink-50 text-pink-600 border-pink-200" : "bg-sky-50 text-sky-600 border-sky-200"}`}>
                 {p.gender === "FEMALE" ? "F" : "M"}
               </span>
             </label>
@@ -239,7 +239,6 @@ export default function ManagePage() {
         const newFemaleCount = updatedPlayers.filter((p) => p.gender === "FEMALE").length;
         const memberCount = updatedPlayers.length;
         const newCriteriaMet = memberCount >= t.teamSize && newFemaleCount >= t.minFemaleRequired;
-        // If submitted (COMPLETE) but criteria no longer met, revert
         const newStatus = t.status === "COMPLETE" && !newCriteriaMet ? "INCOMPLETE" : t.status;
         return {
           ...t,
@@ -438,13 +437,13 @@ export default function ManagePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cricket-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600" />
       </div>
     );
   }
 
   const statusBadge = (status: string) => {
-    if (status === "READY") return <Badge variant="success" className="bg-emerald-600 text-white">READY</Badge>;
+    if (status === "READY") return <Badge variant="success" className="bg-emerald-500 text-white">READY</Badge>;
     if (status === "COMPLETE") return <Badge variant="info">SUBMITTED</Badge>;
     return <Badge variant="warning">INCOMPLETE</Badge>;
   };
@@ -452,15 +451,15 @@ export default function ManagePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Team Management</h1>
-        <p className="mt-1 text-gray-600">Manage all teams, assign players, approve or reject</p>
+        <h1 className="text-3xl font-bold text-slate-800">Team Management</h1>
+        <p className="mt-1 text-slate-500">Manage all teams, assign players, approve or reject</p>
       </div>
 
       {message.text && (
         <div
-          className={`mb-4 px-4 py-3 rounded-lg text-sm ${
+          className={`mb-4 px-4 py-3 rounded-xl text-sm ${
             message.type === "success"
-              ? "bg-green-50 border border-green-200 text-green-700"
+              ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
               : "bg-red-50 border border-red-200 text-red-700"
           }`}
         >
@@ -479,29 +478,29 @@ export default function ManagePage() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Teams List */}
         <div className="lg:col-span-1 space-y-3">
-          <h2 className="text-lg font-semibold text-gray-900">Teams</h2>
+          <h2 className="text-lg font-semibold text-slate-800">Teams</h2>
           {visibleTeams.map((team) => (
             <button
               key={team.id}
               onClick={() => setSelectedTeamId(team.id)}
-              className={`w-full text-left p-4 rounded-xl border transition-all ${
+              className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
                 selectedTeamId === team.id
-                  ? "border-cricket-500 bg-cricket-50 ring-2 ring-cricket-200"
-                  : "border-gray-200 bg-white hover:border-gray-300"
+                  ? "border-brand-400 bg-brand-50 ring-2 ring-brand-200"
+                  : "border-brand-100/50 bg-white hover:border-brand-200"
               }`}
             >
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900">{team.name}</h3>
+                <h3 className="font-semibold text-slate-800">{team.name}</h3>
                 <div className="flex gap-1">
                   {team.status === "READY" && (
-                    <Badge variant="default" className="bg-gray-800 text-white text-[10px]">FROZEN</Badge>
+                    <Badge variant="default" className="bg-slate-700 text-white text-[10px]">FROZEN</Badge>
                   )}
                   {statusBadge(team.status)}
                 </div>
               </div>
-              <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">
+              <div className="mt-1 flex items-center gap-3 text-sm text-slate-500">
                 <span>{team.memberCount}/{team.teamSize} players</span>
-                <span className={team.femaleCount >= team.minFemaleRequired ? "text-green-600" : "text-red-500"}>
+                <span className={team.femaleCount >= team.minFemaleRequired ? "text-emerald-600" : "text-red-500"}>
                   {team.femaleCount}F
                 </span>
                 {team.slotsRemaining > 0 && (
@@ -509,13 +508,13 @@ export default function ManagePage() {
                 )}
               </div>
               {(team.captainName || team.captain) && (
-                <p className="mt-1 text-xs text-gray-400">Captain: {team.captainName || team.captain?.displayName}</p>
+                <p className="mt-1 text-xs text-slate-400">Captain: {team.captainName || team.captain?.displayName}</p>
               )}
             </button>
           ))}
 
           {visibleTeams.length === 0 && (
-            <p className="text-gray-400 text-center py-8">No teams available</p>
+            <p className="text-slate-400 text-center py-8">No teams available</p>
           )}
         </div>
 
@@ -527,13 +526,13 @@ export default function ManagePage() {
                 {selectedTeam ? `${selectedTeam.name} Roster` : "Select a Team"}
               </CardTitle>
               {selectedTeam?.status === "READY" && (
-                <p className="text-xs text-emerald-600 mt-1 font-medium bg-emerald-50 px-2 py-1 rounded">
+                <p className="text-xs text-emerald-600 mt-1 font-medium bg-emerald-50 px-2 py-1 rounded-lg">
                   This team is approved, READY, and frozen for the tournament.
                 </p>
               )}
               {selectedTeam?.status === "COMPLETE" && (
                 <div className="mt-2 space-y-2">
-                  <p className="text-xs text-blue-600 font-normal bg-blue-50 px-2 py-1 rounded">
+                  <p className="text-xs text-brand-600 font-normal bg-brand-50 px-2 py-1 rounded-lg">
                     Team submitted for approval. You can still make changes until admin approves.
                   </p>
                   {isAdmin && (
@@ -561,7 +560,7 @@ export default function ManagePage() {
                 <div className="mt-2 space-y-2">
                   {selectedTeam.criteriaMet ? (
                     <div className="space-y-2">
-                      <p className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
+                      <p className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded-lg">
                         Team meets all criteria! Ready to submit for approval.
                       </p>
                       <Button
@@ -575,7 +574,7 @@ export default function ManagePage() {
                       </Button>
                     </div>
                   ) : (
-                    <p className="text-xs text-amber-600 font-normal bg-amber-50 px-2 py-1 rounded">
+                    <p className="text-xs text-amber-600 font-normal bg-amber-50 px-2 py-1 rounded-lg">
                       {selectedTeam.slotsRemaining > 0 ? `${selectedTeam.slotsRemaining} slot(s) remaining. ` : ""}
                       {selectedTeam.femaleCount < selectedTeam.minFemaleRequired ? `Need ${selectedTeam.minFemaleRequired - selectedTeam.femaleCount} more female player(s).` : ""}
                     </p>
@@ -587,17 +586,17 @@ export default function ManagePage() {
               {selectedTeam ? (
                 <div className="space-y-2">
                   {selectedTeam.players.length === 0 ? (
-                    <p className="text-gray-400 text-center py-4">No players yet</p>
+                    <p className="text-slate-400 text-center py-4">No players yet</p>
                   ) : (
                     selectedTeam.players.map((player) => (
                       <div
                         key={player.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-surface-50 rounded-xl"
                       >
                         <div>
-                          <p className="font-medium text-gray-900 text-sm">{player.fullName}</p>
+                          <p className="font-medium text-slate-800 text-sm">{player.fullName}</p>
                           {player.email && (
-                            <p className="text-[11px] text-gray-400">{player.email}</p>
+                            <p className="text-[11px] text-slate-400">{player.email}</p>
                           )}
                           <div className="flex gap-1 mt-0.5 items-center">
                             <GenderSelect
@@ -631,7 +630,7 @@ export default function ManagePage() {
                   )}
                 </div>
               ) : (
-                <p className="text-gray-400 text-center py-8">Select a team to view roster</p>
+                <p className="text-slate-400 text-center py-8">Select a team to view roster</p>
               )}
             </CardContent>
           </Card>
@@ -645,16 +644,16 @@ export default function ManagePage() {
             </CardHeader>
             <CardContent>
               {pool.length === 0 ? (
-                <p className="text-gray-400 text-center py-8">No players in pool</p>
+                <p className="text-slate-400 text-center py-8">No players in pool</p>
               ) : (
                 <div className="space-y-2 max-h-[600px] overflow-y-auto">
                   {pool.map((player) => (
                     <div
                       key={player.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-surface-50 rounded-xl"
                     >
                       <div>
-                        <p className="font-medium text-gray-900 text-sm">{player.fullName}</p>
+                        <p className="font-medium text-slate-800 text-sm">{player.fullName}</p>
                         <div className="flex gap-1 mt-0.5 items-center">
                           <GenderSelect
                             playerId={player.id}

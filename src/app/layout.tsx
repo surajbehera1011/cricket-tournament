@@ -19,8 +19,8 @@ export default function RootLayout({
         <Providers>
           <Navbar />
           <main className="min-h-[calc(100vh-4rem)]">{children}</main>
-          <footer className="border-t border-gray-100 bg-white py-6 text-center">
-            <p className="text-xs text-gray-400">
+          <footer className="border-t border-brand-100/40 bg-white/60 backdrop-blur-sm py-6 text-center">
+            <p className="text-xs text-slate-400">
               Align Sports League &copy; {new Date().getFullYear()} &middot; Align Cricket Tournament
             </p>
           </footer>

@@ -64,8 +64,8 @@ export default function AuditPage() {
   if (session?.user?.role !== "ADMIN") {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
-        <p className="mt-2 text-gray-600">Only administrators can view the audit log.</p>
+        <h1 className="text-2xl font-bold text-slate-800">Access Denied</h1>
+        <p className="mt-2 text-slate-500">Only administrators can view the audit log.</p>
       </div>
     );
   }
@@ -73,8 +73,8 @@ export default function AuditPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Audit Log</h1>
-        <p className="mt-1 text-gray-600">
+        <h1 className="text-3xl font-bold text-slate-800">Audit Log</h1>
+        <p className="mt-1 text-slate-500">
           Track all changes made to teams and player assignments
         </p>
       </div>
@@ -88,31 +88,31 @@ export default function AuditPage() {
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cricket-600" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
             </div>
           ) : logs.length === 0 ? (
-            <p className="text-gray-400 text-center py-12">No audit entries yet</p>
+            <p className="text-slate-400 text-center py-12">No audit entries yet</p>
           ) : (
             <>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-3 text-xs font-semibold text-gray-500 uppercase">Time</th>
-                      <th className="text-left py-3 px-3 text-xs font-semibold text-gray-500 uppercase">Actor</th>
-                      <th className="text-left py-3 px-3 text-xs font-semibold text-gray-500 uppercase">Action</th>
-                      <th className="text-left py-3 px-3 text-xs font-semibold text-gray-500 uppercase">Entity</th>
-                      <th className="text-left py-3 px-3 text-xs font-semibold text-gray-500 uppercase">Details</th>
+                    <tr className="border-b border-brand-50">
+                      <th className="text-left py-3 px-3 text-xs font-semibold text-slate-400 uppercase">Time</th>
+                      <th className="text-left py-3 px-3 text-xs font-semibold text-slate-400 uppercase">Actor</th>
+                      <th className="text-left py-3 px-3 text-xs font-semibold text-slate-400 uppercase">Action</th>
+                      <th className="text-left py-3 px-3 text-xs font-semibold text-slate-400 uppercase">Entity</th>
+                      <th className="text-left py-3 px-3 text-xs font-semibold text-slate-400 uppercase">Details</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-brand-50">
                     {logs.map((log) => (
                       <>
-                        <tr key={log.id} className="hover:bg-gray-50">
-                          <td className="py-3 px-3 text-sm text-gray-500 whitespace-nowrap">
+                        <tr key={log.id} className="hover:bg-brand-50/30">
+                          <td className="py-3 px-3 text-sm text-slate-500 whitespace-nowrap">
                             {format(new Date(log.createdAt), "MMM d, HH:mm:ss")}
                           </td>
-                          <td className="py-3 px-3 text-sm font-medium text-gray-900">
+                          <td className="py-3 px-3 text-sm font-medium text-slate-800">
                             {log.actor.displayName}
                           </td>
                           <td className="py-3 px-3">
@@ -120,13 +120,13 @@ export default function AuditPage() {
                               {log.action.replace(/_/g, " ")}
                             </Badge>
                           </td>
-                          <td className="py-3 px-3 text-sm text-gray-600">
+                          <td className="py-3 px-3 text-sm text-slate-600">
                             {log.entityType}
                           </td>
                           <td className="py-3 px-3">
                             <button
                               onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
-                              className="text-sm text-cricket-600 hover:text-cricket-700 font-medium"
+                              className="text-sm text-brand-600 hover:text-brand-700 font-medium"
                             >
                               {expandedId === log.id ? "Hide" : "Show"}
                             </button>
@@ -134,20 +134,20 @@ export default function AuditPage() {
                         </tr>
                         {expandedId === log.id && (
                           <tr key={`${log.id}-detail`}>
-                            <td colSpan={5} className="px-3 py-3 bg-gray-50">
+                            <td colSpan={5} className="px-3 py-3 bg-surface-50">
                               <div className="grid md:grid-cols-2 gap-4 text-sm">
                                 {log.before && (
                                   <div>
-                                    <p className="font-medium text-gray-500 mb-1">Before</p>
-                                    <pre className="bg-white p-3 rounded-lg border text-xs overflow-auto">
+                                    <p className="font-medium text-slate-500 mb-1">Before</p>
+                                    <pre className="bg-white p-3 rounded-xl border border-brand-100/50 text-xs overflow-auto">
                                       {JSON.stringify(log.before, null, 2)}
                                     </pre>
                                   </div>
                                 )}
                                 {log.after && (
                                   <div>
-                                    <p className="font-medium text-gray-500 mb-1">After</p>
-                                    <pre className="bg-white p-3 rounded-lg border text-xs overflow-auto">
+                                    <p className="font-medium text-slate-500 mb-1">After</p>
+                                    <pre className="bg-white p-3 rounded-xl border border-brand-100/50 text-xs overflow-auto">
                                       {JSON.stringify(log.after, null, 2)}
                                     </pre>
                                   </div>
@@ -163,8 +163,8 @@ export default function AuditPage() {
               </div>
 
               {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-4 border-t">
-                  <p className="text-sm text-gray-500">
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-brand-50">
+                  <p className="text-sm text-slate-500">
                     Page {pagination.page} of {pagination.totalPages}
                   </p>
                   <div className="flex gap-2">
