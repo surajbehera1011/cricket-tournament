@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,8 +7,9 @@
 @layer base {
   body {
     color: #171717;
-    background: #ffffff;
-    font-family: system-ui, -apple-system, sans-serif;
+    background: #f8faf8;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 
   input, select, textarea, option {
@@ -15,5 +18,57 @@
 
   input::placeholder, textarea::placeholder {
     color: #9ca3af !important;
+  }
+}
+
+@layer components {
+  .cricket-hero {
+    background: linear-gradient(135deg, #14532d 0%, #166534 25%, #15803d 50%, #16a34a 75%, #22c55e 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cricket-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 600px 300px at 50% 100%, rgba(255,255,255,0.08) 0%, transparent 70%),
+      radial-gradient(circle 200px at 85% 20%, rgba(255,255,255,0.05) 0%, transparent 70%),
+      radial-gradient(circle 150px at 15% 30%, rgba(255,255,255,0.04) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cricket-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(to top, #f8faf8 0%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .cricket-field-pattern {
+    background-image:
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 49px,
+        rgba(255,255,255,0.03) 49px,
+        rgba(255,255,255,0.03) 50px
+      );
+  }
+
+  .stat-card {
+    @apply relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-200;
+  }
+  .stat-card:hover {
+    @apply shadow-md -translate-y-0.5;
+  }
+
+  .glass-card {
+    @apply rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md;
   }
 }

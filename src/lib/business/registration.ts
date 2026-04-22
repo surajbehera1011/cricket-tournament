@@ -20,17 +20,20 @@ export async function recomputeTeamStatus(teamId: string): Promise<TeamStatus> {
 
   if (team.status === "READY" || team.status === "PENDING_APPROVAL") return team.status;
 
-  const settings = await getSettings();
-  const memberCount = team.memberships.length;
-  const femaleCount = team.memberships.filter((m) => m.player.gender === "FEMALE").length;
-  const sizeOk = memberCount >= settings.maxTeamSize;
-  const femaleOk = femaleCount >= settings.minFemalePerTeam;
-  const newStatus = sizeOk && femaleOk ? TeamStatus.COMPLETE : TeamStatus.INCOMPLETE;
-
-  if (team.status !== newStatus) {
-    await prisma.team.update({ where: { id: teamId }, data: { status: newStatus } });
+  // If captain submitted (COMPLETE) but criteria no longer met, revert to INCOMPLETE
+  if (team.status === "COMPLETE") {
+    const settings = await getSettings();
+    const memberCount = team.memberships.length;
+    const femaleCount = team.memberships.filter((m) => m.player.gender === "FEMALE").length;
+    const criteriaMet = memberCount >= settings.maxTeamSize && femaleCount >= settings.minFemalePerTeam;
+    if (!criteriaMet) {
+      await prisma.team.update({ where: { id: teamId }, data: { status: TeamStatus.INCOMPLETE } });
+      return TeamStatus.INCOMPLETE;
+    }
+    return TeamStatus.COMPLETE;
   }
-  return newStatus;
+
+  return team.status;
 }
 
 export async function registerTeam(input: TeamRegistrationInput) {

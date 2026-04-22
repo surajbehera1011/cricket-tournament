@@ -35,16 +35,14 @@ export async function GET() {
 
       const sizeOk = memberCount >= effectiveSize;
       const femaleOk = femaleCount >= settings.minFemalePerTeam;
+      const criteriaMet = sizeOk && femaleOk;
 
       let displayStatus: TeamStatus = t.status;
-      if (t.status === "READY") {
-        displayStatus = "READY";
-      } else {
-        const computedStatus: TeamStatus = sizeOk && femaleOk ? "COMPLETE" : "INCOMPLETE";
-        if (t.status !== computedStatus) {
-          staleIds.push({ id: t.id, correctStatus: computedStatus });
-        }
-        displayStatus = computedStatus;
+
+      // If team was submitted (COMPLETE) but criteria no longer met, revert
+      if (t.status === "COMPLETE" && !criteriaMet) {
+        staleIds.push({ id: t.id, correctStatus: "INCOMPLETE" as TeamStatus });
+        displayStatus = "INCOMPLETE" as TeamStatus;
       }
 
       return {
@@ -54,6 +52,7 @@ export async function GET() {
         captain: t.captain,
         teamSize: effectiveSize,
         status: displayStatus,
+        criteriaMet,
         memberCount,
         femaleCount,
         minFemaleRequired: settings.minFemalePerTeam,

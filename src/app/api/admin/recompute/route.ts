@@ -27,13 +27,19 @@ export async function POST() {
     let fixed = 0;
 
     for (const team of teams) {
-      if (team.status === "READY") continue; // don't touch admin-approved teams
+      if (team.status === "READY") continue;
 
       const memberCount = team.memberships.length;
       const femaleCount = team.memberships.filter((m) => m.player.gender === "FEMALE").length;
       const sizeOk = memberCount >= settings.maxTeamSize;
       const femaleOk = femaleCount >= settings.minFemalePerTeam;
-      const correctStatus: TeamStatus = sizeOk && femaleOk ? "COMPLETE" : "INCOMPLETE";
+      const criteriaMet = sizeOk && femaleOk;
+
+      // If submitted (COMPLETE) but criteria no longer met, revert to INCOMPLETE
+      let correctStatus = team.status;
+      if (team.status === "COMPLETE" && !criteriaMet) {
+        correctStatus = "INCOMPLETE";
+      }
 
       if (team.status !== correctStatus || team.teamSize !== settings.maxTeamSize) {
         await prisma.team.update({

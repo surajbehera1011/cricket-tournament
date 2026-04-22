@@ -24,25 +24,28 @@ export function Navbar() {
   });
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <nav className="bg-gradient-to-r from-cricket-900 via-cricket-800 to-cricket-900 sticky top-0 z-50 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="text-2xl">🏏</span>
-              <span className="font-bold text-xl text-gray-900">Cricket Cup</span>
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <span className="text-2xl group-hover:scale-110 transition-transform">🏏</span>
+              <div>
+                <span className="font-extrabold text-lg text-white tracking-tight">Cricket Cup</span>
+                <span className="hidden sm:block text-[10px] text-cricket-300 font-medium -mt-0.5">Office Tournament 2026</span>
+              </div>
             </Link>
 
-            <div className="hidden md:flex items-center gap-1">
+            <div className="hidden md:flex items-center gap-0.5">
               {visibleLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                    "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
                     pathname === link.href
-                      ? "bg-cricket-50 text-cricket-700"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      ? "bg-white/15 text-white"
+                      : "text-cricket-200 hover:text-white hover:bg-white/10"
                   )}
                 >
                   {link.label}
@@ -54,22 +57,22 @@ export function Navbar() {
           <div className="flex items-center gap-3">
             <Link
               href="/register"
-              className="text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold shadow-sm hover:shadow-md"
+              className="text-sm bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
             >
               Register Now
             </Link>
             {status === "loading" && (
-              <span className="text-sm text-gray-400">Loading...</span>
+              <span className="text-sm text-cricket-300 animate-pulse">...</span>
             )}
             {status === "authenticated" && session.user && (
               <>
                 <div className="text-right hidden sm:block">
-                  <p className="text-sm font-medium text-gray-900">{session.user.name}</p>
-                  <p className="text-xs text-gray-500">{session.user.role}</p>
+                  <p className="text-sm font-medium text-white">{session.user.name}</p>
+                  <p className="text-[10px] text-cricket-300">{session.user.role}</p>
                 </div>
                 <button
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="text-sm text-cricket-200 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
                 >
                   Sign Out
                 </button>
@@ -78,7 +81,7 @@ export function Navbar() {
             {status === "unauthenticated" && (
               <button
                 onClick={() => signIn()}
-                className="text-sm bg-cricket-600 text-white px-4 py-2 rounded-lg hover:bg-cricket-700 transition-colors"
+                className="text-sm bg-white/15 text-white px-4 py-2 rounded-lg hover:bg-white/25 transition-colors font-medium backdrop-blur-sm"
               >
                 Sign In
               </button>
@@ -88,7 +91,7 @@ export function Navbar() {
       </div>
 
       {/* Mobile nav */}
-      <div className="md:hidden border-t border-gray-100">
+      <div className="md:hidden border-t border-white/10">
         <div className="flex overflow-x-auto gap-1 px-4 py-2">
           {visibleLinks.map((link) => (
             <Link
@@ -97,24 +100,13 @@ export function Navbar() {
               className={cn(
                 "px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
                 pathname === link.href
-                  ? "bg-cricket-50 text-cricket-700"
-                  : "text-gray-600 hover:bg-gray-50"
+                  ? "bg-white/15 text-white"
+                  : "text-cricket-200 hover:bg-white/10"
               )}
             >
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/register"
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors",
-              pathname === "/register"
-                ? "bg-red-600 text-white"
-                : "bg-red-50 text-red-600 hover:bg-red-100"
-            )}
-          >
-            Register
-          </Link>
         </div>
       </div>
     </nav>

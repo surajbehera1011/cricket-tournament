@@ -75,25 +75,41 @@ function DashboardContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cricket-600 mx-auto" />
-          <p className="mt-4 text-gray-500">Loading tournament data...</p>
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-cricket-200 border-t-cricket-600 mx-auto" />
+            <span className="absolute inset-0 flex items-center justify-center text-2xl">🏏</span>
+          </div>
+          <p className="mt-4 text-gray-500 font-medium">Loading tournament data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${tvMode ? "py-8" : "py-6"}`}>
-      {tvMode && (
-        <div className="text-center mb-8">
-          <h1 className="text-tv-3xl font-bold text-gray-900">Office Cricket Tournament</h1>
-          <p className="text-tv-base text-gray-500 mt-2">Live Dashboard</p>
+    <div>
+      {/* Hero Section */}
+      <div className="cricket-hero cricket-field-pattern">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-16">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-4">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              <span className="text-sm text-white/90 font-medium">Live Tournament Dashboard</span>
+            </div>
+            <h1 className={`font-black text-white tracking-tight ${tvMode ? "text-tv-3xl" : "text-4xl sm:text-5xl"}`}>
+              Office Cricket Cup
+              <span className="text-cricket-300"> 2026</span>
+            </h1>
+            <p className={`mt-3 text-cricket-200/80 max-w-lg mx-auto ${tvMode ? "text-tv-base" : "text-base"}`}>
+              Track teams, player pool, and tournament progress in real-time
+            </p>
+          </div>
         </div>
-      )}
+      </div>
 
-      <div className="space-y-6">
+      {/* Stats Cards - overlapping the hero */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
         <StatsCards
           totalTeams={teams.length}
           readyTeams={readyTeams}
@@ -102,15 +118,31 @@ function DashboardContent() {
           poolCount={pool.length}
           tvMode={tvMode}
         />
+      </div>
 
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <div>
-          <h2 className={`font-semibold text-gray-900 mb-4 ${tvMode ? "text-tv-xl" : "text-lg"}`}>
-            Teams
-          </h2>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-1 h-7 bg-gradient-to-b from-cricket-500 to-cricket-700 rounded-full" />
+            <h2 className={`font-bold text-gray-900 ${tvMode ? "text-tv-xl" : "text-xl"}`}>
+              Teams
+            </h2>
+            <span className="text-sm text-gray-400 font-medium">({teams.length})</span>
+          </div>
           <TeamCards teams={teams} tvMode={tvMode} />
         </div>
 
-        <PoolTable players={pool} tvMode={tvMode} />
+        <div>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-1 h-7 bg-gradient-to-b from-purple-500 to-purple-700 rounded-full" />
+            <h2 className={`font-bold text-gray-900 ${tvMode ? "text-tv-xl" : "text-xl"}`}>
+              Player Pool
+            </h2>
+            <span className="text-sm text-gray-400 font-medium">({pool.length})</span>
+          </div>
+          <PoolTable players={pool} tvMode={tvMode} />
+        </div>
       </div>
     </div>
   );
@@ -120,8 +152,8 @@ export default function DashboardPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cricket-600 mx-auto" />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-cricket-200 border-t-cricket-600 mx-auto" />
         </div>
       }
     >

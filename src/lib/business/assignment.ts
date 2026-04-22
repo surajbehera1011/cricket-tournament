@@ -30,8 +30,8 @@ export async function assignPlayerToTeam(
   });
   if (!team) throw new BusinessError("Team not found");
 
-  if (team.status === "COMPLETE" || team.status === "READY") {
-    throw new BusinessError("Team is frozen. No changes allowed.");
+  if (team.status === "READY") {
+    throw new BusinessError("Team is frozen (READY). No changes allowed.");
   }
 
   if (actorRole === UserRole.CAPTAIN && team.captainUserId !== actorUserId) {
@@ -114,8 +114,8 @@ export async function removePlayerFromTeam(
   const team = await prisma.team.findUnique({ where: { id: teamId } });
   if (!team) throw new BusinessError("Team not found");
 
-  if (team.status === "COMPLETE" || team.status === "READY") {
-    throw new BusinessError("Team is frozen. No changes allowed.");
+  if (team.status === "READY") {
+    throw new BusinessError("Team is frozen (READY). No changes allowed.");
   }
 
   if (actorRole === UserRole.CAPTAIN && team.captainUserId !== actorUserId) {

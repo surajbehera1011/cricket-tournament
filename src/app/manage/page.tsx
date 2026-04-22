@@ -26,6 +26,7 @@ interface Team {
   slotsRemaining: number;
   femaleCount: number;
   minFemaleRequired: number;
+  criteriaMet: boolean;
   captainName: string;
   captain: { id: string; displayName: string } | null;
   players: Player[];
@@ -237,16 +238,15 @@ export default function ManagePage() {
         const updatedPlayers = t.players.map((p) => (p.id === playerId ? { ...p, gender: newGender } : p));
         const newFemaleCount = updatedPlayers.filter((p) => p.gender === "FEMALE").length;
         const memberCount = updatedPlayers.length;
-        const wasReadyOrComplete = t.status === "COMPLETE" || t.status === "READY";
+        const newCriteriaMet = memberCount >= t.teamSize && newFemaleCount >= t.minFemaleRequired;
+        // If submitted (COMPLETE) but criteria no longer met, revert
+        const newStatus = t.status === "COMPLETE" && !newCriteriaMet ? "INCOMPLETE" : t.status;
         return {
           ...t,
           players: updatedPlayers,
           femaleCount: newFemaleCount,
-          status: wasReadyOrComplete
-            ? t.status
-            : memberCount >= t.teamSize && newFemaleCount >= t.minFemaleRequired
-            ? "COMPLETE"
-            : "INCOMPLETE",
+          criteriaMet: newCriteriaMet,
+          status: newStatus,
         };
       })
     );
@@ -254,7 +254,7 @@ export default function ManagePage() {
   };
 
   const isFrozen = (team: Team | undefined) =>
-    team?.status === "COMPLETE" || team?.status === "READY";
+    team?.status === "READY";
 
   const handleAssign = async (playerId: string) => {
     if (!selectedTeamId) return;
@@ -294,13 +294,15 @@ export default function ManagePage() {
           const newPlayers = [...t.players, newPlayer];
           const mc = newPlayers.length;
           const fc = newPlayers.filter((p) => p.gender === "FEMALE").length;
+          const newCriteriaMet = mc >= t.teamSize && fc >= t.minFemaleRequired;
           return {
             ...t,
             players: newPlayers,
             memberCount: mc,
             femaleCount: fc,
+            criteriaMet: newCriteriaMet,
             slotsRemaining: Math.max(0, t.teamSize - mc),
-            status: mc >= t.teamSize && fc >= t.minFemaleRequired ? "COMPLETE" : "INCOMPLETE",
+            status: t.status === "COMPLETE" && !newCriteriaMet ? "INCOMPLETE" : t.status,
           };
         })
       );
@@ -341,13 +343,15 @@ export default function ManagePage() {
           const newPlayers = t.players.filter((p) => p.id !== playerId);
           const mc = newPlayers.length;
           const fc = newPlayers.filter((p) => p.gender === "FEMALE").length;
+          const newCriteriaMet = mc >= t.teamSize && fc >= t.minFemaleRequired;
           return {
             ...t,
             players: newPlayers,
             memberCount: mc,
             femaleCount: fc,
+            criteriaMet: newCriteriaMet,
             slotsRemaining: Math.max(0, t.teamSize - mc),
-            status: mc >= t.teamSize && fc >= t.minFemaleRequired ? "COMPLETE" : "INCOMPLETE",
+            status: t.status === "COMPLETE" && !newCriteriaMet ? "INCOMPLETE" : t.status,
           };
         })
       );
@@ -391,6 +395,26 @@ export default function ManagePage() {
     }
   };
 
+  const handleSubmitTeam = async (teamId: string) => {
+    setActionLoading(`submit-${teamId}`);
+    try {
+      const res = await fetch(`/api/teams/${teamId}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error);
+      }
+      setTeams((prev) => prev.map((t) => (t.id === teamId ? { ...t, status: "COMPLETE" } : t)));
+      showMessage("Team submitted for admin approval!", "success");
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : "Failed to submit team", "error");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleReject = async (playerIds: string[]) => {
     if (!rejectTeam) return;
     try {
@@ -421,7 +445,7 @@ export default function ManagePage() {
 
   const statusBadge = (status: string) => {
     if (status === "READY") return <Badge variant="success" className="bg-emerald-600 text-white">READY</Badge>;
-    if (status === "COMPLETE") return <Badge variant="info">COMPLETE</Badge>;
+    if (status === "COMPLETE") return <Badge variant="info">SUBMITTED</Badge>;
     return <Badge variant="warning">INCOMPLETE</Badge>;
   };
 
@@ -469,7 +493,7 @@ export default function ManagePage() {
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900">{team.name}</h3>
                 <div className="flex gap-1">
-                  {isFrozen(teams.find((t) => t.id === team.id)) && team.status !== "READY" && (
+                  {team.status === "READY" && (
                     <Badge variant="default" className="bg-gray-800 text-white text-[10px]">FROZEN</Badge>
                   )}
                   {statusBadge(team.status)}
@@ -504,13 +528,13 @@ export default function ManagePage() {
               </CardTitle>
               {selectedTeam?.status === "READY" && (
                 <p className="text-xs text-emerald-600 mt-1 font-medium bg-emerald-50 px-2 py-1 rounded">
-                  This team is approved and READY for the tournament.
+                  This team is approved, READY, and frozen for the tournament.
                 </p>
               )}
               {selectedTeam?.status === "COMPLETE" && (
                 <div className="mt-2 space-y-2">
-                  <p className="text-xs text-gray-500 font-normal bg-gray-100 px-2 py-1 rounded">
-                    Team is <strong>complete &amp; frozen</strong>. Awaiting admin approval.
+                  <p className="text-xs text-blue-600 font-normal bg-blue-50 px-2 py-1 rounded">
+                    Team submitted for approval. You can still make changes until admin approves.
                   </p>
                   {isAdmin && (
                     <div className="flex gap-2">
@@ -520,7 +544,7 @@ export default function ManagePage() {
                         onClick={() => handleApprove(selectedTeam.id)}
                         loading={actionLoading === selectedTeam.id}
                       >
-                        Approve
+                        Approve &amp; Freeze
                       </Button>
                       <Button
                         variant="danger"
@@ -534,9 +558,29 @@ export default function ManagePage() {
                 </div>
               )}
               {selectedTeam && selectedTeam.status === "INCOMPLETE" && (
-                <p className="text-xs text-amber-600 mt-1 font-normal bg-amber-50 px-2 py-1 rounded">
-                  {selectedTeam.slotsRemaining} slot(s) remaining. {selectedTeam.femaleCount < selectedTeam.minFemaleRequired ? `Need ${selectedTeam.minFemaleRequired - selectedTeam.femaleCount} more female player(s).` : ""}
-                </p>
+                <div className="mt-2 space-y-2">
+                  {selectedTeam.criteriaMet ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
+                        Team meets all criteria! Ready to submit for approval.
+                      </p>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handleSubmitTeam(selectedTeam.id)}
+                        loading={actionLoading === `submit-${selectedTeam.id}`}
+                        className="w-full"
+                      >
+                        Submit Team for Approval
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-amber-600 font-normal bg-amber-50 px-2 py-1 rounded">
+                      {selectedTeam.slotsRemaining > 0 ? `${selectedTeam.slotsRemaining} slot(s) remaining. ` : ""}
+                      {selectedTeam.femaleCount < selectedTeam.minFemaleRequired ? `Need ${selectedTeam.minFemaleRequired - selectedTeam.femaleCount} more female player(s).` : ""}
+                    </p>
+                  )}
+                </div>
               )}
             </CardHeader>
             <CardContent>
