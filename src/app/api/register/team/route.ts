@@ -8,6 +8,11 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
+    const settings = await prisma.tournamentSettings.findUnique({ where: { id: "singleton" } });
+    if (settings && !settings.registrationOpen) {
+      return NextResponse.json({ error: "Registrations are currently closed." }, { status: 403 });
+    }
+
     const body = await request.json();
     const parsed = teamRegistrationSchema.safeParse({
       ...body,

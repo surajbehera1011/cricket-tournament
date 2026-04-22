@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -17,6 +18,16 @@ const navLinks = [
 export function Navbar() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const [registrationOpen, setRegistrationOpen] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/settings", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((s) => {
+        if (s.registrationOpen !== undefined) setRegistrationOpen(s.registrationOpen);
+      })
+      .catch(() => {});
+  }, []);
 
   const visibleLinks = navLinks.filter((link) => {
     if (!link.roles) return true;
@@ -56,12 +67,14 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/register"
-              className="text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-all font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
-            >
-              Register Now
-            </Link>
+            {registrationOpen && (
+              <Link
+                href="/register"
+                className="text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-all font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+              >
+                Register Now
+              </Link>
+            )}
             {status === "loading" && (
               <span className="text-sm text-brand-300 animate-pulse">...</span>
             )}

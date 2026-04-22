@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { TeamForm } from "@/components/registration/TeamForm";
 import { IndividualForm } from "@/components/registration/IndividualForm";
@@ -9,7 +9,15 @@ import { cn } from "@/lib/utils";
 
 export default function RegisterPage() {
   const [tab, setTab] = useState<"team" | "individual">("team");
+  const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetch("/api/settings", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((s) => setRegistrationOpen(s.registrationOpen ?? true))
+      .catch(() => setRegistrationOpen(true));
+  }, []);
 
   const handleSuccess = () => {
     toast(
@@ -36,43 +44,60 @@ export default function RegisterPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20 pb-12">
-        {/* Tab switcher */}
-        <div className="flex gap-1 bg-white p-1.5 rounded-2xl mb-5 shadow-lg border border-brand-100/50">
-          <button
-            onClick={() => setTab("team")}
-            className={cn(
-              "flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
-              tab === "team"
-                ? "bg-brand-600 text-white shadow-md"
-                : "text-slate-500 hover:text-brand-700 hover:bg-brand-50"
-            )}
-          >
-            <span className="text-lg">👥</span>
-            Register Team
-          </button>
-          <button
-            onClick={() => setTab("individual")}
-            className={cn(
-              "flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
-              tab === "individual"
-                ? "bg-brand-600 text-white shadow-md"
-                : "text-slate-500 hover:text-brand-700 hover:bg-brand-50"
-            )}
-          >
-            <span className="text-lg">👤</span>
-            Register Individual
-          </button>
-        </div>
+        {registrationOpen === false ? (
+          <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
+            <CardContent className="py-16 px-6 sm:px-8 text-center">
+              <span className="text-5xl mb-4 block">🚫</span>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">Registrations Closed</h2>
+              <p className="text-slate-500 max-w-md mx-auto">
+                Registration for the tournament is currently closed. Please contact the organizer for more information.
+              </p>
+              <a href="mailto:sbehera@aligntech.com" className="inline-block mt-4 text-sm text-brand-600 hover:text-brand-700 font-medium">
+                Contact: sbehera@aligntech.com
+              </a>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Tab switcher */}
+            <div className="flex gap-1 bg-white p-1.5 rounded-2xl mb-5 shadow-lg border border-brand-100/50">
+              <button
+                onClick={() => setTab("team")}
+                className={cn(
+                  "flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
+                  tab === "team"
+                    ? "bg-brand-600 text-white shadow-md"
+                    : "text-slate-500 hover:text-brand-700 hover:bg-brand-50"
+                )}
+              >
+                <span className="text-lg">👥</span>
+                Register Team
+              </button>
+              <button
+                onClick={() => setTab("individual")}
+                className={cn(
+                  "flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
+                  tab === "individual"
+                    ? "bg-brand-600 text-white shadow-md"
+                    : "text-slate-500 hover:text-brand-700 hover:bg-brand-50"
+                )}
+              >
+                <span className="text-lg">👤</span>
+                Register Individual
+              </button>
+            </div>
 
-        <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
-          <CardContent className="py-8 px-6 sm:px-8">
-            {tab === "team" ? (
-              <TeamForm onSuccess={handleSuccess} />
-            ) : (
-              <IndividualForm onSuccess={handleSuccess} />
-            )}
-          </CardContent>
-        </Card>
+            <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
+              <CardContent className="py-8 px-6 sm:px-8">
+                {tab === "team" ? (
+                  <TeamForm onSuccess={handleSuccess} />
+                ) : (
+                  <IndividualForm onSuccess={handleSuccess} />
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </div>
   );
