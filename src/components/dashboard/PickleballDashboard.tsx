@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Countdown } from "@/components/dashboard/Countdown";
 
 interface PickleballReg {
   id: string;
@@ -12,11 +13,11 @@ interface PickleballReg {
 }
 
 const CATEGORIES = [
-  { key: "MENS_SINGLES", label: "Men's Singles", color: "text-sky-700", bg: "bg-sky-50", border: "border-sky-200", accent: "bg-sky-500" },
-  { key: "WOMENS_SINGLES", label: "Women's Singles", color: "text-pink-700", bg: "bg-pink-50", border: "border-pink-200", accent: "bg-pink-500" },
-  { key: "MENS_DOUBLES", label: "Men's Doubles", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", accent: "bg-blue-500" },
-  { key: "WOMENS_DOUBLES", label: "Women's Doubles", color: "text-fuchsia-700", bg: "bg-fuchsia-50", border: "border-fuchsia-200", accent: "bg-fuchsia-500" },
-  { key: "MIXED_DOUBLES", label: "Mixed Doubles", color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-200", accent: "bg-violet-500" },
+  { key: "MENS_SINGLES", label: "Men's Singles", icon: "🏓", color: "text-sky-700", bg: "bg-sky-50", border: "border-sky-200", accent: "bg-sky-500" },
+  { key: "WOMENS_SINGLES", label: "Women's Singles", icon: "🏓", color: "text-pink-700", bg: "bg-pink-50", border: "border-pink-200", accent: "bg-pink-500" },
+  { key: "MENS_DOUBLES", label: "Men's Doubles", icon: "🏓🏓", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", accent: "bg-blue-500" },
+  { key: "WOMENS_DOUBLES", label: "Women's Doubles", icon: "🏓🏓", color: "text-fuchsia-700", bg: "bg-fuchsia-50", border: "border-fuchsia-200", accent: "bg-fuchsia-500" },
+  { key: "MIXED_DOUBLES", label: "Mixed Doubles", icon: "🏓🏓", color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-200", accent: "bg-violet-500" },
 ];
 
 function useCountUp(target: number, duration = 600) {
@@ -34,18 +35,78 @@ function useCountUp(target: number, duration = 600) {
   return value;
 }
 
+function CategoryModal({ cat, entries, onClose }: {
+  cat: typeof CATEGORIES[number];
+  entries: PickleballReg[];
+  onClose: () => void;
+}) {
+  const isSingles = cat.key.includes("SINGLES");
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-hidden border border-brand-100/50" onClick={(e) => e.stopPropagation()}>
+        <div className={`h-1.5 ${cat.accent}`} />
+        <div className="p-6 pb-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl font-extrabold text-slate-800">{cat.label}</h2>
+              <p className="text-sm text-slate-400 mt-0.5">{entries.length} registration{entries.length !== 1 ? "s" : ""}</p>
+            </div>
+            <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-brand-50 text-slate-400 hover:text-slate-600 transition-colors text-xl">&times;</button>
+          </div>
+        </div>
+        <div className="border-t border-brand-50 overflow-y-auto max-h-[60vh] p-6 pt-4 space-y-2">
+          {entries.length === 0 ? (
+            <p className="text-slate-400 text-center py-8">No registrations in this category</p>
+          ) : (
+            entries.map((entry, idx) => (
+              <div key={entry.id} className={`rounded-xl ${cat.bg} p-3.5 border ${cat.border}`}>
+                <div className="flex items-center gap-3">
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isSingles ? `${cat.bg} ${cat.color}` : "bg-white text-slate-600"} border ${cat.border}`}>
+                    {idx + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-slate-800">{entry.player1Name}</p>
+                    <p className="text-[11px] text-slate-400 truncate">{entry.player1Email}</p>
+                  </div>
+                </div>
+                {!isSingles && entry.player2Name && (
+                  <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/60">
+                    <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 bg-white/60 text-slate-500 border border-white">
+                      &
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-slate-800">{entry.player2Name}</p>
+                      <p className="text-[11px] text-slate-400 truncate">{entry.player2Email}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PickleballDashboard() {
   const [registrations, setRegistrations] = useState<PickleballReg[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterCat, setFilterCat] = useState("");
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [openCat, setOpenCat] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
       const ts = Date.now();
-      const res = await fetch(`/api/pickleball?_t=${ts}`, { cache: "no-store" });
+      const [res, settingsRes] = await Promise.all([
+        fetch(`/api/pickleball?_t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/settings?_t=${ts}`, { cache: "no-store" }),
+      ]);
       const data = await res.json();
+      const settings = await settingsRes.json();
       if (Array.isArray(data)) setRegistrations(data);
+      if (settings?.tournamentStartDate) setStartDate(settings.tournamentStartDate);
     } catch (err) {
       console.error("Failed to fetch pickleball data:", err);
     } finally {
@@ -57,14 +118,11 @@ export function PickleballDashboard() {
 
   const q = search.toLowerCase();
   const filtered = registrations.filter((r) => {
-    if (filterCat && r.category !== filterCat) return false;
     if (q) {
-      const match =
-        r.player1Name.toLowerCase().includes(q) ||
+      return r.player1Name.toLowerCase().includes(q) ||
         r.player1Email.toLowerCase().includes(q) ||
         r.player2Name?.toLowerCase().includes(q) ||
         r.player2Email?.toLowerCase().includes(q);
-      if (!match) return false;
     }
     return true;
   });
@@ -76,6 +134,7 @@ export function PickleballDashboard() {
   }));
 
   const totalAnim = useCountUp(registrations.length);
+  const openCatData = openCat ? grouped.find((g) => g.key === openCat) : null;
 
   if (loading) {
     return (
@@ -93,34 +152,43 @@ export function PickleballDashboard() {
 
   return (
     <div>
-      {/* Stats Row */}
+      {/* Modal */}
+      {openCatData && (
+        <CategoryModal cat={openCatData} entries={openCatData.entries} onClose={() => setOpenCat(null)} />
+      )}
+
+      {/* Countdown */}
+      {startDate && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4 flex justify-center">
+          <Countdown targetDate={startDate} />
+        </div>
+      )}
+
+      {/* Category Cards - clickable like cricket team cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {/* Total */}
           <div className="stat-card bg-emerald-50 border-emerald-100">
             <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-600 rounded-t-2xl" />
-            <div className="p-4 text-center">
+            <div className="p-5 text-center">
               <span className="text-2xl mb-1 block">🏓</span>
               <p className="text-3xl font-extrabold text-emerald-700 tabular-nums">{totalAnim}</p>
               <p className="text-[10px] font-semibold text-slate-400 mt-1 uppercase tracking-widest">Total</p>
             </div>
           </div>
-          {CATEGORIES.map((cat) => {
-            const count = registrations.filter((r) => r.category === cat.key).length;
-            return (
-              <div
-                key={cat.key}
-                className={`stat-card ${cat.bg} ${cat.border} cursor-pointer ${filterCat === cat.key ? "ring-2 ring-offset-1 ring-emerald-400" : ""}`}
-                onClick={() => setFilterCat(filterCat === cat.key ? "" : cat.key)}
-              >
-                <div className={`absolute top-0 left-0 right-0 h-1 ${cat.accent} rounded-t-2xl`} />
-                <div className="p-4 text-center">
-                  <p className={`text-2xl font-extrabold ${cat.color} tabular-nums`}>{count}</p>
-                  <p className="text-[10px] font-semibold text-slate-400 mt-1 uppercase tracking-wider leading-tight">{cat.label}</p>
-                </div>
+          {grouped.map((cat) => (
+            <button
+              key={cat.key}
+              onClick={() => setOpenCat(cat.key)}
+              className={`stat-card ${cat.bg} ${cat.border} cursor-pointer text-left hover:shadow-lg hover:-translate-y-1 transition-all`}
+            >
+              <div className={`absolute top-0 left-0 right-0 h-1 ${cat.accent} rounded-t-2xl`} />
+              <div className="p-5 text-center">
+                <p className={`text-3xl font-extrabold ${cat.color} tabular-nums`}>{cat.total}</p>
+                <p className="text-[10px] font-semibold text-slate-400 mt-1 uppercase tracking-wider leading-tight">{cat.label}</p>
               </div>
-            );
-          })}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -137,33 +205,19 @@ export function PickleballDashboard() {
             placeholder="Search players by name or email..."
             className="w-full pl-12 pr-4 py-3 bg-white border border-emerald-100/50 rounded-2xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent shadow-sm placeholder:text-slate-400"
           />
-          {(search || filterCat) && (
-            <button
-              onClick={() => { setSearch(""); setFilterCat(""); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm"
-            >
-              Clear
-            </button>
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">&times;</button>
           )}
         </div>
-        {filterCat && (
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-slate-500">Filtering:</span>
-            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${CATEGORIES.find((c) => c.key === filterCat)?.bg} ${CATEGORIES.find((c) => c.key === filterCat)?.color} ${CATEGORIES.find((c) => c.key === filterCat)?.border} border`}>
-              {CATEGORIES.find((c) => c.key === filterCat)?.label}
-            </span>
-            <button onClick={() => setFilterCat("")} className="text-xs text-slate-400 hover:text-slate-600">&times;</button>
-          </div>
-        )}
       </div>
 
-      {/* Entries */}
+      {/* All entries by category */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 space-y-6">
         {filtered.length === 0 ? (
           <div className="text-center py-16">
             <span className="text-5xl mb-4 block">🏓</span>
             <p className="text-slate-400 font-medium">
-              {registrations.length === 0 ? "No pickleball registrations yet" : "No matches for current filters"}
+              {registrations.length === 0 ? "No pickleball registrations yet" : "No matches for current search"}
             </p>
             <p className="text-slate-300 text-sm mt-1">Registrations will appear here once approved by admin</p>
           </div>
@@ -181,10 +235,7 @@ export function PickleballDashboard() {
                 </div>
                 <div className={`grid gap-3 ${isSingles ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3"}`}>
                   {g.entries.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className={`bg-white rounded-2xl border ${g.border} p-4 hover:shadow-md transition-all hover:-translate-y-0.5`}
-                    >
+                    <div key={entry.id} className={`bg-white rounded-2xl border ${g.border} p-4 hover:shadow-md transition-all hover:-translate-y-0.5`}>
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-xl ${g.bg} ${g.color} flex items-center justify-center text-sm font-bold flex-shrink-0`}>
                           {entry.player1Name.charAt(0).toUpperCase()}

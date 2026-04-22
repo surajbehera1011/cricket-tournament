@@ -52,6 +52,7 @@ interface PendingPickleball {
   player1Email: string;
   player2Name: string | null;
   player2Email: string | null;
+  status?: string;
   createdAt: string;
 }
 
@@ -75,6 +76,13 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"pending" | "pickleball" | "captains">("pending");
 
   const [pendingPickleball, setPendingPickleball] = useState<PendingPickleball[]>([]);
+  const [allPickleball, setAllPickleball] = useState<PendingPickleball[]>([]);
+  const [pbSubTab, setPbSubTab] = useState<"pending" | "manage">("pending");
+  const [selectedPb, setSelectedPb] = useState<Set<string>>(new Set());
+  const [editingPb, setEditingPb] = useState<string | null>(null);
+  const [editP1, setEditP1] = useState("");
+  const [editP2, setEditP2] = useState("");
+  const [pbFilterCat, setPbFilterCat] = useState("");
   const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
   const [selectedIndividuals, setSelectedIndividuals] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -85,21 +93,24 @@ export default function AdminPage() {
   const fetchData = useCallback(async () => {
     try {
       const ts = Date.now();
-      const [pendingRes, captainsRes, teamsRes, pbRes] = await Promise.all([
+      const [pendingRes, captainsRes, teamsRes, pbRes, pbAllRes] = await Promise.all([
         fetch(`/api/admin/pending?_t=${ts}`, { cache: "no-store" }),
         fetch(`/api/admin/captains?_t=${ts}`, { cache: "no-store" }),
         fetch(`/api/teams?_t=${ts}`, { cache: "no-store" }),
         fetch(`/api/admin/pickleball-pending?_t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/admin/pickleball-pending?view=all&_t=${ts}`, { cache: "no-store" }),
       ]);
       const pending = await pendingRes.json();
       const caps = await captainsRes.json();
       const teams = await teamsRes.json();
       const pbPending = await pbRes.json();
+      const pbAll = await pbAllRes.json();
       if (pending.teams) setPendingTeams(pending.teams);
       if (pending.individuals) setPendingIndividuals(pending.individuals);
       if (Array.isArray(caps)) setCaptains(caps);
       if (Array.isArray(teams)) setApprovedTeams(teams.map((t: any) => ({ id: t.id, name: t.name })));
       if (Array.isArray(pbPending)) setPendingPickleball(pbPending);
+      if (Array.isArray(pbAll)) setAllPickleball(pbAll);
     } catch (err) {
       console.error("Fetch error:", err);
     } finally {
@@ -523,95 +534,360 @@ export default function AdminPage() {
 
       {tab === "pickleball" && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-slate-800">Pending Pickleball Registrations ({pendingPickleball.length})</h2>
-          {pendingPickleball.length === 0 ? (
-            <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No pending pickleball registrations</p>
-          ) : (
-            <div className="space-y-3">
-              {pendingPickleball.map((reg) => (
-                <Card key={reg.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            {PB_LABELS[reg.category] || reg.category}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
-                            {reg.player1Name.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-slate-800">{reg.player1Name}</p>
-                            <p className="text-[11px] text-slate-400">{reg.player1Email}</p>
-                          </div>
-                        </div>
-                        {reg.player2Name && (
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <div className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-bold">
-                              {reg.player2Name.charAt(0)}
-                            </div>
+          {/* Pickleball sub-tabs */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setPbSubTab("pending")}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${pbSubTab === "pending" ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
+            >
+              Pending ({pendingPickleball.length})
+            </button>
+            <button
+              onClick={() => setPbSubTab("manage")}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${pbSubTab === "manage" ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
+            >
+              Manage All ({allPickleball.length})
+            </button>
+          </div>
+
+          {pbSubTab === "pending" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-800">Pending Pickleball Registrations</h2>
+                {pendingPickleball.length > 0 && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (selectedPb.size === pendingPickleball.length) setSelectedPb(new Set());
+                        else setSelectedPb(new Set(pendingPickleball.map((r) => r.id)));
+                      }}
+                      className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                    >
+                      {selectedPb.size === pendingPickleball.length ? "Deselect All" : "Select All"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Bulk action bar */}
+              {selectedPb.size > 0 && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center justify-between animate-slide-in">
+                  <span className="text-sm font-medium text-emerald-700">
+                    {selectedPb.size} selected
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      loading={bulkLoading}
+                      onClick={async () => {
+                        setBulkLoading(true);
+                        try {
+                          const res = await fetch("/api/admin/pickleball-pending", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ ids: Array.from(selectedPb), action: "approve" }),
+                          });
+                          if (!res.ok) throw new Error((await res.json()).error);
+                          toast(`Approved ${selectedPb.size} registration(s)!`, "success");
+                          setSelectedPb(new Set());
+                          fetchData();
+                        } catch (err) {
+                          toast(err instanceof Error ? err.message : "Failed", "error");
+                        } finally {
+                          setBulkLoading(false);
+                        }
+                      }}
+                    >
+                      Approve Selected
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      loading={bulkLoading}
+                      onClick={async () => {
+                        setBulkLoading(true);
+                        try {
+                          const res = await fetch("/api/admin/pickleball-pending", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ ids: Array.from(selectedPb), action: "reject" }),
+                          });
+                          if (!res.ok) throw new Error((await res.json()).error);
+                          toast(`Rejected ${selectedPb.size} registration(s).`, "success");
+                          setSelectedPb(new Set());
+                          fetchData();
+                        } catch (err) {
+                          toast(err instanceof Error ? err.message : "Failed", "error");
+                        } finally {
+                          setBulkLoading(false);
+                        }
+                      }}
+                    >
+                      Reject Selected
+                    </Button>
+                    <button onClick={() => setSelectedPb(new Set())} className="text-sm text-slate-500 hover:text-slate-700 px-2">Clear</button>
+                  </div>
+                </div>
+              )}
+
+              {pendingPickleball.length === 0 ? (
+                <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No pending pickleball registrations</p>
+              ) : (
+                <div className="space-y-3">
+                  {pendingPickleball.map((reg) => (
+                    <Card key={reg.id} className={selectedPb.has(reg.id) ? "ring-2 ring-emerald-400" : ""}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedPb.has(reg.id)}
+                              onChange={() => {
+                                setSelectedPb((prev) => {
+                                  const next = new Set(prev);
+                                  next.has(reg.id) ? next.delete(reg.id) : next.add(reg.id);
+                                  return next;
+                                });
+                              }}
+                              className="mt-1.5 w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-400"
+                            />
                             <div>
-                              <p className="text-sm font-medium text-slate-800">{reg.player2Name}</p>
-                              <p className="text-[11px] text-slate-400">{reg.player2Email}</p>
+                              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                {PB_LABELS[reg.category] || reg.category}
+                              </span>
+                              <div className="flex items-center gap-2 mt-2">
+                                <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
+                                  {reg.player1Name.charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-slate-800">{reg.player1Name}</p>
+                                  <p className="text-[11px] text-slate-400">{reg.player1Email}</p>
+                                </div>
+                              </div>
+                              {reg.player2Name && (
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <div className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-bold">
+                                    {reg.player2Name.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-slate-800">{reg.player2Name}</p>
+                                    <p className="text-[11px] text-slate-400">{reg.player2Email}</p>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
-                        )}
-                      </div>
-                      <div className="flex gap-2 ml-4 flex-shrink-0">
-                        <Button
-                          size="sm"
-                          loading={actionLoading === reg.id}
-                          onClick={async () => {
-                            setActionLoading(reg.id);
-                            try {
-                              const res = await fetch("/api/admin/pickleball-pending", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ id: reg.id, action: "approve" }),
-                              });
-                              if (!res.ok) throw new Error((await res.json()).error);
-                              toast("Pickleball registration approved!", "success");
-                              fetchData();
-                            } catch (err) {
-                              toast(err instanceof Error ? err.message : "Failed", "error");
-                            } finally {
-                              setActionLoading(null);
-                            }
-                          }}
-                        >
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          loading={actionLoading === reg.id}
-                          onClick={async () => {
-                            setActionLoading(reg.id);
-                            try {
-                              const res = await fetch("/api/admin/pickleball-pending", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ id: reg.id, action: "reject" }),
-                              });
-                              if (!res.ok) throw new Error((await res.json()).error);
-                              toast("Pickleball registration rejected.", "success");
-                              fetchData();
-                            } catch (err) {
-                              toast(err instanceof Error ? err.message : "Failed", "error");
-                            } finally {
-                              setActionLoading(null);
-                            }
-                          }}
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                          <div className="flex gap-2 ml-4 flex-shrink-0">
+                            <Button size="sm" loading={actionLoading === reg.id}
+                              onClick={async () => {
+                                setActionLoading(reg.id);
+                                try {
+                                  const res = await fetch("/api/admin/pickleball-pending", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ id: reg.id, action: "approve" }),
+                                  });
+                                  if (!res.ok) throw new Error((await res.json()).error);
+                                  toast("Approved!", "success");
+                                  fetchData();
+                                } catch (err) {
+                                  toast(err instanceof Error ? err.message : "Failed", "error");
+                                } finally { setActionLoading(null); }
+                              }}
+                            >Approve</Button>
+                            <Button size="sm" variant="danger" loading={actionLoading === reg.id}
+                              onClick={async () => {
+                                setActionLoading(reg.id);
+                                try {
+                                  const res = await fetch("/api/admin/pickleball-pending", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ id: reg.id, action: "reject" }),
+                                  });
+                                  if (!res.ok) throw new Error((await res.json()).error);
+                                  toast("Rejected.", "success");
+                                  fetchData();
+                                } catch (err) {
+                                  toast(err instanceof Error ? err.message : "Failed", "error");
+                                } finally { setActionLoading(null); }
+                              }}
+                            >Reject</Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {pbSubTab === "manage" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-800">All Pickleball Registrations</h2>
+              </div>
+
+              {/* Category filter */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setPbFilterCat("")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${!pbFilterCat ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"}`}
+                >
+                  All ({allPickleball.length})
+                </button>
+                {Object.entries(PB_LABELS).map(([key, label]) => {
+                  const count = allPickleball.filter((r) => r.category === key).length;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setPbFilterCat(pbFilterCat === key ? "" : key)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${pbFilterCat === key ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"}`}
+                    >
+                      {label} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+
+              {(() => {
+                const filteredPb = pbFilterCat ? allPickleball.filter((r) => r.category === pbFilterCat) : allPickleball;
+                return filteredPb.length === 0 ? (
+                  <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No pickleball registrations found</p>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredPb.map((reg) => (
+                      <Card key={reg.id}>
+                        <CardContent className="p-4">
+                          {editingPb === reg.id ? (
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  {PB_LABELS[reg.category] || reg.category}
+                                </span>
+                                <Badge variant={reg.status === "APPROVED" ? "success" : "warning"} className="text-[10px]">
+                                  {reg.status}
+                                </Badge>
+                              </div>
+                              <div className="grid sm:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-500 mb-1">Player 1 Name</label>
+                                  <input
+                                    type="text"
+                                    value={editP1}
+                                    onChange={(e) => setEditP1(e.target.value)}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-surface-50"
+                                  />
+                                </div>
+                                {reg.category.includes("DOUBLES") && (
+                                  <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">Player 2 Name</label>
+                                    <input
+                                      type="text"
+                                      value={editP2}
+                                      onChange={(e) => setEditP2(e.target.value)}
+                                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-surface-50"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" loading={actionLoading === reg.id}
+                                  onClick={async () => {
+                                    setActionLoading(reg.id);
+                                    try {
+                                      const body: Record<string, string> = { id: reg.id, action: "edit", player1Name: editP1 };
+                                      if (reg.category.includes("DOUBLES")) body.player2Name = editP2;
+                                      const res = await fetch("/api/admin/pickleball-pending", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify(body),
+                                      });
+                                      if (!res.ok) throw new Error((await res.json()).error);
+                                      toast("Player name updated!", "success");
+                                      setEditingPb(null);
+                                      fetchData();
+                                    } catch (err) {
+                                      toast(err instanceof Error ? err.message : "Failed", "error");
+                                    } finally { setActionLoading(null); }
+                                  }}
+                                >Save</Button>
+                                <button onClick={() => setEditingPb(null)} className="text-sm text-slate-500 hover:text-slate-700 px-3 py-1.5">Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    {PB_LABELS[reg.category] || reg.category}
+                                  </span>
+                                  <Badge variant={reg.status === "APPROVED" ? "success" : reg.status === "PENDING_APPROVAL" ? "warning" : "danger"} className="text-[10px]">
+                                    {reg.status === "PENDING_APPROVAL" ? "PENDING" : reg.status}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
+                                    {reg.player1Name.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-slate-800">{reg.player1Name}</p>
+                                    <p className="text-[11px] text-slate-400">{reg.player1Email}</p>
+                                  </div>
+                                </div>
+                                {reg.player2Name && (
+                                  <div className="flex items-center gap-2 mt-1.5">
+                                    <div className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-bold">
+                                      {reg.player2Name.charAt(0)}
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-slate-800">{reg.player2Name}</p>
+                                      <p className="text-[11px] text-slate-400">{reg.player2Email}</p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex gap-2 ml-4 flex-shrink-0">
+                                <button
+                                  className="text-xs px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium transition-colors"
+                                  onClick={() => {
+                                    setEditingPb(reg.id);
+                                    setEditP1(reg.player1Name);
+                                    setEditP2(reg.player2Name || "");
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="text-xs px-2.5 py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 font-medium transition-colors"
+                                  onClick={async () => {
+                                    if (!confirm(`Remove ${reg.player1Name} from ${PB_LABELS[reg.category] || reg.category}?`)) return;
+                                    setActionLoading(reg.id);
+                                    try {
+                                      const res = await fetch("/api/admin/pickleball-pending", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ id: reg.id, action: "delete" }),
+                                      });
+                                      if (!res.ok) throw new Error((await res.json()).error);
+                                      toast("Registration removed.", "success");
+                                      fetchData();
+                                    } catch (err) {
+                                      toast(err instanceof Error ? err.message : "Failed", "error");
+                                    } finally { setActionLoading(null); }
+                                  }}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
