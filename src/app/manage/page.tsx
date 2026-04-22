@@ -37,6 +37,60 @@ interface PoolPlayer {
   gender: string;
 }
 
+function GenderSelect({
+  playerId,
+  currentGender,
+  onUpdate,
+}: {
+  playerId: string;
+  currentGender: string;
+  onUpdate: (playerId: string, newGender: string, teamId: string | null) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+
+  const handleChange = async (newGender: string) => {
+    if (newGender === currentGender) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/players/${playerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gender: newGender }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onUpdate(playerId, newGender, data.teamId);
+      }
+    } catch {
+      // silent fail, will refresh on next fetch
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const bgColor =
+    currentGender === "FEMALE"
+      ? "bg-pink-50 border-pink-300 text-pink-700"
+      : currentGender === "OTHER"
+      ? "bg-purple-50 border-purple-300 text-purple-700"
+      : "bg-blue-50 border-blue-300 text-blue-700";
+
+  return (
+    <select
+      value={currentGender}
+      onChange={(e) => handleChange(e.target.value)}
+      disabled={saving}
+      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border cursor-pointer ${bgColor} ${
+        saving ? "opacity-50" : ""
+      }`}
+    >
+      <option value="MALE">M</option>
+      <option value="FEMALE">F</option>
+      <option value="OTHER">O</option>
+    </select>
+  );
+}
+
 export default function ManagePage() {
   const { data: session } = useSession();
   const [teams, setTeams] = useState<Team[]>([]);
@@ -89,6 +143,32 @@ export default function ManagePage() {
     setTimeout(() => setMessage({ text: "", type: "" }), 3000);
   };
 
+  const handleGenderUpdate = (playerId: string, newGender: string, teamId: string | null) => {
+    setTeams((prev) =>
+      prev.map((t) => {
+        const playerIdx = t.players.findIndex((p) => p.id === playerId);
+        if (playerIdx === -1) return t;
+        const updatedPlayers = t.players.map((p) =>
+          p.id === playerId ? { ...p, gender: newGender } : p
+        );
+        const newFemaleCount = updatedPlayers.filter((p) => p.gender === "FEMALE").length;
+        const memberCount = updatedPlayers.length;
+        return {
+          ...t,
+          players: updatedPlayers,
+          femaleCount: newFemaleCount,
+          status:
+            memberCount >= t.teamSize && newFemaleCount >= t.minFemaleRequired
+              ? "COMPLETE"
+              : "INCOMPLETE",
+        };
+      })
+    );
+    setPool((prev) =>
+      prev.map((p) => (p.id === playerId ? { ...p, gender: newGender } : p))
+    );
+  };
+
   const handleAssign = async (playerId: string) => {
     if (!selectedTeamId) return;
     const currentTeam = teams.find((t) => t.id === selectedTeamId);
@@ -111,7 +191,6 @@ export default function ManagePage() {
         throw new Error(data.error);
       }
 
-      // Update state directly instead of re-fetching
       setPool((prev) => prev.filter((p) => p.id !== playerId));
       setTeams((prev) =>
         prev.map((t) => {
@@ -172,7 +251,6 @@ export default function ManagePage() {
         throw new Error(data.error);
       }
 
-      // Update state directly instead of re-fetching
       setTeams((prev) =>
         prev.map((t) => {
           if (t.id !== selectedTeamId) return t;
@@ -312,10 +390,12 @@ export default function ManagePage() {
                       >
                         <div>
                           <p className="font-medium text-gray-900 text-sm">{player.fullName}</p>
-                          <div className="flex gap-1 mt-0.5">
-                            {player.gender === "FEMALE" && (
-                              <Badge variant="danger" className="text-[10px]">F</Badge>
-                            )}
+                          <div className="flex gap-1 mt-0.5 items-center">
+                            <GenderSelect
+                              playerId={player.id}
+                              currentGender={player.gender}
+                              onUpdate={handleGenderUpdate}
+                            />
                             {player.preferredRole && (
                               <Badge variant="info" className="text-[10px]">{player.preferredRole}</Badge>
                             )}
@@ -365,10 +445,12 @@ export default function ManagePage() {
                     >
                       <div>
                         <p className="font-medium text-gray-900 text-sm">{player.fullName}</p>
-                        <div className="flex gap-1 mt-0.5">
-                          {player.gender === "FEMALE" && (
-                            <Badge variant="danger" className="text-[10px]">F</Badge>
-                          )}
+                        <div className="flex gap-1 mt-0.5 items-center">
+                          <GenderSelect
+                            playerId={player.id}
+                            currentGender={player.gender}
+                            onUpdate={handleGenderUpdate}
+                          />
                           <Badge variant="info" className="text-[10px]">{player.preferredRole}</Badge>
                           <Badge
                             variant={
