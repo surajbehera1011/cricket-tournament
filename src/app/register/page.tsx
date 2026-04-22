@@ -4,11 +4,16 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { TeamForm } from "@/components/registration/TeamForm";
 import { IndividualForm } from "@/components/registration/IndividualForm";
+import { PickleballForm } from "@/components/registration/PickleballForm";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 
+type Sport = "cricket" | "pickleball";
+type CricketTab = "team" | "individual";
+
 export default function RegisterPage() {
-  const [tab, setTab] = useState<"team" | "individual">("team");
+  const [sport, setSport] = useState<Sport>("cricket");
+  const [cricketTab, setCricketTab] = useState<CricketTab>("team");
   const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
   const { toast } = useToast();
 
@@ -19,13 +24,17 @@ export default function RegisterPage() {
       .catch(() => setRegistrationOpen(true));
   }, []);
 
-  const handleSuccess = () => {
+  const handleCricketSuccess = () => {
     toast(
-      tab === "team"
+      cricketTab === "team"
         ? "Team registration submitted! It will appear on the dashboard after admin approval."
         : "Individual registration submitted! You will appear in the player pool after admin approval.",
       "success"
     );
+  };
+
+  const handlePickleballSuccess = () => {
+    toast("Pickleball registration submitted! Awaiting admin approval.", "success");
   };
 
   return (
@@ -33,12 +42,12 @@ export default function RegisterPage() {
       {/* Hero */}
       <div className="hero-section">
         <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-20 text-center">
-          <span className="text-5xl mb-4 block">🏏</span>
+          <span className="text-5xl mb-4 block">{sport === "cricket" ? "🏏" : "🏓"}</span>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Join the Align Cricket Tournament
+            Join the Align Sports League
           </h1>
           <p className="mt-3 text-white/70 max-w-md mx-auto">
-            Register your team or sign up as an individual player for the tournament
+            Register for Cricket or Pickleball tournaments
           </p>
         </div>
       </div>
@@ -59,43 +68,81 @@ export default function RegisterPage() {
           </Card>
         ) : (
           <>
-            {/* Tab switcher */}
+            {/* Sport Selector */}
             <div className="flex gap-1 bg-white p-1.5 rounded-2xl mb-5 shadow-lg border border-brand-100/50">
               <button
-                onClick={() => setTab("team")}
+                onClick={() => setSport("cricket")}
                 className={cn(
                   "flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
-                  tab === "team"
+                  sport === "cricket"
                     ? "bg-brand-600 text-white shadow-md"
                     : "text-slate-500 hover:text-brand-700 hover:bg-brand-50"
                 )}
               >
-                <span className="text-lg">👥</span>
-                Register Team
+                <span className="text-lg">🏏</span>
+                Cricket
               </button>
               <button
-                onClick={() => setTab("individual")}
+                onClick={() => setSport("pickleball")}
                 className={cn(
                   "flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
-                  tab === "individual"
-                    ? "bg-brand-600 text-white shadow-md"
-                    : "text-slate-500 hover:text-brand-700 hover:bg-brand-50"
+                  sport === "pickleball"
+                    ? "bg-emerald-600 text-white shadow-md"
+                    : "text-slate-500 hover:text-emerald-700 hover:bg-emerald-50"
                 )}
               >
-                <span className="text-lg">👤</span>
-                Register Individual
+                <span className="text-lg">🏓</span>
+                Pickleball
               </button>
             </div>
 
-            <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
-              <CardContent className="py-8 px-6 sm:px-8">
-                {tab === "team" ? (
-                  <TeamForm onSuccess={handleSuccess} />
-                ) : (
-                  <IndividualForm onSuccess={handleSuccess} />
-                )}
-              </CardContent>
-            </Card>
+            {sport === "cricket" && (
+              <>
+                {/* Cricket sub-tabs */}
+                <div className="flex gap-1 bg-white p-1 rounded-xl mb-5 shadow-sm border border-brand-100/30">
+                  <button
+                    onClick={() => setCricketTab("team")}
+                    className={cn(
+                      "flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2",
+                      cricketTab === "team"
+                        ? "bg-brand-100 text-brand-700"
+                        : "text-slate-400 hover:text-brand-600"
+                    )}
+                  >
+                    <span>👥</span> Register Team
+                  </button>
+                  <button
+                    onClick={() => setCricketTab("individual")}
+                    className={cn(
+                      "flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2",
+                      cricketTab === "individual"
+                        ? "bg-brand-100 text-brand-700"
+                        : "text-slate-400 hover:text-brand-600"
+                    )}
+                  >
+                    <span>👤</span> Register Individual
+                  </button>
+                </div>
+
+                <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
+                  <CardContent className="py-8 px-6 sm:px-8">
+                    {cricketTab === "team" ? (
+                      <TeamForm onSuccess={handleCricketSuccess} />
+                    ) : (
+                      <IndividualForm onSuccess={handleCricketSuccess} />
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            {sport === "pickleball" && (
+              <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
+                <CardContent className="py-8 px-6 sm:px-8">
+                  <PickleballForm onSuccess={handlePickleballSuccess} />
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
       </div>

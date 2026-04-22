@@ -45,6 +45,24 @@ interface ApprovedTeam {
   name: string;
 }
 
+interface PendingPickleball {
+  id: string;
+  category: string;
+  player1Name: string;
+  player1Email: string;
+  player2Name: string | null;
+  player2Email: string | null;
+  createdAt: string;
+}
+
+const PB_LABELS: Record<string, string> = {
+  MENS_SINGLES: "Men's Singles",
+  WOMENS_SINGLES: "Women's Singles",
+  MENS_DOUBLES: "Men's Doubles",
+  WOMENS_DOUBLES: "Women's Doubles",
+  MIXED_DOUBLES: "Mixed Doubles",
+};
+
 export default function AdminPage() {
   const { data: session } = useSession();
   const { toast } = useToast();
@@ -54,8 +72,9 @@ export default function AdminPage() {
   const [approvedTeams, setApprovedTeams] = useState<ApprovedTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [tab, setTab] = useState<"pending" | "captains">("pending");
+  const [tab, setTab] = useState<"pending" | "pickleball" | "captains">("pending");
 
+  const [pendingPickleball, setPendingPickleball] = useState<PendingPickleball[]>([]);
   const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
   const [selectedIndividuals, setSelectedIndividuals] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -66,18 +85,21 @@ export default function AdminPage() {
   const fetchData = useCallback(async () => {
     try {
       const ts = Date.now();
-      const [pendingRes, captainsRes, teamsRes] = await Promise.all([
+      const [pendingRes, captainsRes, teamsRes, pbRes] = await Promise.all([
         fetch(`/api/admin/pending?_t=${ts}`, { cache: "no-store" }),
         fetch(`/api/admin/captains?_t=${ts}`, { cache: "no-store" }),
         fetch(`/api/teams?_t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/admin/pickleball-pending?_t=${ts}`, { cache: "no-store" }),
       ]);
       const pending = await pendingRes.json();
       const caps = await captainsRes.json();
       const teams = await teamsRes.json();
+      const pbPending = await pbRes.json();
       if (pending.teams) setPendingTeams(pending.teams);
       if (pending.individuals) setPendingIndividuals(pending.individuals);
       if (Array.isArray(caps)) setCaptains(caps);
       if (Array.isArray(teams)) setApprovedTeams(teams.map((t: any) => ({ id: t.id, name: t.name })));
+      if (Array.isArray(pbPending)) setPendingPickleball(pbPending);
     } catch (err) {
       console.error("Fetch error:", err);
     } finally {
@@ -276,6 +298,12 @@ export default function AdminPage() {
           className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${tab === "captains" ? "bg-brand-600 text-white shadow-sm" : "bg-white text-slate-600 border border-brand-100/50 hover:bg-brand-50"}`}
         >
           Captain Management ({captains.length})
+        </button>
+        <button
+          onClick={() => setTab("pickleball")}
+          className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${tab === "pickleball" ? "bg-emerald-600 text-white shadow-sm" : "bg-white text-slate-600 border border-brand-100/50 hover:bg-brand-50"}`}
+        >
+          🏓 Pickleball ({pendingPickleball.length})
         </button>
       </div>
 
@@ -490,6 +518,102 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {tab === "pickleball" && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-slate-800">Pending Pickleball Registrations ({pendingPickleball.length})</h2>
+          {pendingPickleball.length === 0 ? (
+            <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No pending pickleball registrations</p>
+          ) : (
+            <div className="space-y-3">
+              {pendingPickleball.map((reg) => (
+                <Card key={reg.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {PB_LABELS[reg.category] || reg.category}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
+                            {reg.player1Name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-slate-800">{reg.player1Name}</p>
+                            <p className="text-[11px] text-slate-400">{reg.player1Email}</p>
+                          </div>
+                        </div>
+                        {reg.player2Name && (
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <div className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-bold">
+                              {reg.player2Name.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-800">{reg.player2Name}</p>
+                              <p className="text-[11px] text-slate-400">{reg.player2Email}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 ml-4 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          loading={actionLoading === reg.id}
+                          onClick={async () => {
+                            setActionLoading(reg.id);
+                            try {
+                              const res = await fetch("/api/admin/pickleball-pending", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ id: reg.id, action: "approve" }),
+                              });
+                              if (!res.ok) throw new Error((await res.json()).error);
+                              toast("Pickleball registration approved!", "success");
+                              fetchData();
+                            } catch (err) {
+                              toast(err instanceof Error ? err.message : "Failed", "error");
+                            } finally {
+                              setActionLoading(null);
+                            }
+                          }}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          loading={actionLoading === reg.id}
+                          onClick={async () => {
+                            setActionLoading(reg.id);
+                            try {
+                              const res = await fetch("/api/admin/pickleball-pending", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ id: reg.id, action: "reject" }),
+                              });
+                              if (!res.ok) throw new Error((await res.json()).error);
+                              toast("Pickleball registration rejected.", "success");
+                              fetchData();
+                            } catch (err) {
+                              toast(err instanceof Error ? err.message : "Failed", "error");
+                            } finally {
+                              setActionLoading(null);
+                            }
+                          }}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

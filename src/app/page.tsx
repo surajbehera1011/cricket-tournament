@@ -6,6 +6,7 @@ import { StatsCards } from "@/components/dashboard/StatsCards";
 import { TeamCards } from "@/components/dashboard/TeamCards";
 import { PoolTable } from "@/components/dashboard/PoolTable";
 import { Countdown } from "@/components/dashboard/Countdown";
+import { PickleballDashboard } from "@/components/dashboard/PickleballDashboard";
 import { useSSE } from "@/lib/useSSE";
 import { Suspense } from "react";
 
@@ -49,21 +50,25 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState<string | null>(null);
+  const [pickleballRegs, setPickleballRegs] = useState<any[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
       const ts = Date.now();
-      const [teamsRes, poolRes, settingsRes] = await Promise.all([
+      const [teamsRes, poolRes, settingsRes, pbRes] = await Promise.all([
         fetch(`/api/teams?_t=${ts}`, { cache: "no-store" }),
         fetch(`/api/pool?_t=${ts}`, { cache: "no-store" }),
         fetch(`/api/settings?_t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/pickleball?_t=${ts}`, { cache: "no-store" }),
       ]);
       const teamsData = await teamsRes.json();
       const poolData = await poolRes.json();
       const settingsData = await settingsRes.json();
+      const pbData = await pbRes.json();
       if (Array.isArray(teamsData)) setTeams(teamsData);
       if (Array.isArray(poolData)) setPool(poolData);
       if (settingsData?.tournamentStartDate) setStartDate(settingsData.tournamentStartDate);
+      if (Array.isArray(pbData)) setPickleballRegs(pbData);
     } catch (err) {
       console.error("Failed to fetch data:", err);
     } finally {
@@ -122,10 +127,10 @@ function DashboardContent() {
               <span className="text-sm text-white/90 font-medium">Live Tournament Dashboard</span>
             </div>
             <h1 className={`font-black text-white tracking-tight ${tvMode ? "text-tv-3xl" : "text-4xl sm:text-5xl"}`}>
-              Align Cricket Tournament
+              Align Sports League
             </h1>
             <p className={`mt-3 text-white/70 max-w-lg mx-auto ${tvMode ? "text-tv-base" : "text-base"}`}>
-              Track teams, player pool, and tournament progress in real-time
+              Track cricket teams, pickleball entries, and tournament progress in real-time
             </p>
             <Countdown targetDate={startDate} />
           </div>
@@ -194,6 +199,20 @@ function DashboardContent() {
             </span>
           </div>
           <PoolTable players={filteredPool} tvMode={tvMode} />
+        </div>
+
+        {/* Pickleball Section */}
+        <div>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-1 h-7 bg-gradient-to-b from-emerald-400 to-emerald-600 rounded-full" />
+            <h2 className={`font-bold text-slate-800 ${tvMode ? "text-tv-xl" : "text-xl"}`}>
+              Pickleball Tournament
+            </h2>
+            <span className="text-sm text-slate-400 font-medium">
+              ({pickleballRegs.length})
+            </span>
+          </div>
+          <PickleballDashboard registrations={pickleballRegs} />
         </div>
       </div>
     </div>

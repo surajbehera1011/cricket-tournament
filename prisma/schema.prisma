@@ -64,6 +64,20 @@ enum Gender {
   OTHER
 }
 
+enum PickleballCategory {
+  MENS_SINGLES
+  WOMENS_SINGLES
+  MENS_DOUBLES
+  WOMENS_DOUBLES
+  MIXED_DOUBLES
+}
+
+enum PickleballStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
 // ─── Models ─────────────────────────────────────────────
 
 model User {
@@ -174,4 +188,18 @@ model TournamentSettings {
   updatedAt           DateTime @updatedAt
 
   @@map("tournament_settings")
+}
+
+model PickleballRegistration {
+  id            String             @id @default(uuid())
+  category      PickleballCategory
+  player1Name   String
+  player1Email  String
+  player2Name   String?
+  player2Email  String?
+  status        PickleballStatus   @default(PENDING_APPROVAL)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@map("pickleball_registrations")
 }
