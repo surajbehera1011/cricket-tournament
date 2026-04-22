@@ -57,8 +57,8 @@ export default function ManagePage() {
       ]);
       const teamsData = await teamsRes.json();
       const poolData = await poolRes.json();
-      setTeams(teamsData);
-      setPool(poolData);
+      if (Array.isArray(teamsData)) setTeams(teamsData);
+      if (Array.isArray(poolData)) setPool(poolData);
     } catch (err) {
       console.error("Failed to fetch:", err);
     } finally {
