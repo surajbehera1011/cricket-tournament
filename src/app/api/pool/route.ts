@@ -1,8 +1,11 @@
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { PoolStatus } from "@prisma/client";
+import { jsonResponse } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,9 +29,9 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(players);
+    return jsonResponse(players);
   } catch (error) {
     console.error("Get pool error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return jsonResponse({ error: "Internal server error" }, 500);
   }
 }

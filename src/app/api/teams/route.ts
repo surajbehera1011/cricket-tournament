@@ -1,7 +1,9 @@
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { jsonResponse } from "@/lib/api-utils";
 
 export async function GET() {
   try {
@@ -48,9 +50,9 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json(formatted);
+    return jsonResponse(formatted);
   } catch (error) {
     console.error("Get teams error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return jsonResponse({ error: "Internal server error" }, 500);
   }
 }

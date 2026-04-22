@@ -1,12 +1,14 @@
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/business/audit";
+import { jsonResponse } from "@/lib/api-utils";
 
 const updateSettingsSchema = z.object({
   maxTeamSize: z.number().int().min(2).max(20).optional(),
@@ -27,10 +29,10 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json(settings);
+    return jsonResponse(settings);
   } catch (error) {
     console.error("Get settings error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return jsonResponse({ error: "Internal server error" }, 500);
   }
 }
 

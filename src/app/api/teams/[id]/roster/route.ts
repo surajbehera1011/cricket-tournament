@@ -1,7 +1,10 @@
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { jsonResponse } from "@/lib/api-utils";
 
 export async function GET(
   _request: NextRequest,
@@ -22,10 +25,10 @@ export async function GET(
     });
 
     if (!team) {
-      return NextResponse.json({ error: "Team not found" }, { status: 404 });
+      return jsonResponse({ error: "Team not found" }, 404);
     }
 
-    return NextResponse.json({
+    return jsonResponse({
       id: team.id,
       name: team.name,
       captain: team.captain,
@@ -36,6 +39,7 @@ export async function GET(
         fullName: m.player.fullName,
         preferredRole: m.player.preferredRole,
         experienceLevel: m.player.experienceLevel,
+        gender: m.player.gender,
         membershipType: m.membershipType,
         positionSlot: m.positionSlot,
         joinedAt: m.createdAt,
@@ -43,6 +47,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("Get roster error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return jsonResponse({ error: "Internal server error" }, 500);
   }
 }

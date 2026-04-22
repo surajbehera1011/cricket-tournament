@@ -1,15 +1,18 @@
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { jsonResponse } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return jsonResponse({ error: "Forbidden" }, 403);
     }
 
     const { searchParams } = new URL(request.url);
@@ -29,7 +32,7 @@ export async function GET(request: NextRequest) {
       prisma.auditLog.count(),
     ]);
 
-    return NextResponse.json({
+    return jsonResponse({
       logs,
       pagination: {
         page,
@@ -40,6 +43,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Get audit log error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return jsonResponse({ error: "Internal server error" }, 500);
   }
 }
