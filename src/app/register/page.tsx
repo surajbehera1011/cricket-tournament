@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/Card";
 import { TeamForm } from "@/components/registration/TeamForm";
 import { IndividualForm } from "@/components/registration/IndividualForm";
@@ -11,8 +12,12 @@ import { cn } from "@/lib/utils";
 type Sport = "cricket" | "pickleball";
 type CricketTab = "team" | "individual";
 
-export default function RegisterPage() {
-  const [sport, setSport] = useState<Sport>("cricket");
+function RegisterContent() {
+  const searchParams = useSearchParams();
+  const sportParam = searchParams.get("sport");
+  const initialSport: Sport = sportParam === "pickleball" ? "pickleball" : "cricket";
+
+  const [sport, setSport] = useState<Sport>(initialSport);
   const [cricketTab, setCricketTab] = useState<CricketTab>("team");
   const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
   const { toast } = useToast();
@@ -44,10 +49,12 @@ export default function RegisterPage() {
         <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-20 text-center">
           <span className="text-5xl mb-4 block">{sport === "cricket" ? "🏏" : "🏓"}</span>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Join the Align Sports League
+            {sport === "cricket" ? "Cricket Registration" : "Pickleball Registration"}
           </h1>
           <p className="mt-3 text-white/70 max-w-md mx-auto">
-            Register for Cricket or Pickleball tournaments
+            {sport === "cricket"
+              ? "Register your team or sign up as an individual player"
+              : "Register for a pickleball category"}
           </p>
         </div>
       </div>
@@ -147,5 +154,19 @@ export default function RegisterPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-brand-200 border-t-brand-600 mx-auto" />
+        </div>
+      }
+    >
+      <RegisterContent />
+    </Suspense>
   );
 }

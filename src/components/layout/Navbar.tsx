@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
@@ -17,8 +17,11 @@ const navLinks = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const [registrationOpen, setRegistrationOpen] = useState(true);
+
+  const currentSport = searchParams.get("sport") || "cricket";
 
   useEffect(() => {
     fetch("/api/settings", { cache: "no-store" })
@@ -34,6 +37,8 @@ export function Navbar() {
     if (!session?.user) return false;
     return link.roles.includes(session.user.role);
   });
+
+  const registerHref = `/register?sport=${currentSport}`;
 
   return (
     <nav className="bg-white/80 backdrop-blur-xl sticky top-0 z-50 border-b border-brand-100/60 shadow-sm">
@@ -69,7 +74,7 @@ export function Navbar() {
           <div className="flex items-center gap-3">
             {registrationOpen && (
               <Link
-                href="/register"
+                href={registerHref}
                 className="text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-all font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
               >
                 Register Now
