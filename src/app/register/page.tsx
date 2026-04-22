@@ -28,7 +28,7 @@ export default function RegisterPage() {
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
             Join the Align Cricket Tournament
           </h1>
-          <p className="mt-3 text-indigo-100/80 max-w-md mx-auto">
+          <p className="mt-3 text-white/70 max-w-md mx-auto">
             Register your team or sign up as an individual player for the tournament
           </p>
         </div>
