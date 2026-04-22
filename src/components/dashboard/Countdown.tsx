@@ -38,8 +38,9 @@ export function Countdown({ targetDate }: CountdownProps) {
 
   if (remaining.expired) {
     return (
-      <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5">
-        <span className="text-sm text-white/90 font-medium">Tournament has started!</span>
+      <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-full px-5 py-2">
+        <span className="text-lg">🎉</span>
+        <span className="text-sm text-emerald-700 font-bold">Tournament has started!</span>
       </div>
     );
   }
@@ -52,15 +53,15 @@ export function Countdown({ targetDate }: CountdownProps) {
   ];
 
   return (
-    <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-sm rounded-2xl px-5 py-2.5 mt-4">
-      <span className="text-xs text-white/60 font-medium mr-1">Starts in</span>
+    <div className="inline-flex items-center gap-2 bg-white rounded-2xl px-5 py-3 shadow-md border border-brand-100/50">
+      <span className="text-xs text-slate-400 font-semibold mr-1 uppercase tracking-wider">Starts in</span>
       {units.map((u, i) => (
-        <div key={u.label} className="flex items-center gap-1.5">
-          <div className="bg-white/15 rounded-lg px-2.5 py-1.5 min-w-[44px] text-center">
-            <p className="text-lg font-extrabold text-white tabular-nums leading-tight">{String(u.value).padStart(2, "0")}</p>
-            <p className="text-[9px] text-white/50 uppercase tracking-wider font-semibold">{u.label}</p>
+        <div key={u.label} className="flex items-center gap-2">
+          <div className="bg-gradient-to-b from-brand-50 to-brand-100/60 rounded-xl px-3 py-2 min-w-[52px] text-center border border-brand-200/50">
+            <p className="text-xl font-extrabold text-brand-700 tabular-nums leading-tight">{String(u.value).padStart(2, "0")}</p>
+            <p className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">{u.label}</p>
           </div>
-          {i < units.length - 1 && <span className="text-white/30 font-bold text-lg">:</span>}
+          {i < units.length - 1 && <span className="text-brand-300 font-bold text-lg">:</span>}
         </div>
       ))}
     </div>
