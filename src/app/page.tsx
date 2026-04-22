@@ -16,6 +16,7 @@ interface Team {
   memberCount: number;
   teamSize: number;
   slotsRemaining: number;
+  captainName: string;
   captain: { displayName: string } | null;
   players: {
     id: string;
@@ -83,6 +84,7 @@ function DashboardContent() {
     }
   }, [tvMode, tvCycleIdx, teams]);
 
+  const readyTeams = teams.filter((t) => t.status === "READY").length;
   const completeTeams = teams.filter((t) => t.status === "COMPLETE").length;
   const incompleteTeams = teams.filter((t) => t.status === "INCOMPLETE").length;
   const selectedTeam = selectedTeamId ? teams.find((t) => t.id === selectedTeamId) : null;
@@ -110,6 +112,7 @@ function DashboardContent() {
       <div className="space-y-6">
         <StatsCards
           totalTeams={teams.length}
+          readyTeams={readyTeams}
           completeTeams={completeTeams}
           incompleteTeams={incompleteTeams}
           poolCount={pool.length}

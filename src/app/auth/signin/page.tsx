@@ -1,93 +1,88 @@
 "use client";
 
-import { signIn, getProviders } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 
 function SignInForm() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
-  const [email, setEmail] = useState("admin@company.com");
-  const [providers, setProviders] = useState<Record<string, { id: string; name: string }>>({});
+  const callbackUrl = searchParams.get("callbackUrl") || "/manage";
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    getProviders().then((p) => {
-      if (p) setProviders(p as Record<string, { id: string; name: string }>);
-    });
-  }, []);
-
-  const devLogin = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!email || !password) {
+      setError("Please enter email and password");
+      return;
+    }
     setLoading(true);
-    await signIn("dev-login", { email, callbackUrl });
+    const result = await signIn("credentials", {
+      email,
+      password,
+      callbackUrl,
+      redirect: false,
+    });
     setLoading(false);
+
+    if (result?.error) {
+      setError("Invalid email or password");
+    } else if (result?.url) {
+      window.location.href = result.url;
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cricket-50 to-green-50">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-2xl shadow-xl">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Cricket Tournament</h1>
-          <p className="mt-2 text-gray-600">Sign in to continue</p>
+          <div className="w-16 h-16 bg-cricket-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">&#127951;</span>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900">Admin / Captain Login</h1>
+          <p className="mt-2 text-gray-600">Sign in to manage the tournament</p>
         </div>
 
-        <div className="space-y-4">
-          {providers["azure-ad"] && (
-            <button
-              onClick={() => signIn("azure-ad", { callbackUrl })}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 hover:bg-gray-50 font-medium transition-colors"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 21 21" fill="none">
-                <path d="M0 0h10v10H0z" fill="#F25022" />
-                <path d="M11 0h10v10H11z" fill="#7FBA00" />
-                <path d="M0 11h10v10H0z" fill="#00A4EF" />
-                <path d="M11 11h10v10H11z" fill="#FFB900" />
-              </svg>
-              Sign in with Microsoft
-            </button>
-          )}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
 
-          {providers["dev-login"] && (
-            <>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">
-                    {providers["azure-ad"] ? "Or use dev login" : "Dev Login"}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <select
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
-                >
-                  <option value="admin@company.com">Admin (admin@company.com)</option>
-                  <option value="captain1@company.com">Captain 1 - Rahul (captain1@company.com)</option>
-                  <option value="captain2@company.com">Captain 2 - Priya (captain2@company.com)</option>
-                  <option value="viewer@company.com">Viewer - Amit (viewer@company.com)</option>
-                </select>
-
-                <button
-                  onClick={devLogin}
-                  disabled={loading}
-                  className="w-full px-4 py-3 bg-cricket-600 text-white rounded-lg hover:bg-cricket-700 font-medium transition-colors disabled:opacity-50"
-                >
-                  {loading ? "Signing in..." : "Sign In as Dev User"}
-                </button>
-              </div>
-
-              <p className="text-xs text-center text-gray-400">
-                Dev login is only available in development mode.
-                Run <code className="bg-gray-100 px-1 rounded">npx prisma db seed</code> first.
-              </p>
-            </>
-          )}
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
+              placeholder="your.email@company.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cricket-500 focus:border-transparent"
+              placeholder="Enter your password"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full px-4 py-3 bg-cricket-600 text-white rounded-lg hover:bg-cricket-700 font-medium transition-colors disabled:opacity-50"
+          >
+            {loading ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
       </div>
     </div>
   );

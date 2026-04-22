@@ -2,25 +2,29 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const protectedPaths = ["/manage", "/audit", "/settings"];
-const apiMutationPaths = ["/api/register", "/api/teams/", "/api/settings", "/api/admin", "/api/players"];
+const adminOnlyPages = ["/admin", "/audit", "/settings"];
+const authRequiredPages = ["/manage"];
+const adminOnlyApi = ["/api/admin", "/api/settings"];
+const authRequiredApi = ["/api/teams/"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const method = request.method;
 
-  const isProtectedPage = protectedPaths.some((p) => pathname.startsWith(p));
-  const isApiMutation =
-    apiMutationPaths.some((p) => pathname.startsWith(p)) &&
-    (request.method === "POST" || request.method === "PATCH" || request.method === "PUT");
+  const isAdminPage = adminOnlyPages.some((p) => pathname.startsWith(p));
+  const isAuthPage = authRequiredPages.some((p) => pathname.startsWith(p));
+  const isAdminApi = adminOnlyApi.some((p) => pathname.startsWith(p)) && method !== "GET";
+  const isAuthApi = authRequiredApi.some((p) => pathname.startsWith(p)) && (method === "POST" || method === "PATCH" || method === "PUT");
+  const isPlayerApi = pathname.startsWith("/api/players") && method === "PATCH";
 
-  if (!isProtectedPage && !isApiMutation) {
+  if (!isAdminPage && !isAuthPage && !isAdminApi && !isAuthApi && !isPlayerApi) {
     return NextResponse.next();
   }
 
   const token = await getToken({ req: request });
 
   if (!token) {
-    if (isApiMutation) {
+    if (isAdminApi || isAuthApi || isPlayerApi) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const signInUrl = new URL("/auth/signin", request.url);
@@ -28,19 +32,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  if (pathname.startsWith("/audit") && token.role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/", request.url));
+  if (isAdminPage || isAdminApi || isPlayerApi) {
+    if (token.role !== "ADMIN") {
+      if (isAdminApi || isPlayerApi) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
-  if (pathname.startsWith("/settings") && token.role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  if (
-    pathname.startsWith("/manage") &&
-    token.role !== "ADMIN" &&
-    token.role !== "CAPTAIN"
-  ) {
+  if (isAuthPage && token.role !== "ADMIN" && token.role !== "CAPTAIN") {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
@@ -48,5 +49,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/manage/:path*", "/audit/:path*", "/settings/:path*", "/api/register/:path*", "/api/teams/:path*", "/api/settings", "/api/admin/:path*", "/api/players/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/manage/:path*",
+    "/audit/:path*",
+    "/settings/:path*",
+    "/api/admin/:path*",
+    "/api/settings",
+    "/api/teams/:path*",
+    "/api/players/:path*",
+  ],
 };

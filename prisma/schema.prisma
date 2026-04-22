@@ -12,12 +12,13 @@ datasource db {
 enum UserRole {
   ADMIN
   CAPTAIN
-  VIEWER
 }
 
 enum TeamStatus {
+  PENDING_APPROVAL
   INCOMPLETE
   COMPLETE
+  READY
 }
 
 enum RegistrationType {
@@ -26,6 +27,7 @@ enum RegistrationType {
 }
 
 enum PoolStatus {
+  PENDING_APPROVAL
   LOOKING_FOR_TEAM
   ASSIGNED
   NONE
@@ -49,6 +51,11 @@ enum AuditAction {
   MARK_COMPLETE
   MARK_INCOMPLETE
   UPDATE_SETTINGS
+  APPROVE_TEAM
+  REJECT_TEAM
+  APPROVE_INDIVIDUAL
+  REJECT_INDIVIDUAL
+  CREATE_CAPTAIN
 }
 
 enum Gender {
@@ -62,8 +69,9 @@ enum Gender {
 model User {
   id          String   @id @default(uuid())
   email       String   @unique
+  password    String   @default("")
   displayName String
-  role        UserRole @default(VIEWER)
+  role        UserRole @default(CAPTAIN)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -76,10 +84,11 @@ model User {
 model Team {
   id            String     @id @default(uuid())
   name          String     @unique
+  captainName   String     @default("")
   captainUserId String?
   captain       User?      @relation("TeamCaptain", fields: [captainUserId], references: [id])
   teamSize      Int        @default(9)
-  status        TeamStatus @default(INCOMPLETE)
+  status        TeamStatus @default(PENDING_APPROVAL)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 

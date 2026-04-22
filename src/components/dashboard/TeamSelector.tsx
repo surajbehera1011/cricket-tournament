@@ -47,7 +47,7 @@ export function TeamSelector({ teams, selectedTeamId, onSelect, tvMode }: TeamSe
         >
           {team.name}
           <Badge
-            variant={team.status === "COMPLETE" ? "success" : "warning"}
+            variant={team.status === "READY" ? "success" : team.status === "COMPLETE" ? "info" : "warning"}
             className={cn(
               selectedTeamId === team.id && "bg-white/20 text-white"
             )}

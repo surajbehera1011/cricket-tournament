@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const navLinks = [
   { href: "/", label: "Dashboard" },
   { href: "/register", label: "Register" },
+  { href: "/admin", label: "Admin Panel", roles: ["ADMIN"] },
   { href: "/manage", label: "Manage Teams", roles: ["ADMIN", "CAPTAIN"] },
   { href: "/audit", label: "Audit Log", roles: ["ADMIN"] },
   { href: "/settings", label: "Settings", roles: ["ADMIN"] },

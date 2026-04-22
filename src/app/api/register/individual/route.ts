@@ -2,23 +2,16 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { individualRegistrationSchema } from "@/lib/validators";
 import { registerIndividual } from "@/lib/business/registration";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json();
     const parsed = individualRegistrationSchema.safeParse({
       ...body,
-      submitterEmail: session.user.email,
-      submitterName: session.user.name,
+      submitterEmail: body.email || "anonymous@public.com",
+      submitterName: body.fullName,
     });
 
     if (!parsed.success) {
@@ -28,20 +21,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await registerIndividual(parsed.data, session.user.id);
+    const result = await registerIndividual(parsed.data);
 
     return NextResponse.json(
       {
-        message: "Individual registered successfully",
+        message: "Registration submitted! You will appear in the pool after admin approval.",
         player: { id: result.player.id, fullName: result.player.fullName },
       },
       { status: 201 }
     );
   } catch (error) {
     console.error("Individual registration error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

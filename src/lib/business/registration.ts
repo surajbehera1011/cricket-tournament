@@ -5,13 +5,9 @@ import { sseManager } from "@/lib/sse";
 import type { TeamRegistrationInput, IndividualRegistrationInput } from "@/lib/validators";
 
 export async function getSettings() {
-  let settings = await prisma.tournamentSettings.findUnique({
-    where: { id: "singleton" },
-  });
+  let settings = await prisma.tournamentSettings.findUnique({ where: { id: "singleton" } });
   if (!settings) {
-    settings = await prisma.tournamentSettings.create({
-      data: { id: "singleton" },
-    });
+    settings = await prisma.tournamentSettings.create({ data: { id: "singleton" } });
   }
   return settings;
 }
@@ -19,49 +15,37 @@ export async function getSettings() {
 export async function recomputeTeamStatus(teamId: string): Promise<TeamStatus> {
   const team = await prisma.team.findUniqueOrThrow({
     where: { id: teamId },
-    include: {
-      memberships: {
-        include: { player: { select: { gender: true } } },
-      },
-    },
+    include: { memberships: { include: { player: { select: { gender: true } } } } },
   });
 
+  if (team.status === "READY" || team.status === "PENDING_APPROVAL") return team.status;
+
   const settings = await getSettings();
-
   const memberCount = team.memberships.length;
-  const femaleCount = team.memberships.filter(
-    (m) => m.player.gender === "FEMALE"
-  ).length;
-
+  const femaleCount = team.memberships.filter((m) => m.player.gender === "FEMALE").length;
   const sizeOk = memberCount >= settings.maxTeamSize;
   const femaleOk = femaleCount >= settings.minFemalePerTeam;
   const newStatus = sizeOk && femaleOk ? TeamStatus.COMPLETE : TeamStatus.INCOMPLETE;
 
   if (team.status !== newStatus) {
-    await prisma.team.update({
-      where: { id: teamId },
-      data: { status: newStatus },
-    });
+    await prisma.team.update({ where: { id: teamId }, data: { status: newStatus } });
   }
-
   return newStatus;
 }
 
-export async function registerTeam(
-  input: TeamRegistrationInput,
-  actorUserId: string
-) {
+export async function registerTeam(input: TeamRegistrationInput) {
   const settings = await getSettings();
   const teamSize = settings.maxTeamSize;
 
   const result = await prisma.$transaction(async (tx) => {
     const team = await tx.team.upsert({
       where: { name: input.teamName },
-      update: { teamSize },
+      update: { teamSize, captainName: input.captainName },
       create: {
         name: input.teamName,
+        captainName: input.captainName,
         teamSize,
-        status: TeamStatus.INCOMPLETE,
+        status: TeamStatus.PENDING_APPROVAL,
       },
     });
 
@@ -78,7 +62,6 @@ export async function registerTeam(
         },
       });
       players.push(player);
-
       await tx.teamMembership.create({
         data: {
           teamId: team.id,
@@ -89,7 +72,7 @@ export async function registerTeam(
       });
     }
 
-    const registration = await tx.registration.create({
+    await tx.registration.create({
       data: {
         registrationType: "TEAM",
         submitterEmail: input.submitterEmail,
@@ -107,22 +90,7 @@ export async function registerTeam(
       },
     });
 
-    return { team, players, registration };
-  });
-
-  await recomputeTeamStatus(result.team.id);
-
-  await createAuditLog({
-    actorUserId,
-    action: AuditAction.REGISTER_TEAM,
-    entityType: "Team",
-    entityId: result.team.id,
-    after: {
-      teamName: input.teamName,
-      captainName: input.captainName,
-      teamSize,
-      playerCount: input.players.length,
-    },
+    return { team, players };
   });
 
   sseManager.broadcast({
@@ -133,10 +101,7 @@ export async function registerTeam(
   return result;
 }
 
-export async function registerIndividual(
-  input: IndividualRegistrationInput,
-  actorUserId: string
-) {
+export async function registerIndividual(input: IndividualRegistrationInput) {
   const result = await prisma.$transaction(async (tx) => {
     const player = await tx.player.create({
       data: {
@@ -146,36 +111,23 @@ export async function registerIndividual(
         preferredRole: input.preferredRole.join(", "),
         experienceLevel: input.experienceLevel,
         comments: input.comments,
-        poolStatus: PoolStatus.LOOKING_FOR_TEAM,
+        poolStatus: PoolStatus.PENDING_APPROVAL,
       },
     });
 
-    const registration = await tx.registration.create({
+    await tx.registration.create({
       data: {
         registrationType: "INDIVIDUAL",
-        submitterEmail: input.submitterEmail,
-        submitterName: input.submitterName,
+        submitterEmail: input.submitterEmail || "",
+        submitterName: input.fullName,
         preferredRole: input.preferredRole.join(", "),
         experienceLevel: input.experienceLevel,
         comments: input.comments,
-        poolStatus: PoolStatus.LOOKING_FOR_TEAM,
+        poolStatus: PoolStatus.PENDING_APPROVAL,
       },
     });
 
-    return { player, registration };
-  });
-
-  await createAuditLog({
-    actorUserId,
-    action: AuditAction.REGISTER_INDIVIDUAL,
-    entityType: "Player",
-    entityId: result.player.id,
-    after: {
-      fullName: input.fullName,
-      gender: input.gender,
-      preferredRole: input.preferredRole,
-      experienceLevel: input.experienceLevel,
-    },
+    return { player };
   });
 
   sseManager.broadcast({

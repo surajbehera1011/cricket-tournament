@@ -3,7 +3,7 @@ import { PrismaClient, UserRole, PoolStatus, MembershipType, TeamStatus, AuditAc
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🏏 Seeding cricket tournament database...\n");
+  console.log("Seeding cricket tournament database...\n");
 
   // ─── Tournament Settings ────────────────────────────
   await prisma.tournamentSettings.upsert({
@@ -18,58 +18,29 @@ async function main() {
     },
   });
 
-  console.log("✅ Tournament settings created");
+  console.log("Tournament settings created");
 
-  // ─── Users ──────────────────────────────────────────
+  // ─── Admin User ───────────────────────────────────────
   const admin = await prisma.user.upsert({
-    where: { email: "admin@company.com" },
-    update: {},
+    where: { email: "surajbehera1011@gmail.com" },
+    update: { role: UserRole.ADMIN },
     create: {
-      email: "admin@company.com",
+      email: "surajbehera1011@gmail.com",
       displayName: "Tournament Admin",
       role: UserRole.ADMIN,
+      password: "",
     },
   });
 
-  const captain1 = await prisma.user.upsert({
-    where: { email: "captain1@company.com" },
-    update: {},
-    create: {
-      email: "captain1@company.com",
-      displayName: "Rahul Sharma",
-      role: UserRole.CAPTAIN,
-    },
-  });
+  console.log("Admin user created");
 
-  const captain2 = await prisma.user.upsert({
-    where: { email: "captain2@company.com" },
-    update: {},
-    create: {
-      email: "captain2@company.com",
-      displayName: "Priya Patel",
-      role: UserRole.CAPTAIN,
-    },
-  });
-
-  const viewer = await prisma.user.upsert({
-    where: { email: "viewer@company.com" },
-    update: {},
-    create: {
-      email: "viewer@company.com",
-      displayName: "Amit Kumar",
-      role: UserRole.VIEWER,
-    },
-  });
-
-  console.log("✅ Users created");
-
-  // ─── Teams (default size now 9) ─────────────────────
+  // ─── Teams ─────────────────────────────────────────────
   const team1 = await prisma.team.upsert({
     where: { name: "Royal Strikers" },
     update: {},
     create: {
       name: "Royal Strikers",
-      captainUserId: captain1.id,
+      captainName: "Rahul Sharma",
       teamSize: 9,
       status: TeamStatus.INCOMPLETE,
     },
@@ -80,7 +51,7 @@ async function main() {
     update: {},
     create: {
       name: "Thunder Hawks",
-      captainUserId: captain2.id,
+      captainName: "Priya Patel",
       teamSize: 9,
       status: TeamStatus.INCOMPLETE,
     },
@@ -91,7 +62,7 @@ async function main() {
     update: {},
     create: {
       name: "Code Warriors",
-      captainUserId: null,
+      captainName: "Nitin Verma",
       teamSize: 9,
       status: TeamStatus.INCOMPLETE,
     },
@@ -102,16 +73,15 @@ async function main() {
     update: {},
     create: {
       name: "Debug Dragons",
-      captainUserId: null,
+      captainName: "Arjun Kapoor",
       teamSize: 9,
       status: TeamStatus.INCOMPLETE,
     },
   });
 
-  console.log("✅ Teams created");
+  console.log("Teams created");
 
   // ─── Players (team members) ─────────────────────────
-  // Gender: F = FEMALE, M = MALE
   const teamPlayers = [
     { fullName: "Rahul Sharma", gender: Gender.MALE, preferredRole: "Batsman", experienceLevel: "Advanced", team: team1 },
     { fullName: "Vikram Singh", gender: Gender.MALE, preferredRole: "Bowler", experienceLevel: "Advanced", team: team1 },
@@ -128,7 +98,6 @@ async function main() {
     { fullName: "Akash Mehta", gender: Gender.MALE, preferredRole: "Batsman", experienceLevel: "Beginner", team: team2 },
     { fullName: "Rohan Das", gender: Gender.MALE, preferredRole: "Bowler", experienceLevel: "Intermediate", team: team2 },
 
-    { fullName: "Varun Joshi", gender: Gender.MALE, preferredRole: "Batsman", experienceLevel: "Intermediate", team: team3 },
     { fullName: "Nitin Verma", gender: Gender.MALE, preferredRole: "All-Rounder", experienceLevel: "Advanced", team: team3 },
     { fullName: "Pooja Sharma", gender: Gender.FEMALE, preferredRole: "Bowler", experienceLevel: "Beginner", team: team3 },
 
@@ -163,7 +132,7 @@ async function main() {
     });
   }
 
-  console.log("✅ Team players + memberships created");
+  console.log("Team players + memberships created");
 
   // ─── Individual Pool Players ────────────────────────
   const poolPlayers = [
@@ -189,7 +158,7 @@ async function main() {
     });
   }
 
-  console.log("✅ Individual pool players created");
+  console.log("Individual pool players created");
 
   // ─── Sample Audit Log ───────────────────────────────
   await prisma.auditLog.create({
@@ -202,8 +171,8 @@ async function main() {
     },
   });
 
-  console.log("✅ Audit logs created");
-  console.log("\n🏏 Seeding complete!");
+  console.log("Audit logs created");
+  console.log("\nSeeding complete!");
 }
 
 main()

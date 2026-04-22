@@ -12,6 +12,7 @@ export async function GET() {
     const settings = await getSettings();
 
     const teams = await prisma.team.findMany({
+      where: { status: { not: "PENDING_APPROVAL" } },
       include: {
         captain: { select: { id: true, displayName: true, email: true } },
         _count: { select: { memberships: true } },
@@ -34,18 +35,25 @@ export async function GET() {
 
       const sizeOk = memberCount >= effectiveSize;
       const femaleOk = femaleCount >= settings.minFemalePerTeam;
-      const correctStatus: TeamStatus = sizeOk && femaleOk ? "COMPLETE" : "INCOMPLETE";
 
-      if (t.status !== correctStatus) {
-        staleIds.push({ id: t.id, correctStatus });
+      let displayStatus: TeamStatus = t.status;
+      if (t.status === "READY") {
+        displayStatus = "READY";
+      } else {
+        const computedStatus: TeamStatus = sizeOk && femaleOk ? "COMPLETE" : "INCOMPLETE";
+        if (t.status !== computedStatus) {
+          staleIds.push({ id: t.id, correctStatus: computedStatus });
+        }
+        displayStatus = computedStatus;
       }
 
       return {
         id: t.id,
         name: t.name,
+        captainName: t.captainName || t.captain?.displayName || "",
         captain: t.captain,
         teamSize: effectiveSize,
-        status: correctStatus,
+        status: displayStatus,
         memberCount,
         femaleCount,
         minFemaleRequired: settings.minFemalePerTeam,

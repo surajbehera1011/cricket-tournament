@@ -18,6 +18,7 @@ interface Team {
   memberCount: number;
   teamSize: number;
   slotsRemaining: number;
+  captainName: string;
   captain: { displayName: string } | null;
   players: Player[];
 }
@@ -36,14 +37,14 @@ export function RosterList({ team, tvMode }: RosterListProps) {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className={tvMode ? "text-tv-xl" : ""}>{team.name}</CardTitle>
-          {team.captain && (
+          {(team.captainName || team.captain) && (
             <p className={`${detailSize} text-gray-500 mt-1`}>
-              Captain: {team.captain.displayName}
+              Captain: {team.captainName || team.captain?.displayName}
             </p>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={team.status === "COMPLETE" ? "success" : "warning"}>
+          <Badge variant={team.status === "READY" ? "success" : team.status === "COMPLETE" ? "info" : "warning"}>
             {team.status}
           </Badge>
           <span className={`${detailSize} text-gray-500`}>
