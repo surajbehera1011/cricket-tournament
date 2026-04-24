@@ -373,7 +373,6 @@ export function PickleballDashboard() {
             </div>
           </div>
         )}
-        )}
       </div>
     </div>
   );
