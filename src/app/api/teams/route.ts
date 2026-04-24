@@ -11,20 +11,29 @@ export async function GET() {
   try {
     const settings = await getSettings();
 
-    const teams = await prisma.team.findMany({
-      where: { status: { not: "PENDING_APPROVAL" } },
-      include: {
-        captain: { select: { id: true, displayName: true, email: true } },
-        _count: { select: { memberships: true } },
-        memberships: {
-          include: {
-            player: { select: { id: true, fullName: true, email: true, preferredRole: true, gender: true } },
-          },
-          orderBy: { createdAt: "asc" },
+    const includeBlock = {
+      captain: { select: { id: true, displayName: true, email: true } },
+      _count: { select: { memberships: true } },
+      memberships: {
+        include: {
+          player: { select: { id: true, fullName: true, email: true, preferredRole: true, gender: true } },
         },
+        orderBy: { createdAt: "asc" as const },
       },
-      orderBy: { name: "asc" },
-    });
+    };
+
+    const [teams, pendingTeams] = await Promise.all([
+      prisma.team.findMany({
+        where: { status: { not: "PENDING_APPROVAL" } },
+        include: includeBlock,
+        orderBy: { name: "asc" },
+      }),
+      prisma.team.findMany({
+        where: { status: "PENDING_APPROVAL" },
+        include: includeBlock,
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
     const staleIds: { id: string; correctStatus: TeamStatus }[] = [];
 
@@ -79,7 +88,37 @@ export async function GET() {
       ).catch((err) => console.error("Auto-heal status error:", err));
     }
 
-    return jsonResponse(formatted);
+    const formatTeam = (t: typeof teams[number]) => {
+      const femaleCount = t.memberships.filter((m) => m.player.gender === "FEMALE").length;
+      const effectiveSize = settings.maxTeamSize;
+      const memberCount = t._count.memberships;
+      return {
+        id: t.id,
+        name: t.name,
+        captainName: t.captainName || t.captain?.displayName || "",
+        captain: t.captain,
+        color: t.color || "",
+        teamSize: effectiveSize,
+        status: t.status,
+        memberCount,
+        femaleCount,
+        slotsRemaining: Math.max(0, effectiveSize - memberCount),
+        players: t.memberships.map((m) => ({
+          id: m.player.id,
+          fullName: m.player.fullName,
+          email: m.player.email || "",
+          preferredRole: m.player.preferredRole,
+          gender: m.player.gender,
+          membershipType: m.membershipType,
+          positionSlot: m.positionSlot,
+        })),
+        createdAt: t.createdAt,
+      };
+    };
+
+    const pendingFormatted = pendingTeams.map(formatTeam);
+
+    return jsonResponse({ teams: formatted, pendingTeams: pendingFormatted });
   } catch (error) {
     console.error("Get teams error:", error);
     return jsonResponse({ error: "Internal server error" }, 500);

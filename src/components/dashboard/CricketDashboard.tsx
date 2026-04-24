@@ -44,7 +44,9 @@ interface CricketDashboardProps {
 
 export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
   const [teams, setTeams] = useState<Team[]>([]);
+  const [pendingTeams, setPendingTeams] = useState<Team[]>([]);
   const [pool, setPool] = useState<PoolPlayer[]>([]);
+  const [pendingPool, setPendingPool] = useState<PoolPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState<string | null>(null);
@@ -61,8 +63,18 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
       const teamsData = await teamsRes.json();
       const poolData = await poolRes.json();
       const settingsData = await settingsRes.json();
-      if (Array.isArray(teamsData)) setTeams(teamsData);
-      if (Array.isArray(poolData)) setPool(poolData);
+      if (teamsData && Array.isArray(teamsData.teams)) {
+        setTeams(teamsData.teams);
+        setPendingTeams(teamsData.pendingTeams || []);
+      } else if (Array.isArray(teamsData)) {
+        setTeams(teamsData);
+      }
+      if (poolData && Array.isArray(poolData.players)) {
+        setPool(poolData.players);
+        setPendingPool(poolData.pendingPlayers || []);
+      } else if (Array.isArray(poolData)) {
+        setPool(poolData);
+      }
       setStartDate(settingsData?.cricketStartDate || settingsData?.tournamentStartDate || null);
       setRegCloseDate(settingsData?.cricketRegCloseDate || null);
     } catch (err) {
@@ -90,6 +102,21 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
         p.preferredRole.toLowerCase().includes(q)
       )
     : pool;
+
+  const filteredPendingTeams = q
+    ? pendingTeams.filter((t) =>
+        t.name.toLowerCase().includes(q) ||
+        t.captainName?.toLowerCase().includes(q) ||
+        t.players.some((p) => p.fullName.toLowerCase().includes(q))
+      )
+    : pendingTeams;
+
+  const filteredPendingPool = q
+    ? pendingPool.filter((p) =>
+        p.fullName.toLowerCase().includes(q) ||
+        p.preferredRole.toLowerCase().includes(q)
+      )
+    : pendingPool;
 
   const readyTeams = teams.filter((t) => t.status === "READY").length;
   const completeTeams = teams.filter((t) => t.status === "COMPLETE").length;
@@ -188,6 +215,90 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
           </div>
           <PoolTable players={filteredPool} tvMode={tvMode} />
         </div>
+
+        {/* Pending Approval Section */}
+        {(filteredPendingTeams.length > 0 || filteredPendingPool.length > 0) && (
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-1 h-7 bg-gradient-to-b from-amber-400 to-amber-600 rounded-full" />
+              <h2 className={`font-bold text-slate-800 ${tvMode ? "text-tv-xl" : "text-xl"}`}>Awaiting Approval</h2>
+              <span className="text-sm text-slate-400 font-medium">
+                ({filteredPendingTeams.length + filteredPendingPool.length})
+              </span>
+            </div>
+            <p className="text-sm text-slate-400 mb-5 ml-4">
+              These registrations are pending admin review and will move to the sections above once approved.
+            </p>
+
+            {filteredPendingTeams.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-amber-700 mb-3 ml-1">Pending Teams ({filteredPendingTeams.length})</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredPendingTeams.map((team) => (
+                    <div
+                      key={team.id}
+                      className="text-left bg-amber-50/50 border-2 border-dashed border-amber-200 rounded-2xl p-5 opacity-75"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {team.color && (
+                            <span className="w-3 h-3 rounded-full flex-shrink-0 border border-white shadow-sm" style={{ background: team.color }} />
+                          )}
+                          <h3 className="text-lg font-extrabold text-slate-600 leading-tight">
+                            {team.name}
+                          </h3>
+                        </div>
+                      </div>
+                      <div className="mb-3">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-300">
+                          PENDING APPROVAL
+                        </span>
+                      </div>
+                      {(team.captainName || team.captain) && (
+                        <p className="text-xs text-slate-400 mb-2 flex items-center gap-1">
+                          <span>👤</span> {team.captainName || team.captain?.displayName}
+                        </p>
+                      )}
+                      <p className="text-xs text-slate-400">{team.memberCount} player{team.memberCount !== 1 ? "s" : ""} registered</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {filteredPendingPool.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-amber-700 mb-3 ml-1">Pending Individuals ({filteredPendingPool.length})</h3>
+                <div className="bg-amber-50/50 rounded-2xl border-2 border-dashed border-amber-200 overflow-hidden opacity-75">
+                  <div className="px-2">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-amber-200/50">
+                          <th className="text-left py-3 px-4 text-xs font-bold text-amber-600 uppercase tracking-widest">Name</th>
+                          <th className="text-left py-3 px-4 text-xs font-bold text-amber-600 uppercase tracking-widest">Role</th>
+                          <th className="text-left py-3 px-4 text-xs font-bold text-amber-600 uppercase tracking-widest">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredPendingPool.map((player, idx) => (
+                          <tr key={player.id} className={idx !== filteredPendingPool.length - 1 ? "border-b border-amber-100/50" : ""}>
+                            <td className="py-3 px-4 text-sm font-semibold text-slate-600">{player.fullName}</td>
+                            <td className="py-3 px-4 text-sm text-slate-500">{player.preferredRole || "—"}</td>
+                            <td className="py-3 px-4">
+                              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-300">
+                                PENDING
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

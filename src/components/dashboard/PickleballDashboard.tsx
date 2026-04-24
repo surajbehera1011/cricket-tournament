@@ -10,6 +10,7 @@ interface PickleballReg {
   player1Email: string;
   player2Name: string | null;
   player2Email: string | null;
+  status?: string;
 }
 
 const CATEGORIES = [
@@ -91,6 +92,7 @@ function CategoryModal({ cat, entries, onClose }: {
 
 export function PickleballDashboard() {
   const [registrations, setRegistrations] = useState<PickleballReg[]>([]);
+  const [pendingRegistrations, setPendingRegistrations] = useState<PickleballReg[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState<string | null>(null);
@@ -106,7 +108,12 @@ export function PickleballDashboard() {
       ]);
       const data = await res.json();
       const settings = await settingsRes.json();
-      if (Array.isArray(data)) setRegistrations(data);
+      if (data && Array.isArray(data.registrations)) {
+        setRegistrations(data.registrations);
+        setPendingRegistrations(data.pendingRegistrations || []);
+      } else if (Array.isArray(data)) {
+        setRegistrations(data);
+      }
       setStartDate(settings?.pickleballStartDate || settings?.tournamentStartDate || null);
       setRegCloseDate(settings?.pickleballRegCloseDate || null);
     } catch (err) {
@@ -120,6 +127,16 @@ export function PickleballDashboard() {
 
   const q = search.toLowerCase();
   const filtered = registrations.filter((r) => {
+    if (q) {
+      return r.player1Name.toLowerCase().includes(q) ||
+        r.player1Email.toLowerCase().includes(q) ||
+        r.player2Name?.toLowerCase().includes(q) ||
+        r.player2Email?.toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  const filteredPending = pendingRegistrations.filter((r) => {
     if (q) {
       return r.player1Name.toLowerCase().includes(q) ||
         r.player1Email.toLowerCase().includes(q) ||
@@ -235,7 +252,16 @@ export function PickleballDashboard() {
             <p className="text-slate-400 font-medium">
               {registrations.length === 0 ? "No pickleball registrations yet" : "No matches for current search"}
             </p>
-            <p className="text-slate-300 text-sm mt-1">Registrations will appear here once approved by admin</p>
+            <p className="text-slate-300 text-sm mt-1 mb-4">Registrations will appear here once approved by admin</p>
+            <div className="flex items-center justify-center gap-3">
+              <a href="/status" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                Registered? Check your status &rarr;
+              </a>
+              <span className="text-slate-200">|</span>
+              <a href="/register?sport=pickleball" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                Register now &rarr;
+              </a>
+            </div>
           </div>
         ) : (
           grouped.filter((g) => g.entries.length > 0).map((g) => {
@@ -285,6 +311,68 @@ export function PickleballDashboard() {
               </div>
             );
           })
+        )}
+
+        {/* Pending Approval Section */}
+        {filteredPending.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-1 h-7 bg-gradient-to-b from-amber-400 to-amber-600 rounded-full" />
+              <h2 className="text-lg font-bold text-slate-800">Awaiting Approval</h2>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                {filteredPending.length}
+              </span>
+            </div>
+            <p className="text-sm text-slate-400 mb-4 ml-4">
+              These registrations are pending admin review and will appear above once approved.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredPending.map((entry) => {
+                const isSingles = entry.category.includes("SINGLES");
+                const catMeta = CATEGORIES.find((c) => c.key === entry.category);
+                return (
+                  <div key={entry.id} className="bg-amber-50/50 rounded-2xl border-2 border-dashed border-amber-200 p-4 opacity-75">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-300 uppercase">
+                        Pending
+                      </span>
+                      {catMeta && (
+                        <span className="text-[10px] font-semibold text-slate-400">{catMeta.label}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                        {entry.player1Name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-600 truncate">{entry.player1Name}</p>
+                        <p className="text-[11px] text-slate-400 truncate">{entry.player1Email}</p>
+                      </div>
+                    </div>
+                    {!isSingles && entry.player2Name && (
+                      <>
+                        <div className="flex items-center justify-center my-2">
+                          <div className="h-px flex-1 bg-amber-200/50" />
+                          <span className="px-2 text-[10px] text-amber-400 font-medium">&</span>
+                          <div className="h-px flex-1 bg-amber-200/50" />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                            {entry.player2Name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-600 truncate">{entry.player2Name}</p>
+                            <p className="text-[11px] text-slate-400 truncate">{entry.player2Email}</p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         )}
       </div>
     </div>

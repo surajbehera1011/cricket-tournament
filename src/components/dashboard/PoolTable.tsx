@@ -92,8 +92,19 @@ export function PoolTable({ players, tvMode }: PoolTableProps) {
           <div className="text-center py-12">
             <span className="text-4xl mb-3 block">🏏</span>
             <p className="text-slate-400 font-medium">
-              {players.length === 0 ? "No individuals in pool" : "No matches for current filters"}
+              {players.length === 0 ? "No individuals in pool yet" : "No matches for current filters"}
             </p>
+            {players.length === 0 && (
+              <div className="mt-3 flex items-center justify-center gap-3">
+                <a href="/status" className="text-sm text-brand-600 hover:text-brand-700 font-medium">
+                  Registered? Check your status &rarr;
+                </a>
+                <span className="text-slate-200">|</span>
+                <a href="/register" className="text-sm text-brand-600 hover:text-brand-700 font-medium">
+                  Register now &rarr;
+                </a>
+              </div>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">

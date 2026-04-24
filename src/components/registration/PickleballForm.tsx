@@ -12,7 +12,7 @@ const CATEGORIES = [
 ] as const;
 
 interface PickleballFormProps {
-  onSuccess: () => void;
+  onSuccess: (email: string) => void;
 }
 
 export function PickleballForm({ onSuccess }: PickleballFormProps) {
@@ -73,7 +73,7 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
       setPlayer1Email("");
       setPlayer2Name("");
       setPlayer2Email("");
-      onSuccess();
+      onSuccess(player1Email);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {

@@ -12,6 +12,61 @@ import { cn } from "@/lib/utils";
 type Sport = "cricket" | "pickleball";
 type CricketTab = "team" | "individual";
 
+interface SuccessState {
+  sport: Sport;
+  type: string;
+  email: string;
+}
+
+function SuccessPanel({ success, onRegisterAnother }: { success: SuccessState; onRegisterAnother: () => void }) {
+  return (
+    <div className="bg-white rounded-2xl shadow-xl border border-brand-100/50 overflow-hidden">
+      <div className="h-1.5 bg-gradient-to-r from-emerald-400 to-emerald-500" />
+      <div className="p-8 text-center">
+        <span className="text-5xl mb-4 block">✅</span>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">Registration Submitted!</h2>
+        <p className="text-slate-500 max-w-md mx-auto mb-6">
+          Your {success.sport === "cricket" ? `cricket ${success.type}` : "pickleball"} registration has been received
+          and is <strong className="text-amber-600">pending admin approval</strong>.
+          You&apos;ll appear on the dashboard once approved.
+        </p>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 max-w-sm mx-auto">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="text-sm font-bold text-amber-700">Status: Pending Approval</span>
+          </div>
+          <p className="text-xs text-amber-600">Admin will review your registration shortly.</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <a
+            href={`/status?email=${encodeURIComponent(success.email)}`}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            Check Registration Status
+          </a>
+          <a
+            href="/"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors"
+          >
+            View Dashboard
+          </a>
+          <button
+            onClick={onRegisterAnother}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-brand-600 rounded-xl text-sm font-medium hover:bg-brand-50 transition-colors"
+          >
+            Register Another
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RegisterContent() {
   const searchParams = useSearchParams();
   const sportParam = searchParams.get("sport");
@@ -20,6 +75,7 @@ function RegisterContent() {
   const [sport, setSport] = useState<Sport>(initialSport);
   const [cricketTab, setCricketTab] = useState<CricketTab>("team");
   const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
+  const [success, setSuccess] = useState<SuccessState | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -29,7 +85,8 @@ function RegisterContent() {
       .catch(() => setRegistrationOpen(true));
   }, []);
 
-  const handleCricketSuccess = () => {
+  const handleCricketSuccess = (email: string) => {
+    setSuccess({ sport: "cricket", type: cricketTab, email });
     toast(
       cricketTab === "team"
         ? "Team registration submitted! It will appear on the dashboard after admin approval."
@@ -38,7 +95,8 @@ function RegisterContent() {
     );
   };
 
-  const handlePickleballSuccess = () => {
+  const handlePickleballSuccess = (email: string) => {
+    setSuccess({ sport: "pickleball", type: "pickleball", email });
     toast("Pickleball registration submitted! Awaiting admin approval.", "success");
   };
 
@@ -73,9 +131,24 @@ function RegisterContent() {
               </a>
             </CardContent>
           </Card>
+        ) : success ? (
+          <SuccessPanel success={success} onRegisterAnother={() => setSuccess(null)} />
         ) : (
           <>
-            {/* Sport Selector */}
+            {/* Already registered hint */}
+            <div className="bg-brand-50 border border-brand-200/50 rounded-2xl px-4 py-3 mb-5 flex items-center justify-between gap-3">
+              <p className="text-xs text-brand-700">
+                <span className="font-bold">Already registered?</span>{" "}
+                Check if your registration has been approved.
+              </p>
+              <a
+                href="/status"
+                className="text-xs font-bold text-brand-600 hover:text-brand-800 whitespace-nowrap transition-colors"
+              >
+                Check Status &rarr;
+              </a>
+            </div>
+
             <div className="flex gap-1 bg-white p-1.5 rounded-2xl mb-5 shadow-lg border border-brand-100/50">
               <button
                 onClick={() => setSport("cricket")}

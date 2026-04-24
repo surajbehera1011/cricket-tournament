@@ -10,7 +10,7 @@ interface PlayerEntry {
 }
 
 interface TeamFormProps {
-  onSuccess: () => void;
+  onSuccess: (email: string) => void;
 }
 
 const MIN_TOTAL_PLAYERS = 4;
@@ -151,7 +151,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
         { name: "", gender: "", email: "" },
         { name: "", gender: "", email: "" },
       ]);
-      onSuccess();
+      onSuccess(captainEmail);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {

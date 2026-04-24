@@ -22,6 +22,17 @@ function DashboardContent() {
   const sportParam = searchParams.get("sport");
   const initialSport: Sport = sportParam === "pickleball" ? "pickleball" : "cricket";
   const [sport, setSport] = useState<Sport>(initialSport);
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("asl-banner-dismissed") === "1";
+    }
+    return false;
+  });
+
+  const dismissBanner = () => {
+    setBannerDismissed(true);
+    localStorage.setItem("asl-banner-dismissed", "1");
+  };
 
   const handleSportChange = (s: Sport) => {
     setSport(s);
@@ -46,6 +57,17 @@ function DashboardContent() {
             <p className={`mt-3 text-white/70 max-w-lg mx-auto ${tvMode ? "text-tv-base" : "text-base"}`}>
               Track all tournaments and progress in real-time
             </p>
+            {!tvMode && (
+              <Link
+                href="/status"
+                className="inline-flex items-center gap-1.5 mt-4 text-sm text-white/60 hover:text-white transition-colors font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Check your registration status
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -70,6 +92,44 @@ function DashboardContent() {
           </div>
         </div>
       </div>
+
+      {/* Announcement Banner */}
+      {!tvMode && !bannerDismissed && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+          <div className="relative bg-gradient-to-r from-brand-50 to-violet-50 border border-brand-200/60 rounded-2xl px-5 py-4 shadow-sm">
+            <button
+              onClick={dismissBanner}
+              className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-white/80 transition-colors text-lg"
+              aria-label="Dismiss"
+            >
+              &times;
+            </button>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 pr-8">
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-slate-800 mb-1">New: Registration Status Tracker</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Registered but don&apos;t see your name on the dashboard? All registrations require admin approval.
+                  You can now check your registration status anytime using your email.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Link
+                  href="/status"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold hover:bg-brand-700 transition-colors"
+                >
+                  Check Status
+                </Link>
+                <Link
+                  href="/register"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50 transition-colors"
+                >
+                  Register
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sport-specific dashboard */}
       {sport === "cricket" && <CricketDashboard tvMode={tvMode} />}

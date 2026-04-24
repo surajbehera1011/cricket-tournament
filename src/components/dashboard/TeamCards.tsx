@@ -328,7 +328,16 @@ export function TeamCards({ teams, tvMode }: TeamCardsProps) {
         <div className="text-center py-16">
           <span className="text-5xl mb-4 block">🏏</span>
           <p className="text-slate-400 font-medium">No teams registered yet</p>
-          <p className="text-slate-300 text-sm mt-1">Teams will appear here once approved by admin</p>
+          <p className="text-slate-300 text-sm mt-1 mb-4">Teams will appear here once approved by admin</p>
+          <div className="flex items-center justify-center gap-3">
+            <a href="/status" className="text-sm text-brand-600 hover:text-brand-700 font-medium">
+              Registered? Check your status &rarr;
+            </a>
+            <span className="text-slate-200">|</span>
+            <a href="/register" className="text-sm text-brand-600 hover:text-brand-700 font-medium">
+              Register now &rarr;
+            </a>
+          </div>
         </div>
       )}
     </>

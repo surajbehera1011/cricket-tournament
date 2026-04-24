@@ -8,7 +8,7 @@ const LEVELS = ["Beginner", "Intermediate", "Advanced"];
 const GENDERS = ["MALE", "FEMALE", "OTHER"] as const;
 
 interface IndividualFormProps {
-  onSuccess: () => void;
+  onSuccess: (email: string) => void;
 }
 
 export function IndividualForm({ onSuccess }: IndividualFormProps) {
@@ -75,7 +75,7 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
         experienceLevel: "",
         comments: "",
       });
-      onSuccess();
+      onSuccess(form.email);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {

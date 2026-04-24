@@ -70,3 +70,12 @@
 .animate-slide-in {
   animation: slide-in 0.3s ease-out forwards;
 }
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}

@@ -24,12 +24,18 @@ export async function GET(request: NextRequest) {
       where.experienceLevel = experience;
     }
 
-    const players = await prisma.player.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-    });
+    const [players, pendingPlayers] = await Promise.all([
+      prisma.player.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.player.findMany({
+        where: { poolStatus: PoolStatus.PENDING_APPROVAL },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
-    return jsonResponse(players);
+    return jsonResponse({ players, pendingPlayers });
   } catch (error) {
     console.error("Get pool error:", error);
     return jsonResponse({ error: "Internal server error" }, 500);
