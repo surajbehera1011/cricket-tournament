@@ -4,11 +4,11 @@ import { HTMLAttributes, forwardRef } from "react";
 type BadgeVariant = "default" | "success" | "warning" | "danger" | "info";
 
 const variantStyles: Record<BadgeVariant, string> = {
-  default: "bg-slate-100 text-slate-600",
-  success: "bg-emerald-50 text-emerald-700",
-  warning: "bg-amber-50 text-amber-700",
-  danger: "bg-red-50 text-red-700",
-  info: "bg-brand-50 text-brand-700",
+  default: "bg-white/[0.06] text-slate-300 border border-white/[0.06]",
+  success: "bg-pitch-500/10 text-pitch-400 border border-pitch-500/20",
+  warning: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+  danger: "bg-red-500/10 text-red-400 border border-red-500/20",
+  info: "bg-brand-500/10 text-brand-400 border border-brand-500/20",
 };
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {

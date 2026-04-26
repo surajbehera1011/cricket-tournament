@@ -86,38 +86,38 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">
           {error}
         </div>
       )}
 
       <div className="grid md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Full Name *</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1">Full Name *</label>
           <input
             type="text"
             required
             value={form.fullName}
             onChange={(e) => setForm((prev) => ({ ...prev, fullName: e.target.value }))}
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+            className="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
             placeholder="Your full name"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1">Email *</label>
           <input
             type="email"
             required
             value={form.email}
             onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+            className="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
             placeholder="your.email@company.com"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">Gender *</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Gender *</label>
         <div className="flex gap-3">
           {GENDERS.map((g) => (
             <button
@@ -127,7 +127,7 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
               className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 form.gender === g
                   ? "bg-brand-600 text-white shadow-md"
-                  : "bg-white text-slate-700 border border-slate-200 hover:border-brand-300"
+                  : "bg-dark-500 text-slate-300 border border-white/10 hover:border-brand-400/30"
               }`}
             >
               {g === "MALE" ? "Male" : g === "FEMALE" ? "Female" : "Other"}
@@ -137,7 +137,7 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">Preferred Role(s) * <span className="text-slate-400 font-normal">(max 2)</span></label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Preferred Role(s) * <span className="text-slate-500 font-normal">(max 2)</span></label>
         <div className="flex flex-wrap gap-2">
           {ROLES.map((role) => (
             <button
@@ -147,7 +147,7 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 form.preferredRole.includes(role)
                   ? "bg-brand-600 text-white shadow-md"
-                  : "bg-white text-slate-700 border border-slate-200 hover:border-brand-300"
+                  : "bg-dark-500 text-slate-300 border border-white/10 hover:border-brand-400/30"
               }`}
             >
               {role}
@@ -157,7 +157,7 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">Experience Level *</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Experience Level *</label>
         <div className="flex gap-3">
           {LEVELS.map((level) => (
             <button
@@ -167,7 +167,7 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
               className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 form.experienceLevel === level
                   ? "bg-brand-600 text-white shadow-md"
-                  : "bg-white text-slate-700 border border-slate-200 hover:border-brand-300"
+                  : "bg-dark-500 text-slate-300 border border-white/10 hover:border-brand-400/30"
               }`}
             >
               {level}
@@ -177,11 +177,11 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Comments</label>
+        <label className="block text-sm font-medium text-slate-300 mb-1">Comments</label>
         <textarea
           value={form.comments}
           onChange={(e) => setForm((prev) => ({ ...prev, comments: e.target.value }))}
-          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+          className="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
           rows={3}
           placeholder="Availability, special requests, etc."
         />

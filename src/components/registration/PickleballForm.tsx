@@ -84,18 +84,18 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">
           {error}
         </div>
       )}
 
-      <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm">
+      <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-3 rounded-xl text-sm">
         Select your category and fill in the player details. No duplicate entries allowed per category.
       </div>
 
       {/* Category Selection */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-3">Category *</label>
+        <label className="block text-sm font-medium text-slate-300 mb-3">Category *</label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {CATEGORIES.map((cat) => (
             <button
@@ -111,7 +111,7 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
               className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all text-left ${
                 category === cat.value
                   ? "bg-emerald-600 text-white shadow-md ring-2 ring-emerald-300"
-                  : "bg-white text-slate-700 border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50"
+                  : "bg-dark-500 text-slate-300 border border-white/10 hover:border-emerald-400/30"
               }`}
             >
               <span className="text-lg">{cat.icon}</span>
@@ -129,30 +129,30 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
       {category && (
         <>
           {/* Player 1 */}
-          <div className="bg-emerald-50/50 border border-emerald-200/50 rounded-2xl p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-emerald-800">
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-emerald-400">
               {isDoubles ? "Player 1" : "Player Details"}
             </h3>
             <div className="grid md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Full Name *</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Full Name *</label>
                 <input
                   type="text"
                   required
                   value={player1Name}
                   onChange={(e) => setPlayer1Name(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100"
                   placeholder="Full name"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Email *</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Email *</label>
                 <input
                   type="email"
                   required
                   value={player1Email}
                   onChange={(e) => setPlayer1Email(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100"
                   placeholder="email@company.com"
                 />
               </div>
@@ -161,28 +161,28 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
 
           {/* Player 2 (doubles only) */}
           {isDoubles && (
-            <div className="bg-violet-50/50 border border-violet-200/50 rounded-2xl p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-violet-800">Player 2 (Partner)</h3>
+            <div className="bg-violet-500/10 border border-violet-500/20 rounded-2xl p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-violet-400">Player 2 (Partner)</h3>
               <div className="grid md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Full Name *</label>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Full Name *</label>
                   <input
                     type="text"
                     required
                     value={player2Name}
                     onChange={(e) => setPlayer2Name(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-violet-400 focus:border-transparent bg-dark-500 text-slate-100"
                     placeholder="Partner full name"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Email *</label>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Email *</label>
                   <input
                     type="email"
                     required
                     value={player2Email}
                     onChange={(e) => setPlayer2Email(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-violet-400 focus:border-transparent bg-dark-500 text-slate-100"
                     placeholder="partner@company.com"
                   />
                 </div>

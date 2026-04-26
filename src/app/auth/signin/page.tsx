@@ -36,49 +36,49 @@ function SignInForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-surface-100">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-2xl shadow-xl border border-brand-100/50">
+    <div className="min-h-screen flex items-center justify-center relative">
+      <div className="absolute inset-0 bg-[url('/images/cricket-hero.jpg')] bg-cover bg-center" style={{ filter: "brightness(0.2) saturate(1.2)" }} />
+      <div className="absolute inset-0 bg-gradient-to-t from-dark-600/90 via-dark-600/50 to-dark-600/70" />
+      <div className="relative z-10 max-w-md w-full space-y-8 p-8 dark-card rounded-2xl mx-4">
         <div className="text-center">
-          <div className="w-16 h-16 bg-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">&#127951;</span>
-          </div>
-          <h1 className="text-3xl font-bold text-slate-800">Admin / Captain Login</h1>
-          <p className="mt-2 text-slate-500">Sign in to manage the tournament</p>
+          <img src="/images/align-logo.png" alt="Align" className="h-16 w-16 rounded-2xl object-cover mx-auto mb-4 shadow-lg" />
+          <h1 className="text-3xl font-bold text-white">Admin / Captain Login</h1>
+          <p className="mt-2 text-slate-400">Sign in to manage the tournament</p>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
+              className="w-full px-4 py-3 border border-white/[0.06] rounded-xl focus:ring-2 focus:ring-pitch-500/50 focus:border-pitch-500/30 bg-dark-400/60 text-white placeholder:text-slate-500"
               placeholder="your.email@company.com"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Password</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
+              className="w-full px-4 py-3 border border-white/[0.06] rounded-xl focus:ring-2 focus:ring-pitch-500/50 focus:border-pitch-500/30 bg-dark-400/60 text-white placeholder:text-slate-500"
               placeholder="Enter your password"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-4 py-3 bg-brand-600 text-white rounded-xl hover:bg-brand-700 font-medium transition-all disabled:opacity-50 shadow-sm"
+            className="w-full px-4 py-3 bg-pitch-500 text-white rounded-xl hover:bg-pitch-400 font-bold transition-all disabled:opacity-50 shadow-lg shadow-pitch-500/25"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
@@ -93,7 +93,7 @@ export default function SignInPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center">
-          <p className="text-slate-400">Loading...</p>
+          <p className="text-slate-500">Loading...</p>
         </div>
       }
     >

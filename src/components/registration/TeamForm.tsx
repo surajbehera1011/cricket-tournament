@@ -164,39 +164,39 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">
           {error}
         </div>
       )}
 
-      <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl text-sm">
+      <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 px-4 py-3 rounded-xl text-sm">
         Team size: <strong>{maxTeamSize}</strong> players. Minimum <strong>{MIN_TOTAL_PLAYERS}</strong> to register (including captain).
         Minimum <strong>{minFemale}</strong> female player(s) required for team completion.
       </div>
 
       {/* Team Name */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Team Name *</label>
+        <label className="block text-sm font-medium text-slate-300 mb-1">Team Name *</label>
         <input
           type="text"
           required
           value={teamName}
           onChange={(e) => setTeamName(e.target.value)}
-          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
+          className="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
           placeholder="e.g. Royal Strikers"
         />
       </div>
 
       {/* Team Color */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">Team Color (optional)</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Team Color (optional)</label>
         <div className="flex flex-wrap gap-2">
           {TEAM_COLORS.map((c) => (
             <button
               key={c.value}
               type="button"
               onClick={() => setTeamColor(teamColor === c.value ? "" : c.value)}
-              className={`w-9 h-9 rounded-xl border-2 transition-all ${teamColor === c.value ? "border-slate-800 scale-110 shadow-md" : "border-transparent hover:scale-105"}`}
+              className={`w-9 h-9 rounded-xl border-2 transition-all ${teamColor === c.value ? "border-white scale-110 shadow-md" : "border-transparent hover:scale-105"}`}
               style={{ background: c.value }}
               title={c.label}
             />
@@ -205,41 +205,41 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       </div>
 
       {/* Captain Section */}
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-amber-800">Captain (Player 1)</h3>
+      <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-amber-400">Captain (Player 1)</h3>
         <div className="grid md:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Full Name *</label>
+            <label className="block text-xs font-medium text-slate-400 mb-1">Full Name *</label>
             <input
               type="text"
               required
               value={captainName}
               onChange={(e) => setCaptainName(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+              className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
               placeholder="Captain full name"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Email *</label>
+            <label className="block text-xs font-medium text-slate-400 mb-1">Email *</label>
             <input
               type="email"
               required
               value={captainEmail}
               onChange={(e) => setCaptainEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+              className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
               placeholder="captain@company.com"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Gender *</label>
+            <label className="block text-xs font-medium text-slate-400 mb-1">Gender *</label>
             <select
               value={captainGender}
               onChange={(e) => setCaptainGender(e.target.value)}
               required
-              className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent ${
+              className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100 ${
                 captainGender === "FEMALE"
-                  ? "border-pink-300 bg-pink-50"
-                  : "border-slate-200"
+                  ? "border-pink-500/30"
+                  : "border-white/10"
               }`}
             >
               <option value="">Select gender</option>
@@ -254,14 +254,14 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       {/* Additional Players */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-slate-700">
+          <h3 className="text-sm font-medium text-slate-300">
             Additional Players ({players.length} + 1 captain = {totalPlayerCount}/{maxTeamSize})
           </h3>
           {players.length < maxAdditionalPlayers && (
             <button
               type="button"
               onClick={addPlayer}
-              className="text-sm text-brand-600 hover:text-brand-700 font-medium"
+              className="text-sm text-brand-400 hover:text-brand-300 font-medium"
             >
               + Add Player
             </button>
@@ -270,8 +270,8 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
 
         <div className="space-y-3">
           {players.map((player, idx) => (
-            <div key={idx} className="flex items-start gap-2 bg-surface-50 rounded-xl p-2">
-              <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-1">
+            <div key={idx} className="flex items-start gap-2 bg-dark-500/60 rounded-xl p-2">
+              <span className="w-6 h-6 rounded-full bg-dark-400 text-slate-400 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-1">
                 {idx + 2}
               </span>
               <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -279,23 +279,23 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
                   type="text"
                   value={player.name}
                   onChange={(e) => updatePlayer(idx, "name", e.target.value)}
-                  className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                  className="px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
                   placeholder={`Player ${idx + 2} name *`}
                 />
                 <input
                   type="email"
                   value={player.email}
                   onChange={(e) => updatePlayer(idx, "email", e.target.value)}
-                  className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                  className="px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
                   placeholder="Email *"
                 />
                 <select
                   value={player.gender}
                   onChange={(e) => updatePlayer(idx, "gender", e.target.value)}
-                  className={`px-2 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent ${
+                  className={`px-2 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100 ${
                     player.gender === "FEMALE"
-                      ? "border-pink-300 bg-pink-50"
-                      : "border-slate-200"
+                      ? "border-pink-500/30"
+                      : "border-white/10"
                   }`}
                 >
                   <option value="">Gender *</option>
@@ -325,11 +325,11 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Comments</label>
+        <label className="block text-sm font-medium text-slate-300 mb-1">Comments</label>
         <textarea
           value={comments}
           onChange={(e) => setComments(e.target.value)}
-          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+          className="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
           rows={3}
           placeholder="Any additional notes..."
         />

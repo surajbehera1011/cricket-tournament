@@ -18,13 +18,13 @@ interface PoolTableProps {
 }
 
 function GenderBadge({ gender }: { gender?: string }) {
-  if (!gender) return <span className="text-slate-300">—</span>;
+  if (!gender) return <span className="text-slate-600">—</span>;
   const styles =
     gender === "FEMALE"
-      ? "bg-pink-50 text-pink-600 border-pink-200"
+      ? "bg-pink-500/10 text-pink-400 border-pink-500/20"
       : gender === "OTHER"
-      ? "bg-violet-50 text-violet-600 border-violet-200"
-      : "bg-sky-50 text-sky-600 border-sky-200";
+      ? "bg-violet-500/10 text-violet-400 border-violet-500/20"
+      : "bg-sky-500/10 text-sky-400 border-sky-500/20";
   const label = gender === "FEMALE" ? "Female" : gender === "OTHER" ? "Other" : "Male";
   return (
     <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${styles}`}>
@@ -47,15 +47,15 @@ export function PoolTable({ players, tvMode }: PoolTableProps) {
   const detailSize = tvMode ? "text-tv-sm" : "text-xs";
 
   return (
-    <div className="bg-white rounded-2xl border border-brand-100/50 shadow-sm overflow-hidden">
+    <div className="dark-card rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-brand-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="px-6 py-4 border-b border-white/[0.04] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="text-xl">👤</span>
-          <h3 className={`font-bold text-slate-800 ${tvMode ? "text-tv-xl" : "text-lg"}`}>
+          <h3 className={`font-bold text-white ${tvMode ? "text-tv-xl" : "text-lg"}`}>
             Individual Pool
           </h3>
-          <span className="bg-violet-100 text-violet-700 text-xs font-bold px-2 py-0.5 rounded-full">
+          <span className="bg-violet-500/10 text-violet-400 text-xs font-bold px-2 py-0.5 rounded-full border border-violet-500/20">
             {filtered.length}
           </span>
         </div>
@@ -64,7 +64,7 @@ export function PoolTable({ players, tvMode }: PoolTableProps) {
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="text-sm border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
+              className="text-sm border border-white/[0.06] rounded-xl px-3 py-2 focus:ring-2 focus:ring-pitch-500/50 focus:border-pitch-500/30 bg-dark-400 text-slate-300"
             >
               <option value="">All Roles</option>
               <option value="Batsman">Batsman</option>
@@ -75,7 +75,7 @@ export function PoolTable({ players, tvMode }: PoolTableProps) {
             <select
               value={expFilter}
               onChange={(e) => setExpFilter(e.target.value)}
-              className="text-sm border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
+              className="text-sm border border-white/[0.06] rounded-xl px-3 py-2 focus:ring-2 focus:ring-pitch-500/50 focus:border-pitch-500/30 bg-dark-400 text-slate-300"
             >
               <option value="">All Levels</option>
               <option value="Beginner">Beginner</option>
@@ -91,16 +91,16 @@ export function PoolTable({ players, tvMode }: PoolTableProps) {
         {filtered.length === 0 ? (
           <div className="text-center py-12">
             <span className="text-4xl mb-3 block">🏏</span>
-            <p className="text-slate-400 font-medium">
+            <p className="text-slate-500 font-medium">
               {players.length === 0 ? "No individuals in pool yet" : "No matches for current filters"}
             </p>
             {players.length === 0 && (
               <div className="mt-3 flex items-center justify-center gap-3">
-                <a href="/status" className="text-sm text-brand-600 hover:text-brand-700 font-medium">
+                <a href="/status" className="text-sm text-pitch-400 hover:text-pitch-300 font-medium">
                   Registered? Check your status &rarr;
                 </a>
-                <span className="text-slate-200">|</span>
-                <a href="/register" className="text-sm text-brand-600 hover:text-brand-700 font-medium">
+                <span className="text-slate-600">|</span>
+                <a href="/register" className="text-sm text-pitch-400 hover:text-pitch-300 font-medium">
                   Register now &rarr;
                 </a>
               </div>
@@ -110,17 +110,17 @@ export function PoolTable({ players, tvMode }: PoolTableProps) {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-brand-50">
-                  <th className={`text-left py-3 px-4 ${detailSize} font-bold text-slate-400 uppercase tracking-widest`}>Name</th>
-                  <th className={`text-left py-3 px-4 ${detailSize} font-bold text-slate-400 uppercase tracking-widest`}>Gender</th>
-                  <th className={`text-left py-3 px-4 ${detailSize} font-bold text-slate-400 uppercase tracking-widest`}>Role</th>
-                  <th className={`text-left py-3 px-4 ${detailSize} font-bold text-slate-400 uppercase tracking-widest`}>Experience</th>
+                <tr className="border-b border-white/[0.04]">
+                  <th className={`text-left py-3 px-4 ${detailSize} font-bold text-slate-500 uppercase tracking-widest`}>Name</th>
+                  <th className={`text-left py-3 px-4 ${detailSize} font-bold text-slate-500 uppercase tracking-widest`}>Gender</th>
+                  <th className={`text-left py-3 px-4 ${detailSize} font-bold text-slate-500 uppercase tracking-widest`}>Role</th>
+                  <th className={`text-left py-3 px-4 ${detailSize} font-bold text-slate-500 uppercase tracking-widest`}>Experience</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((player, idx) => (
-                  <tr key={player.id} className={`hover:bg-brand-50/30 transition-colors ${idx !== filtered.length - 1 ? "border-b border-slate-50" : ""}`}>
-                    <td className={`py-3.5 px-4 ${nameSize} font-semibold text-slate-800`}>
+                  <tr key={player.id} className={`hover:bg-white/[0.02] transition-colors ${idx !== filtered.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
+                    <td className={`py-3.5 px-4 ${nameSize} font-semibold text-white`}>
                       {player.fullName}
                     </td>
                     <td className={`py-3.5 px-4 ${nameSize}`}>

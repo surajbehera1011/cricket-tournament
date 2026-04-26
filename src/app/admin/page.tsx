@@ -40,6 +40,13 @@ interface CaptainUser {
   teams: { id: string; name: string; status: string }[];
 }
 
+interface TeamWithoutLogin {
+  id: string;
+  name: string;
+  captainName: string;
+  status: string;
+}
+
 interface ApprovedTeam {
   id: string;
   name: string;
@@ -70,6 +77,7 @@ export default function AdminPage() {
   const [pendingTeams, setPendingTeams] = useState<PendingTeam[]>([]);
   const [pendingIndividuals, setPendingIndividuals] = useState<PendingIndividual[]>([]);
   const [captains, setCaptains] = useState<CaptainUser[]>([]);
+  const [teamsWithoutLogin, setTeamsWithoutLogin] = useState<TeamWithoutLogin[]>([]);
   const [approvedTeams, setApprovedTeams] = useState<ApprovedTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -83,12 +91,16 @@ export default function AdminPage() {
   const [editP1, setEditP1] = useState("");
   const [editP2, setEditP2] = useState("");
   const [pbFilterCat, setPbFilterCat] = useState("");
+  const [pbSearch, setPbSearch] = useState("");
   const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
   const [selectedIndividuals, setSelectedIndividuals] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
 
   const [newCaptain, setNewCaptain] = useState({ email: "", displayName: "", password: "", teamId: "" });
   const [creatingCaptain, setCreatingCaptain] = useState(false);
+  const [editingCaptain, setEditingCaptain] = useState<string | null>(null);
+  const [editCaptainData, setEditCaptainData] = useState({ email: "", displayName: "", password: "" });
+  const [updatingCaptain, setUpdatingCaptain] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -107,7 +119,8 @@ export default function AdminPage() {
       const pbAll = await pbAllRes.json();
       if (pending.teams) setPendingTeams(pending.teams);
       if (pending.individuals) setPendingIndividuals(pending.individuals);
-      if (Array.isArray(caps)) setCaptains(caps);
+      if (caps.captains) setCaptains(caps.captains);
+      if (caps.teamsWithoutLogin) setTeamsWithoutLogin(caps.teamsWithoutLogin);
       if (Array.isArray(teams)) setApprovedTeams(teams.map((t: any) => ({ id: t.id, name: t.name })));
       if (Array.isArray(pbPending)) setPendingPickleball(pbPending);
       if (Array.isArray(pbAll)) setAllPickleball(pbAll);
@@ -275,10 +288,48 @@ export default function AdminPage() {
     }
   };
 
+  const handleUpdateCaptain = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCaptain) return;
+    setUpdatingCaptain(true);
+    try {
+      const payload: Record<string, string> = { captainId: editingCaptain };
+      if (editCaptainData.email) payload.email = editCaptainData.email;
+      if (editCaptainData.displayName) payload.displayName = editCaptainData.displayName;
+      if (editCaptainData.password) payload.password = editCaptainData.password;
+
+      const res = await fetch("/api/admin/captains", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      toast("Captain credentials updated!", "success");
+      setEditingCaptain(null);
+      setEditCaptainData({ email: "", displayName: "", password: "" });
+      fetchData();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed", "error");
+    } finally {
+      setUpdatingCaptain(false);
+    }
+  };
+
+  const handleAutoFillCaptain = (team: TeamWithoutLogin) => {
+    setNewCaptain({
+      email: "",
+      displayName: team.captainName || "",
+      password: "",
+      teamId: team.id,
+    });
+    const formEl = document.getElementById("create-captain-form");
+    if (formEl) formEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   if (session?.user?.role !== "ADMIN") {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold text-slate-800">Access Denied</h1>
+        <h1 className="text-2xl font-bold text-slate-200">Access Denied</h1>
       </div>
     );
   }
@@ -295,24 +346,29 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-slate-800 mb-2">Admin Panel</h1>
+      <h1 className="text-3xl font-bold text-slate-100 mb-2">Admin Panel</h1>
 
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setTab("pending")}
-          className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${tab === "pending" ? "bg-brand-600 text-white shadow-sm" : "bg-white text-slate-600 border border-brand-100/50 hover:bg-brand-50"}`}
+          className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${tab === "pending" ? "bg-brand-600 text-white shadow-sm" : "bg-dark-400/60 text-slate-300 border border-white/[0.06] hover:bg-dark-400"}`}
         >
           Pending Approvals ({pendingTeams.length + pendingIndividuals.length})
         </button>
         <button
           onClick={() => setTab("captains")}
-          className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${tab === "captains" ? "bg-brand-600 text-white shadow-sm" : "bg-white text-slate-600 border border-brand-100/50 hover:bg-brand-50"}`}
+          className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${tab === "captains" ? "bg-brand-600 text-white shadow-sm" : "bg-dark-400/60 text-slate-300 border border-white/[0.06] hover:bg-dark-400"}`}
         >
-          Captain Management ({captains.length})
+          Captain Management
+          {teamsWithoutLogin.length > 0 && (
+            <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold">
+              {teamsWithoutLogin.length}
+            </span>
+          )}
         </button>
         <button
           onClick={() => setTab("pickleball")}
-          className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${tab === "pickleball" ? "bg-emerald-600 text-white shadow-sm" : "bg-white text-slate-600 border border-brand-100/50 hover:bg-brand-50"}`}
+          className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${tab === "pickleball" ? "bg-emerald-600 text-white shadow-sm" : "bg-dark-400/60 text-slate-300 border border-white/[0.06] hover:bg-dark-400"}`}
         >
           🏓 Pickleball ({pendingPickleball.length})
         </button>
@@ -322,8 +378,8 @@ export default function AdminPage() {
         <div className="space-y-6">
           {/* Bulk action bar */}
           {totalSelected > 0 && (
-            <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 flex items-center justify-between animate-slide-in">
-              <span className="text-sm font-medium text-brand-700">
+            <div className="bg-brand-500/10 border border-brand-500/20 rounded-xl px-4 py-3 flex items-center justify-between animate-slide-in">
+              <span className="text-sm font-medium text-brand-400">
                 {totalSelected} item{totalSelected > 1 ? "s" : ""} selected
               </span>
               <div className="flex gap-2">
@@ -336,7 +392,7 @@ export default function AdminPage() {
                 </Button>
                 <button
                   onClick={() => { setSelectedTeams(new Set()); setSelectedIndividuals(new Set()); }}
-                  className="text-sm text-slate-500 hover:text-slate-700 px-3 py-1.5"
+                  className="text-sm text-slate-400 hover:text-slate-200 px-3 py-1.5"
                 >
                   Clear
                 </button>
@@ -346,15 +402,15 @@ export default function AdminPage() {
 
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-slate-800">Pending Teams ({pendingTeams.length})</h2>
+              <h2 className="text-lg font-semibold text-slate-200">Pending Teams ({pendingTeams.length})</h2>
               {pendingTeams.length > 0 && (
-                <button onClick={toggleAllTeams} className="text-xs text-brand-600 hover:text-brand-700 font-medium">
+                <button onClick={toggleAllTeams} className="text-xs text-brand-400 hover:text-brand-300 font-medium">
                   {selectedTeams.size === pendingTeams.length ? "Deselect All" : "Select All"}
                 </button>
               )}
             </div>
             {pendingTeams.length === 0 ? (
-              <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No pending team registrations</p>
+              <p className="text-slate-500 text-center py-6 bg-dark-400/60 rounded-xl border border-white/[0.06]">No pending team registrations</p>
             ) : (
               <div className="space-y-4">
                 {pendingTeams.map((team) => (
@@ -369,11 +425,11 @@ export default function AdminPage() {
                             className="mt-1.5 w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
                           />
                           <div>
-                            <h3 className="font-bold text-slate-800 text-lg">{team.name}</h3>
-                            <p className="text-sm text-slate-500">Captain: {team.captainName} &middot; {team.playerCount} players</p>
+                            <h3 className="font-bold text-slate-200 text-lg">{team.name}</h3>
+                            <p className="text-sm text-slate-400">Captain: {team.captainName} &middot; {team.playerCount} players</p>
                             <div className="mt-2 flex flex-wrap gap-1">
                               {team.players.map((p) => (
-                                <span key={p.id} className="inline-flex items-center gap-1 bg-surface-50 px-2 py-1 rounded-lg text-xs border border-brand-100/30">
+                                <span key={p.id} className="inline-flex items-center gap-1 bg-dark-500/80 px-2 py-1 rounded-lg text-xs border border-white/[0.06]">
                                   {p.fullName}
                                   <span className={`font-bold ${p.gender === "FEMALE" ? "text-pink-600" : "text-sky-600"}`}>
                                     {p.gender === "FEMALE" ? "F" : "M"}
@@ -401,15 +457,15 @@ export default function AdminPage() {
 
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-slate-800">Pending Individuals ({pendingIndividuals.length})</h2>
+              <h2 className="text-lg font-semibold text-slate-200">Pending Individuals ({pendingIndividuals.length})</h2>
               {pendingIndividuals.length > 0 && (
-                <button onClick={toggleAllIndividuals} className="text-xs text-brand-600 hover:text-brand-700 font-medium">
+                <button onClick={toggleAllIndividuals} className="text-xs text-brand-400 hover:text-brand-300 font-medium">
                   {selectedIndividuals.size === pendingIndividuals.length ? "Deselect All" : "Select All"}
                 </button>
               )}
             </div>
             {pendingIndividuals.length === 0 ? (
-              <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No pending individual registrations</p>
+              <p className="text-slate-500 text-center py-6 bg-dark-400/60 rounded-xl border border-white/[0.06]">No pending individual registrations</p>
             ) : (
               <div className="space-y-3">
                 {pendingIndividuals.map((player) => (
@@ -424,7 +480,7 @@ export default function AdminPage() {
                             className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
                           />
                           <div>
-                            <p className="font-medium text-slate-800">{player.fullName}</p>
+                            <p className="font-medium text-slate-200">{player.fullName}</p>
                             <div className="flex gap-1 mt-1">
                               <Badge variant={player.gender === "FEMALE" ? "danger" : "info"} className="text-[10px]">
                                 {player.gender === "FEMALE" ? "F" : player.gender === "OTHER" ? "O" : "M"}
@@ -454,7 +510,47 @@ export default function AdminPage() {
 
       {tab === "captains" && (
         <div className="space-y-6">
-          <Card>
+          {/* Teams without login - clickable cards */}
+          {teamsWithoutLogin.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                Teams Without Captain Login ({teamsWithoutLogin.length})
+              </h2>
+              <p className="text-sm text-slate-400 mb-3">Click a card to auto-fill the create login form below.</p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {teamsWithoutLogin.map((team) => (
+                  <button
+                    key={team.id}
+                    onClick={() => handleAutoFillCaptain(team)}
+                    className="text-left p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/40 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                        {team.name.charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-200 truncate">{team.name}</p>
+                        {team.captainName && (
+                          <p className="text-xs text-slate-400 truncate">Captain: {team.captainName}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center gap-1 text-xs text-amber-400 group-hover:text-amber-300">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Create login
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Card id="create-captain-form">
             <CardHeader>
               <CardTitle>Create Captain Login</CardTitle>
             </CardHeader>
@@ -462,31 +558,31 @@ export default function AdminPage() {
               <form onSubmit={handleCreateCaptain} className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Display Name *</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Display Name *</label>
                     <input type="text" required value={newCaptain.displayName}
                       onChange={(e) => setNewCaptain((p) => ({ ...p, displayName: e.target.value }))}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
+                      className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-200 placeholder-slate-500"
                       placeholder="Rahul Sharma" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Email *</label>
                     <input type="email" required value={newCaptain.email}
                       onChange={(e) => setNewCaptain((p) => ({ ...p, email: e.target.value }))}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
+                      className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-200 placeholder-slate-500"
                       placeholder="captain@company.com" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Password *</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Password *</label>
                     <input type="text" required minLength={6} value={newCaptain.password}
                       onChange={(e) => setNewCaptain((p) => ({ ...p, password: e.target.value }))}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50"
+                      className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-200 placeholder-slate-500"
                       placeholder="Min 6 characters" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Assign Team (optional)</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Assign Team (optional)</label>
                     <select value={newCaptain.teamId}
                       onChange={(e) => setNewCaptain((p) => ({ ...p, teamId: e.target.value }))}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-surface-50">
+                      className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-200">
                       <option value="">No team yet</option>
                       {approvedTeams.map((t) => (
                         <option key={t.id} value={t.id}>{t.name}</option>
@@ -494,35 +590,92 @@ export default function AdminPage() {
                     </select>
                   </div>
                 </div>
-                <Button type="submit" loading={creatingCaptain}>Create Captain</Button>
+                <div className="flex items-center gap-3">
+                  <Button type="submit" loading={creatingCaptain}>Create Captain</Button>
+                  {(newCaptain.displayName || newCaptain.email || newCaptain.password || newCaptain.teamId) && (
+                    <button
+                      type="button"
+                      onClick={() => setNewCaptain({ email: "", displayName: "", password: "", teamId: "" })}
+                      className="text-sm text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                      Clear form
+                    </button>
+                  )}
+                </div>
               </form>
             </CardContent>
           </Card>
 
           <div>
-            <h2 className="text-lg font-semibold text-slate-800 mb-3">Existing Captains</h2>
+            <h2 className="text-lg font-semibold text-slate-200 mb-3">Existing Captains ({captains.length})</h2>
             {captains.length === 0 ? (
-              <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No captains created yet</p>
+              <p className="text-slate-400 text-center py-6 bg-dark-400/60 rounded-xl border border-white/[0.06]">No captains created yet</p>
             ) : (
               <div className="space-y-3">
                 {captains.map((cap) => (
                   <Card key={cap.id}>
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-slate-800">{cap.displayName}</p>
-                          <p className="text-sm text-slate-500">{cap.email}</p>
+                      {editingCaptain === cap.id ? (
+                        <form onSubmit={handleUpdateCaptain} className="space-y-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="info" className="text-[10px]">Editing</Badge>
+                            <span className="text-sm font-medium text-slate-200">{cap.displayName}</span>
+                          </div>
+                          <div className="grid sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-slate-400 mb-1">Display Name</label>
+                              <input type="text" value={editCaptainData.displayName}
+                                onChange={(e) => setEditCaptainData((p) => ({ ...p, displayName: e.target.value }))}
+                                className="w-full px-3 py-2 border border-white/10 rounded-lg text-sm bg-dark-500 text-slate-200 placeholder-slate-500"
+                                placeholder="Leave blank to keep current" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-slate-400 mb-1">Email</label>
+                              <input type="email" value={editCaptainData.email}
+                                onChange={(e) => setEditCaptainData((p) => ({ ...p, email: e.target.value }))}
+                                className="w-full px-3 py-2 border border-white/10 rounded-lg text-sm bg-dark-500 text-slate-200 placeholder-slate-500"
+                                placeholder="Leave blank to keep current" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-slate-400 mb-1">New Password</label>
+                              <input type="text" value={editCaptainData.password}
+                                onChange={(e) => setEditCaptainData((p) => ({ ...p, password: e.target.value }))}
+                                className="w-full px-3 py-2 border border-white/10 rounded-lg text-sm bg-dark-500 text-slate-200 placeholder-slate-500"
+                                placeholder="Leave blank to keep current" minLength={6} />
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button type="submit" size="sm" loading={updatingCaptain}>Save Changes</Button>
+                            <button type="button" onClick={() => { setEditingCaptain(null); setEditCaptainData({ email: "", displayName: "", password: "" }); }}
+                              className="text-sm text-slate-400 hover:text-slate-200 px-3 py-1.5 transition-colors">Cancel</button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-slate-200">{cap.displayName}</p>
+                            <p className="text-sm text-slate-400">{cap.email}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {cap.teams.length > 0 ? (
+                              cap.teams.map((t) => (
+                                <Badge key={t.id} variant="success" className="text-xs">{t.name}</Badge>
+                              ))
+                            ) : (
+                              <Badge variant="warning" className="text-xs">No team assigned</Badge>
+                            )}
+                            <button
+                              onClick={() => {
+                                setEditingCaptain(cap.id);
+                                setEditCaptainData({ email: cap.email, displayName: cap.displayName, password: "" });
+                              }}
+                              className="text-xs px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 font-medium transition-colors"
+                            >
+                              Edit
+                            </button>
+                          </div>
                         </div>
-                        <div>
-                          {cap.teams.length > 0 ? (
-                            cap.teams.map((t) => (
-                              <Badge key={t.id} variant="success" className="text-xs">{t.name}</Badge>
-                            ))
-                          ) : (
-                            <Badge variant="warning" className="text-xs">No team assigned</Badge>
-                          )}
-                        </div>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -536,15 +689,15 @@ export default function AdminPage() {
         <div className="space-y-4">
           {/* Pickleball sub-tabs */}
           <div className="flex gap-2 mb-4">
-            <button
+              <button
               onClick={() => setPbSubTab("pending")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${pbSubTab === "pending" ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${pbSubTab === "pending" ? "bg-emerald-600 text-white" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"}`}
             >
               Pending ({pendingPickleball.length})
             </button>
             <button
               onClick={() => setPbSubTab("manage")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${pbSubTab === "manage" ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${pbSubTab === "manage" ? "bg-emerald-600 text-white" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"}`}
             >
               Manage All ({allPickleball.length})
             </button>
@@ -553,7 +706,7 @@ export default function AdminPage() {
           {pbSubTab === "pending" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-slate-800">Pending Pickleball Registrations</h2>
+                <h2 className="text-lg font-semibold text-slate-200">Pending Pickleball Registrations</h2>
                 {pendingPickleball.length > 0 && (
                   <div className="flex gap-2">
                     <button
@@ -561,7 +714,7 @@ export default function AdminPage() {
                         if (selectedPb.size === pendingPickleball.length) setSelectedPb(new Set());
                         else setSelectedPb(new Set(pendingPickleball.map((r) => r.id)));
                       }}
-                      className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                      className="text-xs text-emerald-400 hover:text-emerald-300 font-medium"
                     >
                       {selectedPb.size === pendingPickleball.length ? "Deselect All" : "Select All"}
                     </button>
@@ -571,8 +724,8 @@ export default function AdminPage() {
 
               {/* Bulk action bar */}
               {selectedPb.size > 0 && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center justify-between animate-slide-in">
-                  <span className="text-sm font-medium text-emerald-700">
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 flex items-center justify-between animate-slide-in">
+                  <span className="text-sm font-medium text-emerald-400">
                     {selectedPb.size} selected
                   </span>
                   <div className="flex gap-2">
@@ -625,13 +778,13 @@ export default function AdminPage() {
                     >
                       Reject Selected
                     </Button>
-                    <button onClick={() => setSelectedPb(new Set())} className="text-sm text-slate-500 hover:text-slate-700 px-2">Clear</button>
+                    <button onClick={() => setSelectedPb(new Set())} className="text-sm text-slate-400 hover:text-slate-200 px-2">Clear</button>
                   </div>
                 </div>
               )}
 
               {pendingPickleball.length === 0 ? (
-                <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No pending pickleball registrations</p>
+                <p className="text-slate-500 text-center py-6 bg-dark-400/60 rounded-xl border border-white/[0.06]">No pending pickleball registrations</p>
               ) : (
                 <div className="space-y-3">
                   {pendingPickleball.map((reg) => (
@@ -652,26 +805,26 @@ export default function AdminPage() {
                               className="mt-1.5 w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-400"
                             />
                             <div>
-                              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                 {PB_LABELS[reg.category] || reg.category}
                               </span>
                               <div className="flex items-center gap-2 mt-2">
-                                <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
+                                <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold">
                                   {reg.player1Name.charAt(0)}
                                 </div>
                                 <div>
-                                  <p className="text-sm font-medium text-slate-800">{reg.player1Name}</p>
+                                  <p className="text-sm font-medium text-slate-200">{reg.player1Name}</p>
                                   <p className="text-[11px] text-slate-400">{reg.player1Email}</p>
                                 </div>
                               </div>
                               {reg.player2Name && (
                                 <div className="flex items-center gap-2 mt-1.5">
-                                  <div className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-bold">
+                                  <div className="w-7 h-7 rounded-full bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-bold">
                                     {reg.player2Name.charAt(0)}
                                   </div>
                                   <div>
-                                    <p className="text-sm font-medium text-slate-800">{reg.player2Name}</p>
-                                    <p className="text-[11px] text-slate-400">{reg.player2Email}</p>
+                                    <p className="text-sm font-medium text-slate-200">{reg.player2Name}</p>
+                                    <p className="text-[11px] text-slate-500">{reg.player2Email}</p>
                                   </div>
                                 </div>
                               )}
@@ -725,14 +878,14 @@ export default function AdminPage() {
           {pbSubTab === "manage" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-slate-800">All Pickleball Registrations</h2>
+                <h2 className="text-lg font-semibold text-slate-200">All Pickleball Registrations</h2>
               </div>
 
               {/* Category filter */}
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setPbFilterCat("")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${!pbFilterCat ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"}`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${!pbFilterCat ? "bg-emerald-600 text-white" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20"}`}
                 >
                   All ({allPickleball.length})
                 </button>
@@ -742,7 +895,7 @@ export default function AdminPage() {
                     <button
                       key={key}
                       onClick={() => setPbFilterCat(pbFilterCat === key ? "" : key)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${pbFilterCat === key ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"}`}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${pbFilterCat === key ? "bg-emerald-600 text-white" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20"}`}
                     >
                       {label} ({count})
                     </button>
@@ -750,10 +903,43 @@ export default function AdminPage() {
                 })}
               </div>
 
+              {/* Search */}
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={pbSearch}
+                  onChange={(e) => setPbSearch(e.target.value)}
+                  placeholder="Search by player name or email..."
+                  className="w-full pl-10 pr-4 py-2 border border-white/10 rounded-xl text-sm bg-dark-500 text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                />
+                {pbSearch && (
+                  <button
+                    onClick={() => setPbSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+
               {(() => {
-                const filteredPb = pbFilterCat ? allPickleball.filter((r) => r.category === pbFilterCat) : allPickleball;
+                let filteredPb = pbFilterCat ? allPickleball.filter((r) => r.category === pbFilterCat) : allPickleball;
+                if (pbSearch.trim()) {
+                  const q = pbSearch.trim().toLowerCase();
+                  filteredPb = filteredPb.filter((r) =>
+                    r.player1Name.toLowerCase().includes(q) ||
+                    r.player1Email.toLowerCase().includes(q) ||
+                    (r.player2Name && r.player2Name.toLowerCase().includes(q)) ||
+                    (r.player2Email && r.player2Email.toLowerCase().includes(q))
+                  );
+                }
                 return filteredPb.length === 0 ? (
-                  <p className="text-slate-400 text-center py-6 bg-surface-50 rounded-xl border border-brand-100/30">No pickleball registrations found</p>
+                  <p className="text-slate-500 text-center py-6 bg-dark-400/60 rounded-xl border border-white/[0.06]">No pickleball registrations found</p>
                 ) : (
                   <div className="space-y-3">
                     {filteredPb.map((reg) => (
@@ -762,7 +948,7 @@ export default function AdminPage() {
                           {editingPb === reg.id ? (
                             <div className="space-y-3">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                   {PB_LABELS[reg.category] || reg.category}
                                 </span>
                                 <Badge variant={reg.status === "APPROVED" ? "success" : "warning"} className="text-[10px]">
@@ -771,22 +957,22 @@ export default function AdminPage() {
                               </div>
                               <div className="grid sm:grid-cols-2 gap-3">
                                 <div>
-                                  <label className="block text-xs font-medium text-slate-500 mb-1">Player 1 Name</label>
+                                  <label className="block text-xs font-medium text-slate-400 mb-1">Player 1 Name</label>
                                   <input
                                     type="text"
                                     value={editP1}
                                     onChange={(e) => setEditP1(e.target.value)}
-                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-surface-50"
+                                    className="w-full px-3 py-2 border border-white/10 rounded-lg text-sm bg-dark-500 text-slate-200"
                                   />
                                 </div>
                                 {reg.category.includes("DOUBLES") && (
                                   <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">Player 2 Name</label>
+                                    <label className="block text-xs font-medium text-slate-400 mb-1">Player 2 Name</label>
                                     <input
                                       type="text"
                                       value={editP2}
                                       onChange={(e) => setEditP2(e.target.value)}
-                                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-surface-50"
+                                      className="w-full px-3 py-2 border border-white/10 rounded-lg text-sm bg-dark-500 text-slate-200"
                                     />
                                   </div>
                                 )}
@@ -812,14 +998,14 @@ export default function AdminPage() {
                                     } finally { setActionLoading(null); }
                                   }}
                                 >Save</Button>
-                                <button onClick={() => setEditingPb(null)} className="text-sm text-slate-500 hover:text-slate-700 px-3 py-1.5">Cancel</button>
+                                <button onClick={() => setEditingPb(null)} className="text-sm text-slate-400 hover:text-slate-200 px-3 py-1.5">Cancel</button>
                               </div>
                             </div>
                           ) : (
                             <div className="flex items-start justify-between">
                               <div>
                                 <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                     {PB_LABELS[reg.category] || reg.category}
                                   </span>
                                   <Badge variant={reg.status === "APPROVED" ? "success" : reg.status === "PENDING_APPROVAL" ? "warning" : "danger"} className="text-[10px]">
@@ -827,21 +1013,21 @@ export default function AdminPage() {
                                   </Badge>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
+                                  <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold">
                                     {reg.player1Name.charAt(0)}
                                   </div>
                                   <div>
-                                    <p className="text-sm font-medium text-slate-800">{reg.player1Name}</p>
+                                    <p className="text-sm font-medium text-slate-200">{reg.player1Name}</p>
                                     <p className="text-[11px] text-slate-400">{reg.player1Email}</p>
                                   </div>
                                 </div>
                                 {reg.player2Name && (
                                   <div className="flex items-center gap-2 mt-1.5">
-                                    <div className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-bold">
+                                    <div className="w-7 h-7 rounded-full bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-bold">
                                       {reg.player2Name.charAt(0)}
                                     </div>
                                     <div>
-                                      <p className="text-sm font-medium text-slate-800">{reg.player2Name}</p>
+                                      <p className="text-sm font-medium text-slate-200">{reg.player2Name}</p>
                                       <p className="text-[11px] text-slate-400">{reg.player2Email}</p>
                                     </div>
                                   </div>

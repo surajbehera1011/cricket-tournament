@@ -17,10 +17,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen antialiased">
+      <body className="min-h-screen antialiased bg-dark-600">
+        <div className="page-bg-image" />
+        <div className="page-bg-overlay" />
         <Providers>
           <Suspense><Navbar /></Suspense>
-          <main className="min-h-[calc(100vh-4rem)]">{children}</main>
+          <main className="relative z-10 min-h-[calc(100vh-4rem)]">{children}</main>
           <Footer />
         </Providers>
       </body>

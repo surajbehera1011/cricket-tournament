@@ -47,22 +47,22 @@ export function StatsCards({ totalTeams, readyTeams, completeTeams, incompleteTe
   const animPool = useCountUp(poolCount);
 
   const stats = [
-    { label: "Total Teams", value: animTotal, icon: "🏏", bg: "bg-slate-50", accent: "bg-slate-800", textColor: "text-slate-800", border: "border-slate-100" },
-    { label: "Ready", value: animReady, icon: "✅", bg: "bg-emerald-50", accent: "bg-emerald-500", textColor: "text-emerald-700", border: "border-emerald-100" },
-    { label: "Submitted", value: animComplete, icon: "📋", bg: "bg-brand-50", accent: "bg-brand-500", textColor: "text-brand-700", border: "border-brand-100" },
-    { label: "In Progress", value: animIncomplete, icon: "⏳", bg: "bg-amber-50", accent: "bg-amber-500", textColor: "text-amber-700", border: "border-amber-100" },
-    { label: "In Pool", value: animPool, icon: "👤", bg: "bg-violet-50", accent: "bg-violet-500", textColor: "text-violet-700", border: "border-violet-100" },
+    { label: "Total Teams", value: animTotal, icon: "🏏", accent: "bg-white", textColor: "text-white", glow: "" },
+    { label: "Ready", value: animReady, icon: "✅", accent: "bg-pitch-500", textColor: "text-pitch-400", glow: "shadow-pitch-500/10" },
+    { label: "Submitted", value: animComplete, icon: "📋", accent: "bg-brand-500", textColor: "text-brand-400", glow: "shadow-brand-500/10" },
+    { label: "In Progress", value: animIncomplete, icon: "⏳", accent: "bg-amber-500", textColor: "text-amber-400", glow: "shadow-amber-500/10" },
+    { label: "In Pool", value: animPool, icon: "👤", accent: "bg-violet-500", textColor: "text-violet-400", glow: "shadow-violet-500/10" },
   ];
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
       {stats.map((stat) => (
-        <div key={stat.label} className={`stat-card ${stat.bg} ${stat.border}`}>
-          <div className={`absolute top-0 left-0 right-0 h-1 ${stat.accent} rounded-t-2xl`} />
+        <div key={stat.label} className={`stat-card ${stat.glow}`}>
+          <div className={`absolute top-0 left-0 right-0 h-1 ${stat.accent} rounded-t-2xl opacity-80`} />
           <div className="p-5 text-center">
             <span className="text-2xl mb-2 block">{stat.icon}</span>
             <p className={`${textSize} font-extrabold ${stat.textColor} tabular-nums`}>{stat.value}</p>
-            <p className={`${labelSize} font-semibold text-slate-400 mt-1 uppercase tracking-widest`}>
+            <p className={`${labelSize} font-semibold text-slate-500 mt-1 uppercase tracking-widest`}>
               {stat.label}
             </p>
           </div>
