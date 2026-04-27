@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { individualRegistrationSchema } from "@/lib/validators";
 import { registerIndividual } from "@/lib/business/registration";
 import { prisma } from "@/lib/prisma";
+import { sendIndividualRegistrationConfirmation } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,6 +40,8 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await registerIndividual(parsed.data);
+
+    sendIndividualRegistrationConfirmation(parsed.data.email, parsed.data.fullName);
 
     return NextResponse.json(
       {

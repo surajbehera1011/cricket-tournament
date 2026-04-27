@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/business/audit";
 import { recomputeTeamStatus } from "@/lib/business/registration";
 import { z } from "zod";
+import { sendTeamApprovedEmail } from "@/lib/email";
 
 const approveSchema = z.object({
   teamId: z.string().uuid(),
@@ -25,7 +26,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    const team = await prisma.team.findUnique({ where: { id: parsed.data.teamId } });
+    const team = await prisma.team.findUnique({
+      where: { id: parsed.data.teamId },
+      include: {
+        memberships: {
+          select: { player: { select: { email: true } } },
+        },
+      },
+    });
     if (!team) {
       return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
@@ -55,6 +63,11 @@ export async function POST(request: NextRequest) {
       before: { status: team.status },
       after: { status: updated?.status },
     });
+
+    const allEmails = team.memberships.map((m) => m.player.email).filter(Boolean) as string[];
+    if (allEmails.length > 0 && updated) {
+      sendTeamApprovedEmail(allEmails, team.name, updated.status);
+    }
 
     return NextResponse.json({ team: updated });
   } catch (error) {

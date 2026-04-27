@@ -54,7 +54,8 @@ export default function SchedulePage() {
       ]);
       const teamsData = await teamsRes.json();
       const pbData = await pbRes.json();
-      if (Array.isArray(teamsData)) setTeams(teamsData);
+      const teamsList = teamsData.teams ?? teamsData;
+      if (Array.isArray(teamsList)) setTeams(teamsList);
       if (Array.isArray(pbData)) setPbRegs(pbData);
     } catch (err) {
       console.error(err);

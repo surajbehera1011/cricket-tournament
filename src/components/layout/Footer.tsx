@@ -24,7 +24,7 @@ export function Footer() {
               </div>
             </div>
             <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
-              The official platform for Align Technology&apos;s internal cricket tournament.
+              The official platform for Align Technology&apos;s internal sports league.
               Register teams, manage squads, and follow the action live.
             </p>
           </div>

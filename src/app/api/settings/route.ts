@@ -13,6 +13,9 @@ import { jsonResponse } from "@/lib/api-utils";
 
 const updateSettingsSchema = z.object({
   maxTeamSize: z.number().int().min(2).max(20).optional(),
+  mandatoryPlayerCount: z.number().int().min(2).max(15).optional(),
+  mandatoryFemaleCount: z.number().int().min(0).max(15).optional(),
+  extraPlayerLimit: z.number().int().min(0).max(10).optional(),
   minFemalePerTeam: z.number().int().min(0).max(10).optional(),
   tournamentName: z.string().min(1).max(200).optional(),
   registrationOpen: z.boolean().optional(),

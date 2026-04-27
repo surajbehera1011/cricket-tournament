@@ -30,7 +30,8 @@ export async function POST(
       params.id,
       parsed.data.playerId,
       session.user.id,
-      session.user.role
+      session.user.role,
+      parsed.data.slotType
     );
 
     return NextResponse.json(

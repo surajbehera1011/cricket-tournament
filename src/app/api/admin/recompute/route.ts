@@ -31,8 +31,10 @@ export async function POST() {
 
       const memberCount = team.memberships.length;
       const femaleCount = team.memberships.filter((m) => m.player.gender === "FEMALE").length;
-      const sizeOk = memberCount >= settings.maxTeamSize;
-      const femaleOk = femaleCount >= settings.minFemalePerTeam;
+      const mandatoryCount = settings.mandatoryPlayerCount ?? 8;
+      const minFemale = settings.mandatoryFemaleCount ?? 1;
+      const sizeOk = memberCount >= mandatoryCount;
+      const femaleOk = femaleCount >= minFemale;
       const criteriaMet = sizeOk && femaleOk;
 
       // If submitted (COMPLETE) but criteria no longer met, revert to INCOMPLETE

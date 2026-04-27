@@ -3,6 +3,7 @@ import { TeamStatus, PoolStatus, MembershipType, AuditAction, Prisma, Gender } f
 import { createAuditLog } from "./audit";
 import { sseManager } from "@/lib/sse";
 import type { TeamRegistrationInput, IndividualRegistrationInput } from "@/lib/validators";
+import { MANDATORY_PLAYER_COUNT, MANDATORY_FEMALE_COUNT, EXTRA_PLAYER_LIMIT } from "@/lib/validators";
 
 export async function getSettings() {
   let settings = await prisma.tournamentSettings.findUnique({ where: { id: "singleton" } });
@@ -20,12 +21,13 @@ export async function recomputeTeamStatus(teamId: string): Promise<TeamStatus> {
 
   if (team.status === "READY" || team.status === "PENDING_APPROVAL") return team.status;
 
-  // If captain submitted (COMPLETE) but criteria no longer met, revert to INCOMPLETE
   if (team.status === "COMPLETE") {
     const settings = await getSettings();
     const memberCount = team.memberships.length;
     const femaleCount = team.memberships.filter((m) => m.player.gender === "FEMALE").length;
-    const criteriaMet = memberCount >= settings.maxTeamSize && femaleCount >= settings.minFemalePerTeam;
+    const mandatoryCount = settings.mandatoryPlayerCount ?? MANDATORY_PLAYER_COUNT;
+    const minFemale = settings.mandatoryFemaleCount ?? MANDATORY_FEMALE_COUNT;
+    const criteriaMet = memberCount >= mandatoryCount && femaleCount >= minFemale;
     if (!criteriaMet) {
       await prisma.team.update({ where: { id: teamId }, data: { status: TeamStatus.INCOMPLETE } });
       return TeamStatus.INCOMPLETE;
@@ -98,10 +100,40 @@ export async function registerTeam(input: TeamRegistrationInput, color = "") {
       });
     }
 
+    const extraPlayersInput = input.extraPlayers ?? [];
+    for (let i = 0; i < extraPlayersInput.length; i++) {
+      const entry = extraPlayersInput[i];
+      const player = await tx.player.create({
+        data: {
+          fullName: entry.name,
+          email: entry.email,
+          gender: entry.gender as Gender,
+          preferredRole: "",
+          experienceLevel: "",
+          poolStatus: PoolStatus.ASSIGNED,
+        },
+      });
+      players.push(player);
+      await tx.teamMembership.create({
+        data: {
+          teamId: team.id,
+          playerId: player.id,
+          membershipType: MembershipType.TEAM_SUBMISSION,
+          positionSlot: `Extra ${i + 1}`,
+        },
+      });
+    }
+
     const allPlayersJson = [
       { slot: "Captain", name: input.captainName, gender: input.captainGender, email: input.captainEmail },
       ...input.players.map((p, idx) => ({
         slot: `Player ${idx + 2}`,
+        name: p.name,
+        gender: p.gender,
+        email: p.email,
+      })),
+      ...extraPlayersInput.map((p, idx) => ({
+        slot: `Extra ${idx + 1}`,
         name: p.name,
         gender: p.gender,
         email: p.email,

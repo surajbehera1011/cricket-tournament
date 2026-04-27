@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/business/registration";
 import { createAuditLog } from "@/lib/business/audit";
+import { MANDATORY_PLAYER_COUNT, MANDATORY_FEMALE_COUNT, EXTRA_PLAYER_LIMIT } from "@/lib/validators";
 
 export async function POST(
   request: NextRequest,
@@ -20,7 +21,10 @@ export async function POST(
     const team = await prisma.team.findUnique({
       where: { id: params.id },
       include: {
-        memberships: { include: { player: { select: { gender: true } } } },
+        memberships: {
+          include: { player: { select: { gender: true } } },
+          orderBy: { createdAt: "asc" },
+        },
       },
     });
 
@@ -40,15 +44,35 @@ export async function POST(
     }
 
     const settings = await getSettings();
+    const mandatoryCount = settings.mandatoryPlayerCount ?? MANDATORY_PLAYER_COUNT;
+    const mandatoryFemale = settings.mandatoryFemaleCount ?? MANDATORY_FEMALE_COUNT;
+    const extraLimit = settings.extraPlayerLimit ?? EXTRA_PLAYER_LIMIT;
+
     const memberCount = team.memberships.length;
     const femaleCount = team.memberships.filter((m) => m.player.gender === "FEMALE").length;
-    const sizeOk = memberCount >= settings.maxTeamSize;
-    const femaleOk = femaleCount >= settings.minFemalePerTeam;
 
-    if (!sizeOk || !femaleOk) {
-      const reasons = [];
-      if (!sizeOk) reasons.push(`Need ${settings.maxTeamSize} players (have ${memberCount})`);
-      if (!femaleOk) reasons.push(`Need ${settings.minFemalePerTeam} female player(s) (have ${femaleCount})`);
+    const reasons = [];
+
+    if (memberCount < mandatoryCount) {
+      reasons.push(`Need at least ${mandatoryCount} mandatory players (have ${memberCount})`);
+    }
+
+    if (femaleCount < mandatoryFemale) {
+      reasons.push(`Need at least ${mandatoryFemale} female player(s) among mandatory players (have ${femaleCount})`);
+    }
+
+    const maxAllowed = mandatoryCount + extraLimit;
+    if (memberCount > maxAllowed) {
+      reasons.push(`Maximum ${maxAllowed} players allowed (${mandatoryCount} mandatory + ${extraLimit} extra), have ${memberCount}`);
+    }
+
+    if (memberCount > mandatoryCount) {
+      const extraMembers = team.memberships.slice(mandatoryCount);
+      const extraMales = extraMembers.filter((m) => m.player.gender === "MALE").length;
+      if (extraMales > 1) reasons.push(`Extra players can have at most 1 male (have ${extraMales})`);
+    }
+
+    if (reasons.length > 0) {
       return NextResponse.json(
         { error: `Team does not meet criteria: ${reasons.join(". ")}` },
         { status: 400 }

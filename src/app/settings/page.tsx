@@ -8,6 +8,9 @@ import { useToast } from "@/components/ui/Toast";
 
 interface Settings {
   maxTeamSize: number;
+  mandatoryPlayerCount: number;
+  mandatoryFemaleCount: number;
+  extraPlayerLimit: number;
   minFemalePerTeam: number;
   tournamentName: string;
   registrationOpen: boolean;
@@ -199,6 +202,48 @@ export default function SettingsPage() {
         <CardContent className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">
+              Mandatory Players: {settings.mandatoryPlayerCount}
+            </label>
+            <input
+              type="range" min={2} max={15}
+              value={settings.mandatoryPlayerCount}
+              onChange={(e) => set({ mandatoryPlayerCount: parseInt(e.target.value) })}
+              className="w-full accent-brand-600"
+            />
+            <div className="flex justify-between text-xs text-slate-400 mt-1">
+              <span>2</span><span>15</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Number of mandatory players required to submit a team.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">
+              Mandatory Female Players: {settings.mandatoryFemaleCount}
+            </label>
+            <input
+              type="range" min={0} max={settings.mandatoryPlayerCount}
+              value={settings.mandatoryFemaleCount}
+              onChange={(e) => set({ mandatoryFemaleCount: parseInt(e.target.value) })}
+              className="w-full accent-brand-600"
+            />
+            <p className="text-xs text-slate-400 mt-1">Minimum female players required among the mandatory slots.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">
+              Extra Player Limit: {settings.extraPlayerLimit}
+            </label>
+            <input
+              type="range" min={0} max={10}
+              value={settings.extraPlayerLimit}
+              onChange={(e) => set({ extraPlayerLimit: parseInt(e.target.value) })}
+              className="w-full accent-brand-600"
+            />
+            <div className="flex justify-between text-xs text-slate-400 mt-1">
+              <span>0</span><span>10</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Max extra players the captain can add (1 male + 1 female only).</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">
               Maximum Team Size: {settings.maxTeamSize} players
             </label>
             <input
@@ -210,7 +255,7 @@ export default function SettingsPage() {
             <div className="flex justify-between text-xs text-slate-400 mt-1">
               <span>2</span><span>20</span>
             </div>
-            <p className="text-xs text-slate-400 mt-1">Teams will be marked COMPLETE when they reach this number of players.</p>
+            <p className="text-xs text-slate-400 mt-1">Total max players (mandatory + extra).</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">
@@ -225,7 +270,7 @@ export default function SettingsPage() {
             <div className="flex justify-between text-xs text-slate-400 mt-1">
               <span>0 (no requirement)</span><span>10</span>
             </div>
-            <p className="text-xs text-slate-400 mt-1">Teams need at least this many female players to be marked COMPLETE.</p>
+            <p className="text-xs text-slate-400 mt-1">Teams need at least this many female players across all slots.</p>
           </div>
         </CardContent>
       </Card>

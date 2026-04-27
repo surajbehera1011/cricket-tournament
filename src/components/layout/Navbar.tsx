@@ -60,7 +60,7 @@ export function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <img src="/images/align-logo.png" alt="Align" className="h-9 w-9 rounded-lg object-cover group-hover:scale-105 transition-transform" />
+              <img src="/images/align-logo.png" alt="Align" className="h-12 w-12 rounded-xl object-cover group-hover:scale-105 transition-transform" />
               <div>
                 <span className="font-extrabold text-lg text-white tracking-tight">Sports League</span>
                 <span className="hidden sm:block text-[10px] text-slate-400 font-medium -mt-0.5">Cricket & Pickleball 2026</span>

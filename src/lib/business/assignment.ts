@@ -3,6 +3,7 @@ import { PoolStatus, MembershipType, AuditAction, UserRole } from "@prisma/clien
 import { createAuditLog } from "./audit";
 import { recomputeTeamStatus } from "./registration";
 import { sseManager } from "@/lib/sse";
+import { sendPlayerDraftedEmail, sendPlayerRemovedEmail } from "@/lib/email";
 
 export class AuthorizationError extends Error {
   constructor(message: string) {
@@ -22,11 +23,15 @@ export async function assignPlayerToTeam(
   teamId: string,
   playerId: string,
   actorUserId: string,
-  actorRole: UserRole
+  actorRole: UserRole,
+  slotType: "mandatory" | "extra" = "mandatory"
 ) {
   const team = await prisma.team.findUnique({
     where: { id: teamId },
-    include: { captain: true },
+    include: {
+      captain: true,
+      memberships: { include: { player: { select: { gender: true } } } },
+    },
   });
   if (!team) throw new BusinessError("Team not found");
 
@@ -51,6 +56,42 @@ export async function assignPlayerToTeam(
     throw new BusinessError("Player is already on this team");
   }
 
+  const MANDATORY_LIMIT = 8;
+  const EXTRA_LIMIT = 2;
+
+  const currentMandatory = team.memberships.filter(
+    (m) => !m.positionSlot?.startsWith("Extra")
+  );
+  const currentExtra = team.memberships.filter(
+    (m) => m.positionSlot?.startsWith("Extra")
+  );
+
+  let positionSlot: string;
+
+  if (slotType === "mandatory") {
+    if (currentMandatory.length >= MANDATORY_LIMIT) {
+      throw new BusinessError(`Mandatory slots full (${MANDATORY_LIMIT}/${MANDATORY_LIMIT}). Use an extra slot instead.`);
+    }
+    const mandatoryFemales = currentMandatory.filter((m) => m.player.gender === "FEMALE").length;
+    if (
+      currentMandatory.length === MANDATORY_LIMIT - 1 &&
+      mandatoryFemales < 1 &&
+      player.gender !== "FEMALE"
+    ) {
+      throw new BusinessError("Last mandatory slot must be a female player (at least 1 female required).");
+    }
+    positionSlot = `Player ${currentMandatory.length + 1}`;
+  } else {
+    if (currentExtra.length >= EXTRA_LIMIT) {
+      throw new BusinessError(`Extra slots full (${EXTRA_LIMIT}/${EXTRA_LIMIT}).`);
+    }
+    const extraMales = currentExtra.filter((m) => m.player.gender === "MALE").length;
+    if (player.gender === "MALE" && extraMales >= 1) {
+      throw new BusinessError("Extra slots can have at most 1 male. This player is male and there is already 1 male in extra.");
+    }
+    positionSlot = `Extra ${currentExtra.length + 1}`;
+  }
+
   const otherMembership = await prisma.teamMembership.findFirst({
     where: { playerId },
   });
@@ -70,6 +111,7 @@ export async function assignPlayerToTeam(
         teamId,
         playerId,
         membershipType: MembershipType.DRAFT_PICK,
+        positionSlot,
       },
     });
 
@@ -102,6 +144,10 @@ export async function assignPlayerToTeam(
     data: { teamId, playerId, playerName: player.fullName },
   });
 
+  if (player.email) {
+    sendPlayerDraftedEmail(player.fullName, player.email, team.name, slotType);
+  }
+
   return result.membership;
 }
 
@@ -111,7 +157,7 @@ export async function removePlayerFromTeam(
   actorUserId: string,
   actorRole: UserRole
 ) {
-  const team = await prisma.team.findUnique({ where: { id: teamId } });
+  const team = await prisma.team.findUnique({ where: { id: teamId }, select: { name: true, status: true, captainUserId: true } });
   if (!team) throw new BusinessError("Team not found");
 
   if (team.status === "READY") {
@@ -131,6 +177,10 @@ export async function removePlayerFromTeam(
   });
   if (!membership) {
     throw new BusinessError("Player is not on this team");
+  }
+
+  if (actorRole === UserRole.CAPTAIN && membership.membershipType === MembershipType.TEAM_SUBMISSION) {
+    throw new AuthorizationError("Captains cannot remove original players. Only admins can.");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -159,6 +209,10 @@ export async function removePlayerFromTeam(
     type: "player-removed",
     data: { teamId, playerId, playerName: membership.player.fullName },
   });
+
+  if (membership.player.email) {
+    sendPlayerRemovedEmail(membership.player.fullName, membership.player.email, team.name);
+  }
 
   return { success: true };
 }

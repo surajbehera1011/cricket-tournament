@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendPickleballApprovedEmail, sendPickleballRejectedEmail } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,11 +48,19 @@ export async function POST(request: NextRequest) {
     const { id, ids, action, player1Name, player2Name } = body;
 
     if (ids && Array.isArray(ids) && ["approve", "reject"].includes(action)) {
+      const regs = await prisma.pickleballRegistration.findMany({ where: { id: { in: ids } } });
       const status = action === "approve" ? "APPROVED" : "REJECTED";
       await prisma.pickleballRegistration.updateMany({
         where: { id: { in: ids } },
         data: { status },
       });
+      for (const r of regs) {
+        if (action === "approve") {
+          sendPickleballApprovedEmail(r.player1Email, r.player1Name, r.category, r.player2Email, r.player2Name);
+        } else {
+          sendPickleballRejectedEmail(r.player1Email, r.player1Name, r.category, r.player2Email, r.player2Name);
+        }
+      }
       return NextResponse.json({ message: `${action}d ${ids.length} registration(s)` });
     }
 
@@ -66,11 +75,13 @@ export async function POST(request: NextRequest) {
 
     if (action === "approve") {
       await prisma.pickleballRegistration.update({ where: { id }, data: { status: "APPROVED" } });
+      sendPickleballApprovedEmail(reg.player1Email, reg.player1Name, reg.category, reg.player2Email, reg.player2Name);
       return NextResponse.json({ message: "Approved" });
     }
 
     if (action === "reject") {
       await prisma.pickleballRegistration.update({ where: { id }, data: { status: "REJECTED" } });
+      sendPickleballRejectedEmail(reg.player1Email, reg.player1Name, reg.category, reg.player2Email, reg.player2Name);
       return NextResponse.json({ message: "Rejected" });
     }
 

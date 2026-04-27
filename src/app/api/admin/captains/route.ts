@@ -8,6 +8,7 @@ import { UserRole, TeamStatus } from "@prisma/client";
 import { createAuditLog } from "@/lib/business/audit";
 import { jsonResponse } from "@/lib/api-utils";
 import { z } from "zod";
+import { sendCaptainCredentialsEmail } from "@/lib/email";
 
 const createCaptainSchema = z.object({
   email: z.string().email(),
@@ -48,6 +49,11 @@ export async function GET() {
         name: true,
         captainName: true,
         status: true,
+        memberships: {
+          where: { positionSlot: "Captain" },
+          select: { player: { select: { email: true } } },
+          take: 1,
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -64,6 +70,7 @@ export async function GET() {
         id: t.id,
         name: t.name,
         captainName: t.captainName,
+        captainEmail: t.memberships[0]?.player?.email || "",
         status: t.status,
       })),
     });
@@ -117,6 +124,21 @@ export async function POST(request: NextRequest) {
       entityId: captain.id,
       after: { email: captain.email, displayName: captain.displayName, teamId: parsed.data.teamId },
     });
+
+    let teamName: string | undefined;
+    if (parsed.data.teamId) {
+      const assignedTeam = await prisma.team.findUnique({
+        where: { id: parsed.data.teamId },
+        select: { name: true },
+      });
+      teamName = assignedTeam?.name;
+    }
+    sendCaptainCredentialsEmail(
+      captain.email,
+      captain.displayName,
+      parsed.data.password,
+      teamName
+    );
 
     return NextResponse.json(
       { id: captain.id, email: captain.email, displayName: captain.displayName },

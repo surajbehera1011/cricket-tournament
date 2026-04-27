@@ -39,11 +39,13 @@ export async function GET() {
 
     const formatted = teams.map((t) => {
       const femaleCount = t.memberships.filter((m) => m.player.gender === "FEMALE").length;
-      const effectiveSize = settings.maxTeamSize;
+      const mandatoryCount = settings.mandatoryPlayerCount ?? 8;
+      const minFemale = settings.mandatoryFemaleCount ?? 1;
+      const maxAllowed = settings.maxTeamSize;
       const memberCount = t._count.memberships;
 
-      const sizeOk = memberCount >= effectiveSize;
-      const femaleOk = femaleCount >= settings.minFemalePerTeam;
+      const sizeOk = memberCount >= mandatoryCount;
+      const femaleOk = femaleCount >= minFemale;
       const criteriaMet = sizeOk && femaleOk;
 
       let displayStatus: TeamStatus = t.status;
@@ -60,13 +62,13 @@ export async function GET() {
         captainName: t.captainName || t.captain?.displayName || "",
         captain: t.captain,
         color: t.color || "",
-        teamSize: effectiveSize,
+        teamSize: maxAllowed,
         status: displayStatus,
         criteriaMet,
         memberCount,
         femaleCount,
-        minFemaleRequired: settings.minFemalePerTeam,
-        slotsRemaining: Math.max(0, effectiveSize - memberCount),
+        minFemaleRequired: minFemale,
+        slotsRemaining: Math.max(0, maxAllowed - memberCount),
         players: t.memberships.map((m) => ({
           id: m.player.id,
           fullName: m.player.fullName,

@@ -11,6 +11,7 @@ describe("teamRegistrationSchema", () => {
       { name: "Player Three", gender: "FEMALE" as const, email: "p3@company.com" },
       { name: "Player Four", gender: "MALE" as const, email: "p4@company.com" },
     ],
+    extraPlayers: [],
     submitterEmail: "test@company.com",
     submitterName: "Test User",
   };
@@ -56,6 +57,80 @@ describe("teamRegistrationSchema", () => {
   it("rejects missing captain email", () => {
     const result = teamRegistrationSchema.safeParse({ ...validTeam, captainEmail: "" });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts team with valid extra players (1 male + 1 female)", () => {
+    const result = teamRegistrationSchema.safeParse({
+      ...validTeam,
+      extraPlayers: [
+        { name: "Extra Male", gender: "MALE" as const, email: "em@company.com" },
+        { name: "Extra Female", gender: "FEMALE" as const, email: "ef@company.com" },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts team with single extra player", () => {
+    const result = teamRegistrationSchema.safeParse({
+      ...validTeam,
+      extraPlayers: [
+        { name: "Extra Female", gender: "FEMALE" as const, email: "ef@company.com" },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects extra players with 2 males", () => {
+    const result = teamRegistrationSchema.safeParse({
+      ...validTeam,
+      extraPlayers: [
+        { name: "Extra Male 1", gender: "MALE" as const, email: "em1@company.com" },
+        { name: "Extra Male 2", gender: "MALE" as const, email: "em2@company.com" },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts extra players with 2 females", () => {
+    const result = teamRegistrationSchema.safeParse({
+      ...validTeam,
+      extraPlayers: [
+        { name: "Extra Female 1", gender: "FEMALE" as const, email: "ef1@company.com" },
+        { name: "Extra Female 2", gender: "FEMALE" as const, email: "ef2@company.com" },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects more than 2 extra players", () => {
+    const result = teamRegistrationSchema.safeParse({
+      ...validTeam,
+      extraPlayers: [
+        { name: "Extra 1", gender: "MALE" as const, email: "e1@company.com" },
+        { name: "Extra 2", gender: "FEMALE" as const, email: "e2@company.com" },
+        { name: "Extra 3", gender: "MALE" as const, email: "e3@company.com" },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects duplicate emails across mandatory and extra players", () => {
+    const result = teamRegistrationSchema.safeParse({
+      ...validTeam,
+      extraPlayers: [
+        { name: "Extra Dupe", gender: "MALE" as const, email: "p2@company.com" },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("defaults extraPlayers to empty array when not provided", () => {
+    const { extraPlayers, ...withoutExtra } = validTeam;
+    const result = teamRegistrationSchema.safeParse(withoutExtra);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.extraPlayers).toEqual([]);
+    }
   });
 });
 

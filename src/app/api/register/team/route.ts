@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { teamRegistrationSchema } from "@/lib/validators";
 import { registerTeam } from "@/lib/business/registration";
 import { prisma } from "@/lib/prisma";
+import { sendTeamRegistrationConfirmation } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +32,7 @@ export async function POST(request: NextRequest) {
     const allEmails = [
       parsed.data.captainEmail,
       ...parsed.data.players.map((p) => p.email),
+      ...parsed.data.extraPlayers.map((p) => p.email),
     ].map((e) => e.toLowerCase());
 
     const existing = await prisma.player.findMany({
@@ -47,6 +49,13 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await registerTeam(parsed.data, body.teamColor || "");
+
+    sendTeamRegistrationConfirmation(
+      allEmails,
+      parsed.data.teamName,
+      parsed.data.captainName,
+      result.players.length
+    );
 
     return NextResponse.json(
       {

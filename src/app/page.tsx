@@ -44,9 +44,19 @@ function DashboardContent() {
     router.replace(`/?${params.toString()}`, { scroll: false });
   };
 
+  const closeTour = () => {
+    setTourOpen(false);
+    const params = new URLSearchParams(searchParams.toString());
+    if (params.has("tour")) {
+      params.delete("tour");
+      const qs = params.toString();
+      router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+    }
+  };
+
   return (
     <div>
-      <GuidedTour isOpen={tourOpen} onClose={() => setTourOpen(false)} />
+      <GuidedTour isOpen={tourOpen} onClose={closeTour} />
 
       {/* Hero with Cricket Background */}
       <div className="hero-section">
@@ -54,10 +64,6 @@ function DashboardContent() {
         <div className="hero-overlay" />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 pb-24">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-1.5 mb-5 border border-white/10">
-              <img src="/images/align-logo.png" alt="Align" className="h-5 w-5 rounded object-cover" />
-              <span className="text-sm text-white/90 font-medium tracking-wide">Live Tournament Dashboard</span>
-            </div>
             <h1 className={`font-display tracking-wider text-gradient-hero ${tvMode ? "text-tv-3xl" : "text-5xl sm:text-6xl lg:text-7xl"}`}>
               ALIGN SPORTS LEAGUE
             </h1>
@@ -67,12 +73,15 @@ function DashboardContent() {
             {!tvMode && (
               <Link
                 href="/status"
-                className="inline-flex items-center gap-1.5 mt-5 text-sm text-slate-400 hover:text-white transition-colors font-medium group"
+                className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 backdrop-blur-md transition-all group"
               >
                 <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
                 Check your registration status
+                <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
             )}
           </div>

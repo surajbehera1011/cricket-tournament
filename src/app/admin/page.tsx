@@ -44,6 +44,7 @@ interface TeamWithoutLogin {
   id: string;
   name: string;
   captainName: string;
+  captainEmail: string;
   status: string;
 }
 
@@ -121,7 +122,7 @@ export default function AdminPage() {
       if (pending.individuals) setPendingIndividuals(pending.individuals);
       if (caps.captains) setCaptains(caps.captains);
       if (caps.teamsWithoutLogin) setTeamsWithoutLogin(caps.teamsWithoutLogin);
-      if (Array.isArray(teams)) setApprovedTeams(teams.map((t: any) => ({ id: t.id, name: t.name })));
+      if (teams.teams && Array.isArray(teams.teams)) setApprovedTeams(teams.teams.map((t: any) => ({ id: t.id, name: t.name })));
       if (Array.isArray(pbPending)) setPendingPickleball(pbPending);
       if (Array.isArray(pbAll)) setAllPickleball(pbAll);
     } catch (err) {
@@ -317,7 +318,7 @@ export default function AdminPage() {
 
   const handleAutoFillCaptain = (team: TeamWithoutLogin) => {
     setNewCaptain({
-      email: "",
+      email: team.captainEmail || "",
       displayName: team.captainName || "",
       password: "",
       teamId: team.id,
@@ -536,6 +537,9 @@ export default function AdminPage() {
                         {team.captainName && (
                           <p className="text-xs text-slate-400 truncate">Captain: {team.captainName}</p>
                         )}
+                        {team.captainEmail && (
+                          <p className="text-xs text-slate-500 truncate">{team.captainEmail}</p>
+                        )}
                       </div>
                     </div>
                     <div className="mt-2 flex items-center gap-1 text-xs text-amber-400 group-hover:text-amber-300">
@@ -579,15 +583,30 @@ export default function AdminPage() {
                       placeholder="Min 6 characters" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Assign Team (optional)</label>
-                    <select value={newCaptain.teamId}
-                      onChange={(e) => setNewCaptain((p) => ({ ...p, teamId: e.target.value }))}
-                      className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-200">
-                      <option value="">No team yet</option>
-                      {approvedTeams.map((t) => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
-                    </select>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                      Assign Team {newCaptain.teamId ? "*" : "(optional)"}
+                    </label>
+                    {(() => {
+                      const autoFilledTeam = teamsWithoutLogin.find((t) => t.id === newCaptain.teamId);
+                      if (autoFilledTeam) {
+                        return (
+                          <div className="w-full px-3 py-2 border border-amber-500/30 rounded-xl text-sm bg-amber-500/5 text-amber-300 flex items-center justify-between">
+                            <span className="font-medium">{autoFilledTeam.name}</span>
+                            <span className="text-[10px] text-amber-400/60 uppercase tracking-wider">Auto-assigned</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <select value={newCaptain.teamId}
+                          onChange={(e) => setNewCaptain((p) => ({ ...p, teamId: e.target.value }))}
+                          className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-200">
+                          <option value="">No team yet</option>
+                          {approvedTeams.map((t) => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                        </select>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

@@ -13,7 +13,9 @@ interface TeamFormProps {
   onSuccess: (email: string) => void;
 }
 
-const MIN_TOTAL_PLAYERS = 4;
+const MIN_PLAYERS_TO_REGISTER = 4;
+const MANDATORY_PLAYER_COUNT = 8;
+const MAX_EXTRA_PLAYERS = 2;
 
 const TEAM_COLORS = [
   { value: "#6366f1", label: "Indigo" },
@@ -35,27 +37,19 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
   const [captainGender, setCaptainGender] = useState("");
   const [captainEmail, setCaptainEmail] = useState("");
   const [comments, setComments] = useState("");
-  const [maxTeamSize, setMaxTeamSize] = useState(9);
-  const [minFemale, setMinFemale] = useState(1);
+
   const [players, setPlayers] = useState<PlayerEntry[]>([
     { name: "", gender: "", email: "" },
     { name: "", gender: "", email: "" },
     { name: "", gender: "", email: "" },
   ]);
+
+  const [extraPlayers, setExtraPlayers] = useState<PlayerEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetch("/api/settings", { cache: "no-store" })
-      .then((res) => res.json())
-      .then((s) => {
-        if (s.maxTeamSize) setMaxTeamSize(s.maxTeamSize);
-        if (s.minFemalePerTeam !== undefined) setMinFemale(s.minFemalePerTeam);
-      })
-      .catch(() => {});
-  }, []);
-
-  const maxAdditionalPlayers = maxTeamSize - 1;
+  const maxAdditionalMandatory = MANDATORY_PLAYER_COUNT - 1;
+  const minAdditionalMandatory = MIN_PLAYERS_TO_REGISTER - 1;
 
   const updatePlayer = (idx: number, field: keyof PlayerEntry, value: string) => {
     setPlayers((prev) =>
@@ -63,17 +57,47 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
     );
   };
 
+  const updateExtraPlayer = (idx: number, field: keyof PlayerEntry, value: string) => {
+    setExtraPlayers((prev) =>
+      prev.map((p, i) => (i === idx ? { ...p, [field]: value } : p))
+    );
+  };
+
   const addPlayer = () => {
-    if (players.length < maxAdditionalPlayers) {
+    if (players.length < maxAdditionalMandatory) {
       setPlayers((prev) => [{ name: "", gender: "", email: "" }, ...prev]);
     }
   };
 
   const removePlayer = (idx: number) => {
-    const minAdditional = MIN_TOTAL_PLAYERS - 1;
-    if (players.length > minAdditional) {
+    if (players.length > minAdditionalMandatory) {
       setPlayers((prev) => prev.filter((_, i) => i !== idx));
     }
+  };
+
+  const addExtraPlayer = () => {
+    if (extraPlayers.length >= MAX_EXTRA_PLAYERS) return;
+    setExtraPlayers((prev) => [...prev, { name: "", gender: "", email: "" }]);
+  };
+
+  const removeExtraPlayer = (idx: number) => {
+    setExtraPlayers((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const getAvailableExtraGenders = (currentIdx: number): string[] => {
+    const otherMaleCount = extraPlayers
+      .filter((_, i) => i !== currentIdx)
+      .filter((p) => p.gender === "MALE").length;
+    const available: string[] = [];
+    if (otherMaleCount < 1) available.push("MALE");
+    available.push("FEMALE");
+    return available;
+  };
+
+  const getAllPlayers = () => {
+    const validMandatory = players.filter((p) => p.name.trim() !== "");
+    const validExtra = extraPlayers.filter((p) => p.name.trim() !== "");
+    return { validMandatory, validExtra };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,27 +113,53 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       return;
     }
 
-    const validPlayers = players.filter((p) => p.name.trim() !== "");
-    const totalPlayers = 1 + validPlayers.length;
+    const { validMandatory, validExtra } = getAllPlayers();
+    const totalMandatory = 1 + validMandatory.length;
 
-    if (totalPlayers < MIN_TOTAL_PLAYERS) {
-      setError(`Minimum ${MIN_TOTAL_PLAYERS} players required (including captain). You have ${totalPlayers}.`);
+    if (totalMandatory < MIN_PLAYERS_TO_REGISTER) {
+      setError(`Minimum ${MIN_PLAYERS_TO_REGISTER} players required to register (including captain). You have ${totalMandatory}.`);
       return;
     }
 
-    for (let i = 0; i < validPlayers.length; i++) {
-      if (!validPlayers[i].gender) {
-        setError(`Please select gender for ${validPlayers[i].name || `Player ${i + 1}`}`);
+    for (let i = 0; i < validMandatory.length; i++) {
+      if (!validMandatory[i].gender) {
+        setError(`Please select gender for ${validMandatory[i].name || `Mandatory Player ${i + 2}`}`);
         return;
       }
-      if (!validPlayers[i].email.trim()) {
-        setError(`Please enter email for ${validPlayers[i].name || `Player ${i + 1}`}`);
+      if (!validMandatory[i].email.trim()) {
+        setError(`Please enter email for ${validMandatory[i].name || `Mandatory Player ${i + 2}`}`);
         return;
       }
     }
 
-    // Check for duplicate emails
-    const allEmails = [captainEmail.trim().toLowerCase(), ...validPlayers.map((p) => p.email.trim().toLowerCase())];
+    for (let i = 0; i < validExtra.length; i++) {
+      if (!validExtra[i].gender) {
+        setError(`Please select gender for extra player: ${validExtra[i].name || `Extra Player ${i + 1}`}`);
+        return;
+      }
+      if (validExtra[i].gender !== "MALE" && validExtra[i].gender !== "FEMALE") {
+        setError(`Extra players must be Male or Female only`);
+        return;
+      }
+      if (!validExtra[i].email.trim()) {
+        setError(`Please enter email for extra player: ${validExtra[i].name || `Extra Player ${i + 1}`}`);
+        return;
+      }
+    }
+
+    if (validExtra.length > 0) {
+      const extraMales = validExtra.filter((p) => p.gender === "MALE").length;
+      if (extraMales > 1) {
+        setError("Extra players: only 1 male allowed (2 females is OK, but not 2 males)");
+        return;
+      }
+    }
+
+    const allEmails = [
+      captainEmail.trim().toLowerCase(),
+      ...validMandatory.map((p) => p.email.trim().toLowerCase()),
+      ...validExtra.map((p) => p.email.trim().toLowerCase()),
+    ];
     const seen = new Set<string>();
     for (const email of allEmails) {
       if (seen.has(email)) {
@@ -130,7 +180,8 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
           captainName,
           captainGender,
           captainEmail,
-          players: validPlayers,
+          players: validMandatory,
+          extraPlayers: validExtra,
           comments,
         }),
       });
@@ -151,6 +202,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
         { name: "", gender: "", email: "" },
         { name: "", gender: "", email: "" },
       ]);
+      setExtraPlayers([]);
       onSuccess(captainEmail);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -159,7 +211,8 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
     }
   };
 
-  const totalPlayerCount = 1 + players.length;
+  const totalMandatoryCount = 1 + players.length;
+  const totalCount = totalMandatoryCount + extraPlayers.length;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -169,9 +222,19 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
         </div>
       )}
 
-      <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 px-4 py-3 rounded-xl text-sm">
-        Team size: <strong>{maxTeamSize}</strong> players. Minimum <strong>{MIN_TOTAL_PLAYERS}</strong> to register (including captain).
-        Minimum <strong>{minFemale}</strong> female player(s) required for team completion.
+      <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 px-4 py-3 rounded-xl text-sm space-y-1">
+        <p>
+          <strong>Mandatory:</strong> {MANDATORY_PLAYER_COUNT} players (at least 1 female required).
+          Minimum <strong>{MIN_PLAYERS_TO_REGISTER}</strong> to start registration.
+        </p>
+        <p>
+          <strong>Extra (optional):</strong> Captain can add up to {MAX_EXTRA_PLAYERS} extra players.
+          Max 1 male allowed; 2 females OK. No 2 males.
+        </p>
+        <p>
+          <strong>Total max team size:</strong> {MANDATORY_PLAYER_COUNT + MAX_EXTRA_PLAYERS} players.
+          Gender is mandatory for all players.
+        </p>
       </div>
 
       {/* Team Name */}
@@ -206,7 +269,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
 
       {/* Captain Section */}
       <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-amber-400">Captain (Player 1)</h3>
+        <h3 className="text-sm font-semibold text-amber-400">Captain (Player 1 — Mandatory)</h3>
         <div className="grid md:grid-cols-3 gap-3">
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1">Full Name *</label>
@@ -251,22 +314,29 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
         </div>
       </div>
 
-      {/* Additional Players */}
+      {/* Mandatory Players Section */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-slate-300">
-            Additional Players ({players.length} + 1 captain = {totalPlayerCount}/{maxTeamSize})
+            Mandatory Players ({players.length} + 1 captain = {totalMandatoryCount}/{MANDATORY_PLAYER_COUNT})
           </h3>
-          {players.length < maxAdditionalPlayers && (
+          {players.length < maxAdditionalMandatory && (
             <button
               type="button"
               onClick={addPlayer}
               className="text-sm text-brand-400 hover:text-brand-300 font-medium"
             >
-              + Add Player
+              + Add Mandatory Player
             </button>
           )}
         </div>
+
+        {totalMandatoryCount < MANDATORY_PLAYER_COUNT && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-3 py-2 rounded-lg text-xs mb-3">
+            You need {MANDATORY_PLAYER_COUNT - totalMandatoryCount} more mandatory player(s) to complete the team.
+            At least 1 female player is required among the {MANDATORY_PLAYER_COUNT} mandatory players.
+          </div>
+        )}
 
         <div className="space-y-3">
           {players.map((player, idx) => (
@@ -304,7 +374,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
                   <option value="OTHER">Other</option>
                 </select>
               </div>
-              {players.length > MIN_TOTAL_PLAYERS - 1 && (
+              {players.length > minAdditionalMandatory && (
                 <button
                   type="button"
                   onClick={() => removePlayer(idx)}
@@ -317,11 +387,90 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
           ))}
         </div>
 
-        {players.length < maxAdditionalPlayers && (
+        {players.length < maxAdditionalMandatory && (
           <p className="text-xs text-slate-400 mt-2">
-            You can add up to {maxTeamSize} players total (including captain). Remaining slots can be filled via draft later.
+            You can add up to {MANDATORY_PLAYER_COUNT} mandatory players total (including captain).
           </p>
         )}
+      </div>
+
+      {/* Extra Players Section */}
+      <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-emerald-400">
+            Extra Players ({extraPlayers.length}/{MAX_EXTRA_PLAYERS}) — Optional
+          </h3>
+          {extraPlayers.length < MAX_EXTRA_PLAYERS && (
+            <button
+              type="button"
+              onClick={addExtraPlayer}
+              className="text-sm text-emerald-400 hover:text-emerald-300 font-medium"
+            >
+              + Add Extra Player
+            </button>
+          )}
+        </div>
+
+        <p className="text-xs text-slate-400">
+          Captain can optionally add up to 2 extra players. Max 1 male allowed; 2 females is OK.
+          Not compulsory — you can skip this section entirely.
+        </p>
+
+        {extraPlayers.length > 0 && (
+          <div className="space-y-3">
+            {extraPlayers.map((player, idx) => {
+              const availableGenders = getAvailableExtraGenders(idx);
+              return (
+                <div key={idx} className="flex items-start gap-2 bg-dark-500/60 rounded-xl p-2">
+                  <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-1">
+                    E{idx + 1}
+                  </span>
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input
+                      type="text"
+                      value={player.name}
+                      onChange={(e) => updateExtraPlayer(idx, "name", e.target.value)}
+                      className="px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100"
+                      placeholder={`Extra player ${idx + 1} name *`}
+                    />
+                    <input
+                      type="email"
+                      value={player.email}
+                      onChange={(e) => updateExtraPlayer(idx, "email", e.target.value)}
+                      className="px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100"
+                      placeholder="Email *"
+                    />
+                    <select
+                      value={player.gender}
+                      onChange={(e) => updateExtraPlayer(idx, "gender", e.target.value)}
+                      className={`px-2 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100 ${
+                        player.gender === "FEMALE"
+                          ? "border-pink-500/30"
+                          : "border-white/10"
+                      }`}
+                    >
+                      <option value="">Gender *</option>
+                      {availableGenders.includes("MALE") && <option value="MALE">Male</option>}
+                      {availableGenders.includes("FEMALE") && <option value="FEMALE">Female</option>}
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeExtraPlayer(idx)}
+                    className="text-red-400 hover:text-red-600 text-lg flex-shrink-0 mt-1"
+                  >
+                    &times;
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Summary */}
+      <div className="bg-slate-500/10 border border-slate-500/20 text-slate-300 px-4 py-3 rounded-xl text-sm">
+        <strong>Summary:</strong> {totalMandatoryCount} mandatory + {extraPlayers.length} extra = {totalCount} total player(s)
       </div>
 
       <div>

@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { PoolStatus } from "@prisma/client";
 import { createAuditLog } from "@/lib/business/audit";
 import { z } from "zod";
+import { sendTeamRejectedEmail, sendRosterRejectedEmail } from "@/lib/email";
 
 const rejectSchema = z.object({
   teamId: z.string().uuid().optional(),
@@ -45,7 +46,11 @@ export async function POST(request: NextRequest) {
     if (parsed.data.teamId) {
       const team = await prisma.team.findUnique({
         where: { id: parsed.data.teamId },
-        include: { memberships: true },
+        include: {
+          memberships: {
+            include: { player: { select: { email: true } } },
+          },
+        },
       });
       if (!team) {
         return NextResponse.json({ error: "Team not found" }, { status: 404 });
@@ -67,6 +72,11 @@ export async function POST(request: NextRequest) {
           before: { name: team.name, status: "PENDING_APPROVAL" },
           after: { deleted: true },
         });
+
+        const allEmailsPending = team.memberships.map((m) => m.player?.email).filter(Boolean) as string[];
+        if (allEmailsPending.length > 0) {
+          sendTeamRejectedEmail(allEmailsPending, team.name);
+        }
       } else if (team.status === "COMPLETE" && parsed.data.playerIds?.length) {
         await prisma.$transaction(async (tx) => {
           for (const pid of parsed.data.playerIds!) {
@@ -84,6 +94,11 @@ export async function POST(request: NextRequest) {
           before: { status: "COMPLETE" },
           after: { status: "INCOMPLETE", movedToPool: parsed.data.playerIds },
         });
+
+        const allEmailsRoster = team.memberships.map((m) => m.player?.email).filter(Boolean) as string[];
+        if (allEmailsRoster.length > 0) {
+          sendRosterRejectedEmail(allEmailsRoster, team.name, parsed.data.playerIds!.length);
+        }
       }
 
       return NextResponse.json({ success: true });

@@ -19,7 +19,7 @@ const TOUR_STEPS: TourStep[] = [
     details: [
       "Two sports: Cricket & Pickleball",
       "Register, track progress, and follow the action live",
-      "500+ employees participating across categories",
+      "Open to all employees across various teams",
     ],
   },
   {
@@ -42,7 +42,7 @@ const TOUR_STEPS: TourStep[] = [
     details: [
       "Fill out team name, team color, and captain details",
       "Add at least 3 other players (name, email, gender, role)",
-      "Minimum 4 players to submit, max roster size is 9",
+      "Minimum 4 players to start, 8 mandatory to submit (max 10 with extras)",
       "After submission, your team enters 'Pending Approval' state",
     ],
     highlight: "register",
@@ -95,7 +95,7 @@ const TOUR_STEPS: TourStep[] = [
       "Sign in with your captain credentials (provided by admin)",
       "View your team and current roster",
       "Browse the Individual Player Pool",
-      "Draft players to fill remaining slots (up to 9 total)",
+      "Draft players to fill remaining slots (8 mandatory + up to 2 extra)",
       "Remove draft picks if needed — originals can't be removed",
     ],
     highlight: "captain",
@@ -106,7 +106,7 @@ const TOUR_STEPS: TourStep[] = [
     description:
       "Once your team is ready, submit the roster for final admin approval.",
     details: [
-      "Your team must meet all criteria (min 4 players, gender rules, etc.)",
+      "Your team must meet all criteria (8 mandatory players, at least 1 female, etc.)",
       "Click 'Submit Roster' — status changes to 'Submitted'",
       "Admin does a final review",
       "Once approved, roster is FROZEN — no more changes allowed",

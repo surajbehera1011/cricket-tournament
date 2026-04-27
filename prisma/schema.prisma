@@ -103,7 +103,7 @@ model Team {
   color         String     @default("")
   captainUserId String?
   captain       User?      @relation("TeamCaptain", fields: [captainUserId], references: [id])
-  teamSize      Int        @default(9)
+  teamSize      Int        @default(10)
   status        TeamStatus @default(PENDING_APPROVAL)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -180,7 +180,10 @@ model AuditLog {
 
 model TournamentSettings {
   id                       String   @id @default("singleton")
-  maxTeamSize              Int      @default(9)
+  maxTeamSize              Int      @default(10)
+  mandatoryPlayerCount     Int      @default(8)
+  mandatoryFemaleCount     Int      @default(1)
+  extraPlayerLimit         Int      @default(2)
   minFemalePerTeam         Int      @default(1)
   tournamentName           String   @default("Office Cricket Tournament")
   registrationOpen         Boolean  @default(true)

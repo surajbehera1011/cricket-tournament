@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { PoolStatus } from "@prisma/client";
 import { createAuditLog } from "@/lib/business/audit";
 import { z } from "zod";
+import { sendIndividualApprovedEmail } from "@/lib/email";
 
 const updatePlayerSchema = z.object({
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
@@ -52,6 +53,10 @@ export async function PATCH(
       where: { id: params.id },
       data: updateData,
     });
+
+    if (parsed.data.approve && player.email) {
+      sendIndividualApprovedEmail(player.fullName, player.email);
+    }
 
     const membership = await prisma.teamMembership.findFirst({ where: { playerId: params.id } });
 

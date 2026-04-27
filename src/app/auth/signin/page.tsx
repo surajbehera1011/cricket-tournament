@@ -42,8 +42,8 @@ function SignInForm() {
       <div className="relative z-10 max-w-md w-full space-y-8 p-8 dark-card rounded-2xl mx-4">
         <div className="text-center">
           <img src="/images/align-logo.png" alt="Align" className="h-16 w-16 rounded-2xl object-cover mx-auto mb-4 shadow-lg" />
-          <h1 className="text-3xl font-bold text-white">Admin / Captain Login</h1>
-          <p className="mt-2 text-slate-400">Sign in to manage the tournament</p>
+          <h1 className="text-3xl font-bold text-white">Captain Login</h1>
+          <p className="mt-2 text-slate-400">Sign in to manage your team</p>
         </div>
 
         {error && (

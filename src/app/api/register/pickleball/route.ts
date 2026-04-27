@@ -3,6 +3,7 @@ export const fetchCache = "force-no-store";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendPickleballRegistrationConfirmation } from "@/lib/email";
 import { z } from "zod";
 
 const SINGLES = ["MENS_SINGLES", "WOMENS_SINGLES"];
@@ -82,6 +83,14 @@ export async function POST(request: NextRequest) {
         player2Email: isSingles ? null : parsed.data.player2Email?.trim().toLowerCase() || null,
       },
     });
+
+    sendPickleballRegistrationConfirmation(
+      registration.player1Email,
+      registration.player1Name,
+      registration.category,
+      registration.player2Email,
+      registration.player2Name,
+    );
 
     return NextResponse.json(
       { message: "Pickleball registration submitted! Awaiting admin approval.", id: registration.id },

@@ -199,8 +199,10 @@ export default function ManagePage() {
       ]);
       const teamsData = await teamsRes.json();
       const poolData = await poolRes.json();
-      if (Array.isArray(teamsData)) setTeams(teamsData);
-      if (Array.isArray(poolData)) setPool(poolData);
+      const teamsList = teamsData.teams ?? teamsData;
+      const poolList = poolData.players ?? poolData;
+      if (Array.isArray(teamsList)) setTeams(teamsList);
+      if (Array.isArray(poolList)) setPool(poolList);
     } catch (err) {
       console.error("Failed to fetch:", err);
     } finally {
@@ -255,7 +257,7 @@ export default function ManagePage() {
   const isFrozen = (team: Team | undefined) =>
     team?.status === "READY";
 
-  const handleAssign = async (playerId: string) => {
+  const handleAssign = async (playerId: string, slotType: "mandatory" | "extra") => {
     if (!selectedTeamId) return;
     const currentTeam = teams.find((t) => t.id === selectedTeamId);
     if (isFrozen(currentTeam)) {
@@ -270,7 +272,7 @@ export default function ManagePage() {
       const res = await fetch(`/api/teams/${selectedTeamId}/assign`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerId }),
+        body: JSON.stringify({ playerId, slotType }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -281,6 +283,8 @@ export default function ManagePage() {
       setTeams((prev) =>
         prev.map((t) => {
           if (t.id !== selectedTeamId) return t;
+          const mandatoryCount = getMandatoryPlayers(t).length;
+          const extraCount = getExtraPlayers(t).length;
           const newPlayer: Player = {
             id: playerToAssign.id,
             fullName: playerToAssign.fullName,
@@ -288,7 +292,10 @@ export default function ManagePage() {
             preferredRole: playerToAssign.preferredRole,
             gender: playerToAssign.gender,
             membershipType: "DRAFT_PICK",
-            positionSlot: null,
+            positionSlot:
+              slotType === "extra"
+                ? `Extra ${extraCount + 1}`
+                : `Player ${mandatoryCount + 1}`,
           };
           const newPlayers = [...t.players, newPlayer];
           const mc = newPlayers.length;
@@ -305,7 +312,7 @@ export default function ManagePage() {
           };
         })
       );
-      showMessage("Player assigned successfully", "success");
+      showMessage(`Player assigned as ${slotType}`, "success");
     } catch (err) {
       showMessage(err instanceof Error ? err.message : "Failed to assign", "error");
       fetchData();
@@ -442,6 +449,40 @@ export default function ManagePage() {
     );
   }
 
+  const MANDATORY_COUNT = 8;
+  const EXTRA_LIMIT = 2;
+  const MIN_FEMALE_REQUIRED = 1;
+
+  const isExtraPlayer = (player: Player) =>
+    player.positionSlot?.startsWith("Extra") === true;
+
+  const getMandatoryPlayers = (team: Team) => team.players.filter((p) => !isExtraPlayer(p));
+  const getExtraPlayers = (team: Team) => team.players.filter((p) => isExtraPlayer(p));
+  const getMandatoryRemaining = (team: Team) => Math.max(0, MANDATORY_COUNT - getMandatoryPlayers(team).length);
+  const getExtraMaleCount = (team: Team) => getExtraPlayers(team).filter((p) => p.gender === "MALE").length;
+  const getMandatoryMaleCount = (team: Team) => getMandatoryPlayers(team).filter((p) => p.gender === "MALE").length;
+  const getMandatoryFemaleCount = (team: Team) => getMandatoryPlayers(team).filter((p) => p.gender === "FEMALE").length;
+
+  const isMandatoryFull = (team: Team) => getMandatoryPlayers(team).length >= MANDATORY_COUNT;
+  const hasMandatoryFemale = (team: Team) => getMandatoryFemaleCount(team) >= MIN_FEMALE_REQUIRED;
+  const mandatoryNeedsOnlyFemale = (team: Team) =>
+    getMandatoryPlayers(team).length === MANDATORY_COUNT - 1 && getMandatoryFemaleCount(team) < MIN_FEMALE_REQUIRED;
+
+  const canSubmitTeam = (team: Team) =>
+    isMandatoryFull(team) && hasMandatoryFemale(team);
+
+  const canAssignMandatory = (team: Team, playerGender: string) => {
+    if (isMandatoryFull(team)) return false;
+    if (mandatoryNeedsOnlyFemale(team) && playerGender === "MALE") return false;
+    return true;
+  };
+
+  const canAssignExtra = (team: Team, playerGender: string) => {
+    if (getExtraPlayers(team).length >= EXTRA_LIMIT) return false;
+    if (playerGender === "MALE" && getExtraMaleCount(team) >= 1) return false;
+    return true;
+  };
+
   const statusBadge = (status: string) => {
     if (status === "READY") return <Badge variant="success" className="bg-emerald-500 text-white">READY</Badge>;
     if (status === "COMPLETE") return <Badge variant="info">SUBMITTED</Badge>;
@@ -469,39 +510,57 @@ export default function ManagePage() {
         {/* Teams List */}
         <div className="lg:col-span-1 space-y-3">
           <h2 className="text-lg font-semibold text-slate-800">Teams</h2>
-          {visibleTeams.map((team) => (
-            <button
-              key={team.id}
-              onClick={() => setSelectedTeamId(team.id)}
-              className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                selectedTeamId === team.id
-                  ? "border-brand-400 bg-brand-50 ring-2 ring-brand-200"
-                  : "border-brand-100/50 bg-white hover:border-brand-200"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-slate-800">{team.name}</h3>
-                <div className="flex gap-1">
-                  {team.status === "READY" && (
-                    <Badge variant="default" className="bg-slate-700 text-white text-[10px]">FROZEN</Badge>
-                  )}
-                  {statusBadge(team.status)}
+          {visibleTeams.map((team) => {
+            const mandPlayers = getMandatoryPlayers(team);
+            const extraPlayers = getExtraPlayers(team);
+            const mandRemaining = getMandatoryRemaining(team);
+            const mandFull = isMandatoryFull(team);
+            const hasFemale = hasMandatoryFemale(team);
+            const extraFull = extraPlayers.length >= EXTRA_LIMIT;
+            return (
+              <button
+                key={team.id}
+                onClick={() => setSelectedTeamId(team.id)}
+                className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                  selectedTeamId === team.id
+                    ? "border-brand-400 bg-brand-50 ring-2 ring-brand-200"
+                    : "border-brand-100/50 bg-white hover:border-brand-200"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-800">{team.name}</h3>
+                  <div className="flex gap-1">
+                    {team.status === "READY" && (
+                      <Badge variant="default" className="bg-slate-700 text-white text-[10px]">FROZEN</Badge>
+                    )}
+                    {statusBadge(team.status)}
+                  </div>
                 </div>
-              </div>
-              <div className="mt-1 flex items-center gap-3 text-sm text-slate-500">
-                <span>{team.memberCount}/{team.teamSize} players</span>
-                <span className={team.femaleCount >= team.minFemaleRequired ? "text-emerald-600" : "text-red-500"}>
-                  {team.femaleCount}F
-                </span>
-                {team.slotsRemaining > 0 && (
-                  <span className="text-amber-600">{team.slotsRemaining} slots open</span>
+                <div className="mt-2 space-y-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className={`font-medium ${mandFull ? "text-emerald-600" : "text-red-600"}`}>
+                      Mandatory: {mandPlayers.length}/{MANDATORY_COUNT}
+                    </span>
+                    <span className="text-slate-300">|</span>
+                    <span className={`font-medium ${extraFull ? "text-emerald-600" : "text-amber-500"}`}>
+                      Extra: {extraPlayers.length}/{EXTRA_LIMIT}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs flex-wrap">
+                    <span className={hasFemale ? "text-emerald-600" : "text-red-600 font-semibold"}>
+                      {getMandatoryFemaleCount(team)}F {hasFemale ? "ok" : "needed!"}
+                    </span>
+                    {mandRemaining > 0 && (
+                      <span className="text-red-500">{mandRemaining} mandatory needed</span>
+                    )}
+                  </div>
+                </div>
+                {(team.captainName || team.captain) && (
+                  <p className="mt-1 text-xs text-slate-400">Captain: {team.captainName || team.captain?.displayName}</p>
                 )}
-              </div>
-              {(team.captainName || team.captain) && (
-                <p className="mt-1 text-xs text-slate-400">Captain: {team.captainName || team.captain?.displayName}</p>
-              )}
-            </button>
-          ))}
+              </button>
+            );
+          })}
 
           {visibleTeams.length === 0 && (
             <p className="text-slate-400 text-center py-8">No teams available</p>
@@ -546,31 +605,102 @@ export default function ManagePage() {
                   )}
                 </div>
               )}
-              {selectedTeam && selectedTeam.status === "INCOMPLETE" && (
-                <div className="mt-2 space-y-2">
-                  {selectedTeam.criteriaMet ? (
-                    <div className="space-y-2">
-                      <p className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded-lg">
-                        Team meets all criteria! Ready to submit for approval.
+              {selectedTeam && selectedTeam.status !== "READY" && selectedTeam.status !== "COMPLETE" && (() => {
+                const mandPlayers = getMandatoryPlayers(selectedTeam);
+                const mandFull = isMandatoryFull(selectedTeam);
+                const hasFemale = hasMandatoryFemale(selectedTeam);
+                const extraPlayers = getExtraPlayers(selectedTeam);
+                const extraFull = extraPlayers.length >= EXTRA_LIMIT;
+                const submitReady = canSubmitTeam(selectedTeam);
+
+                return (
+                  <div className="mt-2 space-y-2">
+                    <div className="bg-slate-50 rounded-lg p-3 space-y-2">
+                      {/* Mandatory count */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className={`font-medium ${mandFull ? "text-emerald-600" : "text-red-600"}`}>
+                          Mandatory players
+                        </span>
+                        <span className={`font-bold ${mandFull ? "text-emerald-600" : "text-red-600"}`}>
+                          {mandPlayers.length}/{MANDATORY_COUNT}
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${mandFull ? "bg-emerald-500" : "bg-red-400"}`}
+                          style={{ width: `${Math.min(100, (mandPlayers.length / MANDATORY_COUNT) * 100)}%` }}
+                        />
+                      </div>
+
+                      {/* Female count */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className={`font-medium ${hasFemale ? "text-emerald-600" : "text-red-600"}`}>
+                          Female in mandatory
+                        </span>
+                        <span className={`font-bold ${hasFemale ? "text-emerald-600" : "text-red-600"}`}>
+                          {getMandatoryFemaleCount(selectedTeam)}/{MIN_FEMALE_REQUIRED} min
+                        </span>
+                      </div>
+
+                      {/* Extra players */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className={`font-medium ${extraFull ? "text-emerald-600" : "text-amber-600"}`}>
+                          Extra players (optional)
+                        </span>
+                        <span className={`font-bold ${extraFull ? "text-emerald-600" : "text-amber-500"}`}>
+                          {extraPlayers.length}/{EXTRA_LIMIT}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400">
+                        Extra: max 1 male allowed, 2 females OK
                       </p>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleSubmitTeam(selectedTeam.id)}
-                        loading={actionLoading === `submit-${selectedTeam.id}`}
-                        className="w-full"
-                      >
-                        Submit Team for Approval
-                      </Button>
                     </div>
-                  ) : (
-                    <p className="text-xs text-amber-600 font-normal bg-amber-50 px-2 py-1 rounded-lg">
-                      {selectedTeam.slotsRemaining > 0 ? `${selectedTeam.slotsRemaining} slot(s) remaining. ` : ""}
-                      {selectedTeam.femaleCount < selectedTeam.minFemaleRequired ? `Need ${selectedTeam.minFemaleRequired - selectedTeam.femaleCount} more female player(s).` : ""}
-                    </p>
-                  )}
-                </div>
-              )}
+
+                    {/* Submission criteria in red when not met */}
+                    {!submitReady && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 space-y-1">
+                        <p className="text-xs font-semibold text-red-700">Cannot submit — criteria not met:</p>
+                        {!mandFull && (
+                          <p className="text-xs text-red-600">
+                            Need {getMandatoryRemaining(selectedTeam)} more mandatory player(s)
+                          </p>
+                        )}
+                        {!hasFemale && (
+                          <p className="text-xs text-red-600">
+                            Need at least {MIN_FEMALE_REQUIRED} female in mandatory players
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Extra warning when submit is ready but extras not filled */}
+                    {submitReady && !extraFull && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                        <p className="text-xs text-amber-700 font-medium">
+                          Extra player slots not filled ({extraPlayers.length}/{EXTRA_LIMIT}). You can still submit.
+                        </p>
+                      </div>
+                    )}
+
+                    {submitReady && extraFull && (
+                      <p className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded-lg">
+                        All slots filled! Ready to submit.
+                      </p>
+                    )}
+
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleSubmitTeam(selectedTeam.id)}
+                      loading={actionLoading === `submit-${selectedTeam.id}`}
+                      disabled={!submitReady}
+                      className="w-full"
+                    >
+                      Submit Team for Approval
+                    </Button>
+                  </div>
+                );
+              })()}
             </CardHeader>
             <CardContent>
               {selectedTeam ? (
@@ -578,45 +708,105 @@ export default function ManagePage() {
                   {selectedTeam.players.length === 0 ? (
                     <p className="text-slate-400 text-center py-4">No players yet</p>
                   ) : (
-                    selectedTeam.players.map((player) => (
-                      <div
-                        key={player.id}
-                        className="flex items-center justify-between p-3 bg-surface-50 rounded-xl"
-                      >
-                        <div>
-                          <p className="font-medium text-slate-800 text-sm">{player.fullName}</p>
-                          {player.email && (
-                            <p className="text-[11px] text-slate-400">{player.email}</p>
-                          )}
-                          <div className="flex gap-1 mt-0.5 items-center">
-                            <GenderSelect
-                              playerId={player.id}
-                              currentGender={player.gender}
-                              onUpdate={handleGenderUpdate}
-                            />
-                            {player.preferredRole && (
-                              <Badge variant="info" className="text-[10px]">{player.preferredRole}</Badge>
+                    <>
+                      {/* Mandatory players */}
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">
+                        Mandatory ({getMandatoryPlayers(selectedTeam).length}/{MANDATORY_COUNT})
+                      </p>
+                      {getMandatoryPlayers(selectedTeam).map((player) => (
+                        <div
+                          key={player.id}
+                          className="flex items-center justify-between p-3 bg-surface-50 rounded-xl"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                {player.positionSlot || "Player"}
+                              </span>
+                              <p className="font-medium text-slate-800 text-sm">{player.fullName}</p>
+                            </div>
+                            {player.email && (
+                              <p className="text-[11px] text-slate-400 ml-1 mt-0.5">{player.email}</p>
                             )}
-                            <Badge
-                              variant={player.membershipType === "TEAM_SUBMISSION" ? "default" : "info"}
-                              className="text-[10px]"
-                            >
-                              {player.membershipType === "TEAM_SUBMISSION" ? "Original" : "Draft"}
-                            </Badge>
+                            <div className="flex gap-1 mt-1 items-center">
+                              <GenderSelect
+                                playerId={player.id}
+                                currentGender={player.gender}
+                                onUpdate={handleGenderUpdate}
+                              />
+                              {player.preferredRole && (
+                                <Badge variant="info" className="text-[10px]">{player.preferredRole}</Badge>
+                              )}
+                              <Badge
+                                variant={player.membershipType === "TEAM_SUBMISSION" ? "default" : "info"}
+                                className="text-[10px]"
+                              >
+                                {player.membershipType === "TEAM_SUBMISSION" ? "Original" : "Draft"}
+                              </Badge>
+                            </div>
                           </div>
+                          {!isFrozen(selectedTeam) && (isAdmin || player.membershipType !== "TEAM_SUBMISSION") && (
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleRemove(player.id)}
+                              loading={actionLoading === player.id}
+                            >
+                              Remove
+                            </Button>
+                          )}
                         </div>
-                        {!isFrozen(selectedTeam) && (
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => handleRemove(player.id)}
-                            loading={actionLoading === player.id}
-                          >
-                            Remove
-                          </Button>
-                        )}
-                      </div>
-                    ))
+                      ))}
+
+                      {/* Extra players */}
+                      {getExtraPlayers(selectedTeam).length > 0 && (
+                        <>
+                          <div className="border-t border-slate-200 my-3" />
+                          <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider px-1">
+                            Extra ({getExtraPlayers(selectedTeam).length}/{EXTRA_LIMIT}) — Optional
+                          </p>
+                          {getExtraPlayers(selectedTeam).map((player) => (
+                            <div
+                              key={player.id}
+                              className="flex items-center justify-between p-3 bg-emerald-50/50 rounded-xl border border-emerald-100"
+                            >
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">
+                                    {player.positionSlot || "Extra"}
+                                  </span>
+                                  <p className="font-medium text-slate-800 text-sm">{player.fullName}</p>
+                                </div>
+                                {player.email && (
+                                  <p className="text-[11px] text-slate-400 ml-1 mt-0.5">{player.email}</p>
+                                )}
+                                <div className="flex gap-1 mt-1 items-center">
+                                  <GenderSelect
+                                    playerId={player.id}
+                                    currentGender={player.gender}
+                                    onUpdate={handleGenderUpdate}
+                                  />
+                                  {player.preferredRole && (
+                                    <Badge variant="info" className="text-[10px]">{player.preferredRole}</Badge>
+                                  )}
+                                  <Badge variant="success" className="text-[10px]">Extra</Badge>
+                                </div>
+                              </div>
+                              {!isFrozen(selectedTeam) && (isAdmin || player.membershipType !== "TEAM_SUBMISSION") && (
+                                <Button
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={() => handleRemove(player.id)}
+                                  loading={actionLoading === player.id}
+                                >
+                                  Remove
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </>
                   )}
                 </div>
               ) : (
@@ -637,45 +827,81 @@ export default function ManagePage() {
                 <p className="text-slate-400 text-center py-8">No players in pool</p>
               ) : (
                 <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                  {pool.map((player) => (
-                    <div
-                      key={player.id}
-                      className="flex items-center justify-between p-3 bg-surface-50 rounded-xl"
-                    >
-                      <div>
-                        <p className="font-medium text-slate-800 text-sm">{player.fullName}</p>
-                        <div className="flex gap-1 mt-0.5 items-center">
-                          <GenderSelect
-                            playerId={player.id}
-                            currentGender={player.gender}
-                            onUpdate={handleGenderUpdate}
-                          />
-                          <Badge variant="info" className="text-[10px]">{player.preferredRole}</Badge>
-                          <Badge
-                            variant={
-                              player.experienceLevel === "Advanced"
-                                ? "success"
-                                : player.experienceLevel === "Intermediate"
-                                ? "warning"
-                                : "default"
-                            }
-                            className="text-[10px]"
+                  {pool.map((player) => {
+                    const mandOk = selectedTeam
+                      ? canAssignMandatory(selectedTeam, player.gender)
+                      : false;
+                    const extraOk = selectedTeam
+                      ? canAssignExtra(selectedTeam, player.gender)
+                      : false;
+                    const mandHint = selectedTeam && !mandOk
+                      ? isMandatoryFull(selectedTeam)
+                        ? "Full"
+                        : "Females only"
+                      : "";
+                    const extraHint = selectedTeam && !extraOk
+                      ? getExtraPlayers(selectedTeam).length >= EXTRA_LIMIT
+                        ? "Full"
+                        : "Females only"
+                      : "";
+
+                    return (
+                      <div
+                        key={player.id}
+                        className="flex items-center justify-between p-3 bg-surface-50 rounded-xl"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium text-slate-800 text-sm truncate">{player.fullName}</p>
+                          <div className="flex gap-1 mt-0.5 items-center flex-wrap">
+                            <GenderSelect
+                              playerId={player.id}
+                              currentGender={player.gender}
+                              onUpdate={handleGenderUpdate}
+                            />
+                            <Badge variant="info" className="text-[10px]">{player.preferredRole}</Badge>
+                            <Badge
+                              variant={
+                                player.experienceLevel === "Advanced"
+                                  ? "success"
+                                  : player.experienceLevel === "Intermediate"
+                                  ? "warning"
+                                  : "default"
+                              }
+                              className="text-[10px]"
+                            >
+                              {player.experienceLevel}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1 ml-2 shrink-0">
+                          <button
+                            onClick={() => handleAssign(player.id, "mandatory")}
+                            disabled={!selectedTeamId || isFrozen(selectedTeam) || !mandOk || actionLoading === player.id}
+                            className={`text-[10px] px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                              mandOk && selectedTeamId && !isFrozen(selectedTeam)
+                                ? "bg-brand-600 text-white hover:bg-brand-700"
+                                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                            }`}
+                            title={mandHint || "Assign as mandatory player"}
                           >
-                            {player.experienceLevel}
-                          </Badge>
+                            {actionLoading === player.id ? "..." : mandHint || "+ Mandatory"}
+                          </button>
+                          <button
+                            onClick={() => handleAssign(player.id, "extra")}
+                            disabled={!selectedTeamId || isFrozen(selectedTeam) || !extraOk || actionLoading === player.id}
+                            className={`text-[10px] px-2.5 py-1 rounded-lg font-semibold transition-all border ${
+                              extraOk && selectedTeamId && !isFrozen(selectedTeam)
+                                ? "border-emerald-400 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                                : "border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed"
+                            }`}
+                            title={extraHint || "Assign as extra player"}
+                          >
+                            {actionLoading === player.id ? "..." : extraHint || "+ Extra"}
+                          </button>
                         </div>
                       </div>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleAssign(player.id)}
-                        loading={actionLoading === player.id}
-                        disabled={!selectedTeamId || isFrozen(selectedTeam)}
-                      >
-                        Assign
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

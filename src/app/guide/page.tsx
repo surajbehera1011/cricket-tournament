@@ -127,7 +127,7 @@ export default function GuidePage() {
           <div className="text-center mb-8">
             <span className="inline-flex items-center gap-2 text-xs font-bold text-brand-400 bg-brand-500/10 border border-brand-500/20 rounded-full px-3 py-1 mb-3 uppercase tracking-widest">Cricket</span>
             <h2 className="text-2xl font-extrabold text-white">Registration Flow</h2>
-            <p className="text-sm text-slate-500 mt-1">Two ways to join the cricket tournament</p>
+            <p className="text-sm text-slate-500 mt-1">Two ways to join the sports league</p>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-6 mb-8">
