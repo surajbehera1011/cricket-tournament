@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/business/registration";
 import { createAuditLog } from "@/lib/business/audit";
 import { MANDATORY_PLAYER_COUNT, MANDATORY_FEMALE_COUNT, EXTRA_PLAYER_LIMIT } from "@/lib/validators";
+import { sendTeamSubmittedEmail } from "@/lib/email";
 
 export async function POST(
   request: NextRequest,
@@ -22,7 +23,7 @@ export async function POST(
       where: { id: params.id },
       include: {
         memberships: {
-          include: { player: { select: { gender: true } } },
+          include: { player: { select: { gender: true, email: true } } },
           orderBy: { createdAt: "asc" },
         },
       },
@@ -92,6 +93,11 @@ export async function POST(
       before: { status: team.status },
       after: { status: "COMPLETE" },
     });
+
+    const allEmails = team.memberships.map((m) => m.player.email).filter(Boolean) as string[];
+    if (allEmails.length > 0) {
+      sendTeamSubmittedEmail(allEmails, team.name, memberCount, femaleCount);
+    }
 
     return NextResponse.json({ team: updated });
   } catch (error) {

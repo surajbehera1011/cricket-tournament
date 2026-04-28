@@ -19,6 +19,10 @@ interface Settings {
   pickleballStartDate: string | null;
   cricketRegCloseDate: string | null;
   pickleballRegCloseDate: string | null;
+  cricketVenue: string;
+  cricketVenueMapUrl: string;
+  pickleballVenue: string;
+  pickleballVenueMapUrl: string;
 }
 
 function DateInput({ label, hint, value, onChange }: { label: string; hint: string; value: string | null; onChange: (v: string | null) => void }) {
@@ -168,6 +172,28 @@ export default function SettingsPage() {
             value={settings.cricketRegCloseDate}
             onChange={(v) => set({ cricketRegCloseDate: v })}
           />
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Venue</label>
+            <input
+              type="text"
+              value={settings.cricketVenue}
+              onChange={(e) => set({ cricketVenue: e.target.value })}
+              placeholder="e.g. Sardar Patel Stadium, Ground Floor"
+              className="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100 placeholder:text-slate-600"
+            />
+            <p className="text-xs text-slate-400 mt-1">Venue name / address shown on the Cricket dashboard.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Venue Map Link <span className="text-slate-500">(optional)</span></label>
+            <input
+              type="url"
+              value={settings.cricketVenueMapUrl}
+              onChange={(e) => set({ cricketVenueMapUrl: e.target.value })}
+              placeholder="https://maps.google.com/..."
+              className="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100 placeholder:text-slate-600"
+            />
+            <p className="text-xs text-slate-400 mt-1">Google Maps or any map link — users can click to get directions.</p>
+          </div>
         </CardContent>
       </Card>
 
@@ -191,6 +217,28 @@ export default function SettingsPage() {
             value={settings.pickleballRegCloseDate}
             onChange={(v) => set({ pickleballRegCloseDate: v })}
           />
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Venue</label>
+            <input
+              type="text"
+              value={settings.pickleballVenue}
+              onChange={(e) => set({ pickleballVenue: e.target.value })}
+              placeholder="e.g. Align Recreation Center, Court 3"
+              className="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100 placeholder:text-slate-600"
+            />
+            <p className="text-xs text-slate-400 mt-1">Venue name / address shown on the Pickleball dashboard.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Venue Map Link <span className="text-slate-500">(optional)</span></label>
+            <input
+              type="url"
+              value={settings.pickleballVenueMapUrl}
+              onChange={(e) => set({ pickleballVenueMapUrl: e.target.value })}
+              placeholder="https://maps.google.com/..."
+              className="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100 placeholder:text-slate-600"
+            />
+            <p className="text-xs text-slate-400 mt-1">Google Maps or any map link — users can click to get directions.</p>
+          </div>
         </CardContent>
       </Card>
 

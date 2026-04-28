@@ -192,6 +192,10 @@ model TournamentSettings {
   pickleballStartDate      DateTime?
   cricketRegCloseDate      DateTime?
   pickleballRegCloseDate   DateTime?
+  cricketVenue             String   @default("")
+  cricketVenueMapUrl       String   @default("")
+  pickleballVenue          String   @default("")
+  pickleballVenueMapUrl    String   @default("")
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 

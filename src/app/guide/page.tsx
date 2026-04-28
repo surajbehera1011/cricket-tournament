@@ -264,7 +264,6 @@ export default function GuidePage() {
               { icon: "📋", title: "Status Tracker", desc: "Enter your email anytime to check if your registration is approved.", bg: "from-amber-500/10 to-orange-500/10", border: "border-amber-500/10" },
               { icon: "📅", title: "Auto Fixtures", desc: "Round-robin schedules generated automatically once teams are ready.", bg: "from-pitch-500/10 to-teal-500/10", border: "border-pitch-500/10" },
               { icon: "👨‍✈️", title: "Captain Portal", desc: "Captains log in to manage their roster — draft players, submit team.", bg: "from-blue-500/10 to-sky-500/10", border: "border-blue-500/10" },
-              { icon: "🖥️", title: "TV Mode", desc: "Add ?tv=true to the dashboard URL for large-screen display at events.", bg: "from-slate-500/10 to-gray-500/10", border: "border-slate-500/10" },
               { icon: "🔍", title: "Search Everything", desc: "Find teams, players, or pickleball entries instantly on the dashboard.", bg: "from-pink-500/10 to-rose-500/10", border: "border-pink-500/10" },
             ].map((f) => (
               <div key={f.title} className={`bg-gradient-to-br ${f.bg} rounded-2xl border ${f.border} p-5 hover:-translate-y-1 hover:border-white/10 transition-all duration-300`}>

@@ -124,7 +124,6 @@ const TOUR_STEPS: TourStep[] = [
       "Browse the Individual Player Pool",
       "Search for any team, player, or captain instantly",
       "Pickleball tab shows all categories and registrations",
-      "TV Mode: add ?tv=true for large-screen display at events",
     ],
     highlight: "dashboard",
   },

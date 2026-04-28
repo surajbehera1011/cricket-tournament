@@ -139,6 +139,32 @@ function highlight(text: string, color: string) {
 }
 
 // ──────────────────────────────────────────────────
+// CRICKET — Team Submitted for Approval
+// ──────────────────────────────────────────────────
+
+export function sendTeamSubmittedEmail(
+  allEmails: string[],
+  teamName: string,
+  playerCount: number,
+  femaleCount: number
+) {
+  const title = "Team Submitted for Approval!";
+  const body = `
+    ${para(`Team <strong style="color:#ffffff;">${teamName}</strong> has been submitted for final admin approval!`)}
+    ${para("All criteria have been met. The admin will now review your roster. You'll receive an email once the admin approves or sends it back.")}
+    ${detailsTable([
+      ["Team", `<strong style="color:#ffffff;">${teamName}</strong>`],
+      ["Total Players", `${playerCount}`],
+      ["Female Players", `${femaleCount}`],
+      ["Status", highlight("Submitted — Awaiting Approval", "#8b5cf6")],
+    ])}
+    ${para("You can still make roster changes until the admin approves and freezes the team.")}
+    ${btn("View Your Team", `${APP_URL}/manage`, "#8b5cf6")}`;
+
+  sendEmail(allEmails, `Team Submitted — ${teamName}`, wrap(title, "#8b5cf6", body));
+}
+
+// ──────────────────────────────────────────────────
 // CRICKET — Registration Confirmation
 // ──────────────────────────────────────────────────
 

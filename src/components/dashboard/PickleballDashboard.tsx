@@ -97,6 +97,8 @@ export function PickleballDashboard() {
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState<string | null>(null);
   const [regCloseDate, setRegCloseDate] = useState<string | null>(null);
+  const [venue, setVenue] = useState("");
+  const [venueMapUrl, setVenueMapUrl] = useState("");
   const [openCat, setOpenCat] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -116,6 +118,8 @@ export function PickleballDashboard() {
       }
       setStartDate(settings?.pickleballStartDate || settings?.tournamentStartDate || null);
       setRegCloseDate(settings?.pickleballRegCloseDate || null);
+      setVenue(settings?.pickleballVenue || "");
+      setVenueMapUrl(settings?.pickleballVenueMapUrl || "");
     } catch (err) {
       console.error("Failed to fetch pickleball data:", err);
     } finally {
@@ -178,6 +182,47 @@ export function PickleballDashboard() {
       {startDate && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4 flex justify-center">
           <Countdown targetDate={startDate} />
+        </div>
+      )}
+
+      {/* Venue */}
+      {venue && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+          <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-dark-400/60 backdrop-blur-sm">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/[0.07] via-transparent to-emerald-500/[0.07]" />
+            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-400 via-emerald-500 to-emerald-600 rounded-l-2xl" />
+            <div className="relative flex items-center gap-4 px-6 py-4">
+              <div className="relative flex-shrink-0">
+                <div className="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-dark-400 animate-pulse" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.15em] mb-1">Match Venue</p>
+                <p className="text-[15px] font-bold text-white leading-tight">{venue}</p>
+              </div>
+              {venueMapUrl && (
+                <a
+                  href={venueMapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-300 hover:text-emerald-200 text-xs font-bold transition-all flex-shrink-0"
+                >
+                  <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  Get Directions
+                  <svg className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

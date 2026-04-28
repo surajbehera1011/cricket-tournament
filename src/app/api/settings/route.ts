@@ -24,6 +24,10 @@ const updateSettingsSchema = z.object({
   pickleballStartDate: z.string().nullable().optional(),
   cricketRegCloseDate: z.string().nullable().optional(),
   pickleballRegCloseDate: z.string().nullable().optional(),
+  cricketVenue: z.string().max(300).optional(),
+  cricketVenueMapUrl: z.string().max(500).optional(),
+  pickleballVenue: z.string().max(300).optional(),
+  pickleballVenueMapUrl: z.string().max(500).optional(),
 });
 
 export async function GET() {
