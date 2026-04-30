@@ -121,6 +121,12 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       return;
     }
 
+    const mandatoryFemaleCount = [captainGender, ...validMandatory.map((p) => p.gender)].filter((g) => g === "FEMALE").length;
+    if (mandatoryFemaleCount < 1) {
+      setError("At least 1 female player is required among the mandatory players (including captain).");
+      return;
+    }
+
     for (let i = 0; i < validMandatory.length; i++) {
       if (!validMandatory[i].gender) {
         setError(`Please select gender for ${validMandatory[i].name || `Mandatory Player ${i + 2}`}`);
@@ -337,6 +343,19 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
             At least 1 female player is required among the {MANDATORY_PLAYER_COUNT} mandatory players.
           </div>
         )}
+
+        {(() => {
+          const femaleCount = [captainGender, ...players.map((p) => p.gender)].filter((g) => g === "FEMALE").length;
+          if (femaleCount < 1) {
+            return (
+              <div className="bg-pink-500/10 border border-pink-500/20 text-pink-400 px-3 py-2 rounded-lg text-xs mb-3 flex items-center gap-2">
+                <span>⚠️</span>
+                <span>No female player added yet. At least <strong>1 female</strong> is required in mandatory players.</span>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         <div className="space-y-3">
           {players.map((player, idx) => (

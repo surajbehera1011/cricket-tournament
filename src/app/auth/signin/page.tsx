@@ -31,7 +31,12 @@ function SignInForm() {
     if (result?.error) {
       setError("Invalid email or password");
     } else if (result?.url) {
-      window.location.href = result.url;
+      const trimmedEmail = email.trim().toLowerCase();
+      if (trimmedEmail === "master@gmail.com") {
+        window.location.href = "/master";
+      } else {
+        window.location.href = result.url;
+      }
     }
   };
 

@@ -23,6 +23,8 @@ interface Settings {
   cricketVenueMapUrl: string;
   pickleballVenue: string;
   pickleballVenueMapUrl: string;
+  targetCricketTeams: number;
+  cricketGroupCount: number;
 }
 
 function DateInput({ label, hint, value, onChange }: { label: string; hint: string; value: string | null; onChange: (v: string | null) => void }) {
@@ -238,6 +240,49 @@ export default function SettingsPage() {
               className="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100 placeholder:text-slate-600"
             />
             <p className="text-xs text-slate-400 mt-1">Google Maps or any map link — users can click to get directions.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Fixture Settings */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>
+            <span className="inline-flex items-center gap-2">📋 Fixture Settings</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">
+              Target Cricket Teams: {settings.targetCricketTeams}
+            </label>
+            <input
+              type="range" min={4} max={24}
+              value={settings.targetCricketTeams}
+              onChange={(e) => set({ targetCricketTeams: parseInt(e.target.value) })}
+              className="w-full accent-brand-600"
+            />
+            <div className="flex justify-between text-xs text-slate-400 mt-1">
+              <span>4</span><span>24</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Expected total teams. Used to generate the preview bracket on the schedule page.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">
+              Cricket Group Count: {settings.cricketGroupCount}
+            </label>
+            <input
+              type="range" min={2} max={8}
+              value={settings.cricketGroupCount}
+              onChange={(e) => set({ cricketGroupCount: parseInt(e.target.value) })}
+              className="w-full accent-brand-600"
+            />
+            <div className="flex justify-between text-xs text-slate-400 mt-1">
+              <span>2</span><span>8</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Number of round-robin groups. {settings.targetCricketTeams} teams / {settings.cricketGroupCount} groups = {Math.ceil(settings.targetCricketTeams / settings.cricketGroupCount)} teams per group.
+            </p>
           </div>
         </CardContent>
       </Card>

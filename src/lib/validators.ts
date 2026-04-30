@@ -37,6 +37,11 @@ export const teamRegistrationSchema = z.object({
   return new Set(allEmails).size === allEmails.length;
 }, { message: "All player emails must be unique", path: ["players"] })
 .refine((data) => {
+  const allMandatoryGenders = [data.captainGender, ...data.players.map((p) => p.gender)];
+  const femaleCount = allMandatoryGenders.filter((g) => g === "FEMALE").length;
+  return femaleCount >= 1;
+}, { message: "At least 1 female player is required among the mandatory players (including captain)", path: ["players"] })
+.refine((data) => {
   if (data.extraPlayers.length === 0) return true;
   if (data.extraPlayers.length > 2) return false;
   const males = data.extraPlayers.filter((p) => p.gender === "MALE").length;

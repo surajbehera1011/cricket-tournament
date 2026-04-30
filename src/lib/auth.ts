@@ -25,6 +25,9 @@ declare module "next-auth/jwt" {
 const ADMIN_EMAIL = "surajbehera1011@gmail.com";
 const ADMIN_PASSWORD = "Cricket@123";
 
+const MASTER_EMAIL = "master@gmail.com";
+const MASTER_PASSWORD = "Master@123";
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -43,6 +46,15 @@ export const authOptions: NextAuthOptions = {
             where: { email: ADMIN_EMAIL },
             update: { role: UserRole.ADMIN },
             create: { email: ADMIN_EMAIL, displayName: "Tournament Admin", role: UserRole.ADMIN, password: "" },
+          });
+          return { id: user.id, email: user.email, name: user.displayName, role: user.role };
+        }
+
+        if (email === MASTER_EMAIL && credentials.password === MASTER_PASSWORD) {
+          const user = await prisma.user.upsert({
+            where: { email: MASTER_EMAIL },
+            update: { role: UserRole.MASTER },
+            create: { email: MASTER_EMAIL, displayName: "Pickleball Master", role: UserRole.MASTER, password: "" },
           });
           return { id: user.id, email: user.email, name: user.displayName, role: user.role };
         }

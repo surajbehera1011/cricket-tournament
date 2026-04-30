@@ -1,296 +1,612 @@
 "use client";
-
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 
-interface Team {
-  id: string;
-  name: string;
-  status: string;
-  color?: string;
-  captainName: string;
-  memberCount: number;
-  teamSize: number;
-}
-
-interface Match {
-  id: string;
-  team1: Team;
-  team2: Team;
-  round: number;
-  matchNumber: number;
-}
-
-interface PbReg {
-  id: string;
-  category: string;
-  player1Name: string;
-  player1Email: string;
-  player2Name: string | null;
-  player2Email: string | null;
-}
-
-const PB_CATEGORIES = [
-  { key: "MENS_SINGLES", label: "Men's Singles", color: "text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/20", accent: "bg-sky-500" },
-  { key: "WOMENS_SINGLES", label: "Women's Singles", color: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20", accent: "bg-pink-500" },
-  { key: "MENS_DOUBLES", label: "Men's Doubles", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20", accent: "bg-blue-500" },
-  { key: "WOMENS_DOUBLES", label: "Women's Doubles", color: "text-fuchsia-400", bg: "bg-fuchsia-500/10", border: "border-fuchsia-500/20", accent: "bg-fuchsia-500" },
-  { key: "MIXED_DOUBLES", label: "Mixed Doubles", color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20", accent: "bg-violet-500" },
-];
+interface Team { id: string; name: string; color?: string; captainName: string; status: string; }
+interface PbReg { id: string; category: string; player1Name: string; player2Name: string | null; }
+interface MatchData { id: string; stage: string; groupName: string | null; roundNumber: number; matchNumber: number; category: string | null; team1Id: string | null; team2Id: string | null; entry1Id: string | null; entry2Id: string | null; scheduledDate: string | null; venue: string | null; }
+interface Settings { targetCricketTeams: number; cricketGroupCount: number; }
 
 type Sport = "cricket" | "pickleball";
+const GROUP_COLORS: Record<string, string> = { A: "#3b82f6", B: "#a855f7", C: "#f59e0b", D: "#10b981", E: "#ec4899", F: "#06b6d4", G: "#f43f5e", H: "#84cc16" };
+const PB_CATS = [
+  { key: "MENS_SINGLES", label: "Men's Singles", color: "text-sky-400", bg: "bg-sky-500/10", accent: "#0ea5e9" },
+  { key: "WOMENS_SINGLES", label: "Women's Singles", color: "text-pink-400", bg: "bg-pink-500/10", accent: "#ec4899" },
+  { key: "MENS_DOUBLES", label: "Men's Doubles", color: "text-blue-400", bg: "bg-blue-500/10", accent: "#3b82f6" },
+  { key: "WOMENS_DOUBLES", label: "Women's Doubles", color: "text-fuchsia-400", bg: "bg-fuchsia-500/10", accent: "#d946ef" },
+  { key: "MIXED_DOUBLES", label: "Mixed Doubles", color: "text-violet-400", bg: "bg-violet-500/10", accent: "#8b5cf6" },
+];
+
+function nextPow2(n: number) { let p = 1; while (p < n) p <<= 1; return Math.max(p, 4); }
+
+function genCricketGroups(teams: Team[], target: number, groupCount: number) {
+  const perGroup = Math.ceil(target / groupCount);
+  const groups: { name: string; members: (Team | null)[] }[] = [];
+  for (let g = 0; g < groupCount; g++) {
+    const label = String.fromCharCode(65 + g);
+    const members: (Team | null)[] = [];
+    for (let s = 0; s < perGroup; s++) {
+      const idx = g * perGroup + s;
+      members.push(idx < teams.length ? teams[idx] : null);
+    }
+    groups.push({ name: label, members });
+  }
+  return groups;
+}
+
+function genGroupMatches(groups: { name: string; members: (Team | null)[] }[]) {
+  const matches: MatchData[] = [];
+  let num = 1;
+  for (const g of groups) {
+    let round = 1;
+    for (let i = 0; i < g.members.length; i++) {
+      for (let j = i + 1; j < g.members.length; j++) {
+        matches.push({ id: `g-${num}`, stage: "GROUP", groupName: g.name, roundNumber: round, matchNumber: num, category: null, team1Id: g.members[i]?.id ?? null, team2Id: g.members[j]?.id ?? null, entry1Id: null, entry2Id: null, scheduledDate: null, venue: null });
+        num++;
+        if (num % Math.max(1, Math.floor(g.members.length / 2)) === 0) round++;
+      }
+    }
+  }
+  return { matches, nextNum: num };
+}
+
+function genCricketKnockout(groups: { name: string }[], startNum: number) {
+  const matches: MatchData[] = [];
+  let num = startNum;
+  if (groups.length === 4) {
+    matches.push({ id: `ko-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: 1, matchNumber: num, category: null, team1Id: "WINNER_A", team2Id: "WINNER_B", entry1Id: null, entry2Id: null, scheduledDate: null, venue: null });
+    num++;
+    matches.push({ id: `ko-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: 1, matchNumber: num, category: null, team1Id: "WINNER_C", team2Id: "WINNER_D", entry1Id: null, entry2Id: null, scheduledDate: null, venue: null });
+    num++;
+    matches.push({ id: `ko-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: 2, matchNumber: num, category: null, team1Id: "WINNER_SF1", team2Id: "WINNER_SF2", entry1Id: null, entry2Id: null, scheduledDate: null, venue: null });
+  } else if (groups.length === 2) {
+    matches.push({ id: `ko-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: 1, matchNumber: num, category: null, team1Id: "WINNER_A", team2Id: "WINNER_B", entry1Id: null, entry2Id: null, scheduledDate: null, venue: null });
+  }
+  return matches;
+}
+
+function seedOrderClient(size: number): number[] {
+  if (size === 1) return [0];
+  const half = seedOrderClient(size / 2);
+  const result: number[] = [];
+  for (const h of half) { result.push(h); result.push(size - 1 - h); }
+  return result;
+}
+
+function genPbBracket(entries: PbReg[], cat: string, startNum: number) {
+  const size = nextPow2(Math.max(entries.length, 2));
+  const slots: (string | null)[] = new Array(size).fill(null);
+  const order = seedOrderClient(size);
+  for (let i = 0; i < entries.length; i++) slots[order[i]] = entries[i].id;
+  const matches: MatchData[] = [];
+  let num = startNum;
+  let current = slots;
+  let round = 1;
+  while (current.length > 1) {
+    const next: (string | null)[] = [];
+    for (let i = 0; i < current.length; i += 2) {
+      const a = current[i], b = current[i + 1];
+      if (a && !b) { next.push(a); continue; }
+      if (!a && b) { next.push(b); continue; }
+      if (!a && !b) { next.push(null); continue; }
+      matches.push({ id: `pb-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: round, matchNumber: num, category: cat, team1Id: null, team2Id: null, entry1Id: a, entry2Id: b, scheduledDate: null, venue: null });
+      next.push(`W${num}`);
+      num++;
+    }
+    current = next;
+    round++;
+  }
+  return { matches, nextNum: num };
+}
 
 export default function SchedulePage() {
   const [sport, setSport] = useState<Sport>("cricket");
   const [teams, setTeams] = useState<Team[]>([]);
   const [pbRegs, setPbRegs] = useState<PbReg[]>([]);
+  const [settings, setSettings] = useState<Settings>({ targetCricketTeams: 12, cricketGroupCount: 4 });
+  const [frozenCricket, setFrozenCricket] = useState<MatchData[] | null>(null);
+  const [frozenPb, setFrozenPb] = useState<MatchData[] | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     try {
-      const ts = Date.now();
-      const [teamsRes, pbRes] = await Promise.all([
-        fetch(`/api/teams?_t=${ts}`, { cache: "no-store" }),
-        fetch(`/api/pickleball?_t=${ts}`, { cache: "no-store" }),
+      const [tRes, pRes, sRes, fcRes, fpRes] = await Promise.all([
+        fetch("/api/teams"), fetch("/api/pickleball"), fetch("/api/settings"),
+        fetch("/api/fixtures?sport=CRICKET"), fetch("/api/fixtures?sport=PICKLEBALL"),
       ]);
-      const teamsData = await teamsRes.json();
-      const pbData = await pbRes.json();
-      const teamsList = teamsData.teams ?? teamsData;
-      if (Array.isArray(teamsList)) setTeams(teamsList);
-      if (Array.isArray(pbData)) setPbRegs(pbData);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+      const tData = await tRes.json(); const pData = await pRes.json(); const sData = await sRes.json();
+      const fcData = await fcRes.json(); const fpData = await fpRes.json();
+      const list = tData.teams ?? tData;
+      if (Array.isArray(list)) setTeams(list.filter((t: Team) => t.status === "READY"));
+      const pbList = pData.registrations ?? (Array.isArray(pData) ? pData : []);
+      const pbPending = pData.pendingRegistrations ?? [];
+      setPbRegs([...pbList, ...pbPending]);
+      setSettings({ targetCricketTeams: sData.targetCricketTeams ?? 12, cricketGroupCount: sData.cricketGroupCount ?? 4 });
+      if (fcData.frozen && fcData.fixture) setFrozenCricket(fcData.fixture.matches);
+      else setFrozenCricket(null);
+      if (fpData.frozen && fpData.fixture) setFrozenPb(fpData.fixture.matches);
+      else setFrozenPb(null);
+    } catch (e) { console.error(e); } finally { setLoading(false); }
   }, []);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const readyTeams = teams;
+  const groups = genCricketGroups(readyTeams, settings.targetCricketTeams, settings.cricketGroupCount);
+  const { matches: groupMatches, nextNum } = genGroupMatches(groups);
+  const knockoutMatches = genCricketKnockout(groups, nextNum);
+  const cricketMatches = frozenCricket ?? [...groupMatches, ...knockoutMatches];
+  const cGroups = [...new Set(cricketMatches.filter(m => m.stage === "GROUP").map(m => m.groupName))].sort();
+  const cKnockout = cricketMatches.filter(m => m.stage === "KNOCKOUT");
 
-  const readyTeams = teams.filter((t) => t.status === "READY");
-
-  const generateRoundRobin = (teamList: Team[]): Match[] => {
-    const matches: Match[] = [];
-    let matchNum = 1;
-    for (let i = 0; i < teamList.length; i++) {
-      for (let j = i + 1; j < teamList.length; j++) {
-        matches.push({
-          id: `${i}-${j}`,
-          team1: teamList[i],
-          team2: teamList[j],
-          round: Math.ceil(matchNum / Math.floor(teamList.length / 2)),
-          matchNumber: matchNum,
-        });
-        matchNum++;
-      }
+  const pbMatchesByCategory: Record<string, MatchData[]> = {};
+  if (frozenPb) {
+    for (const m of frozenPb) { const c = m.category || ""; if (!pbMatchesByCategory[c]) pbMatchesByCategory[c] = []; pbMatchesByCategory[c].push(m); }
+  } else {
+    for (const cat of PB_CATS) {
+      const entries = pbRegs.filter(r => r.category === cat.key);
+      const { matches } = genPbBracket(entries, cat.key, 1);
+      pbMatchesByCategory[cat.key] = matches;
     }
-    return matches;
-  };
-
-  const schedule = readyTeams.length >= 2 ? generateRoundRobin(readyTeams) : [];
-  const rounds = schedule.reduce<Record<number, Match[]>>((acc, m) => {
-    if (!acc[m.round]) acc[m.round] = [];
-    acc[m.round].push(m);
-    return acc;
-  }, {});
-
-  const generatePbFixtures = (entries: PbReg[]) => {
-    const fixtures: { id: string; entry1: PbReg; entry2: PbReg; matchNumber: number; round: number }[] = [];
-    let matchNum = 1;
-    for (let i = 0; i < entries.length; i++) {
-      for (let j = i + 1; j < entries.length; j++) {
-        fixtures.push({
-          id: `${entries[i].id}-${entries[j].id}`,
-          entry1: entries[i],
-          entry2: entries[j],
-          matchNumber: matchNum,
-          round: Math.ceil(matchNum / Math.max(1, Math.floor(entries.length / 2))),
-        });
-        matchNum++;
-      }
-    }
-    return fixtures;
-  };
-
-  const entryName = (reg: PbReg) => {
-    if (reg.player2Name) return `${reg.player1Name} & ${reg.player2Name}`;
-    return reg.player1Name;
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-white/10 border-t-pitch-500" />
-      </div>
-    );
   }
 
-  return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white">Match Schedule & Fixtures</h1>
-        <p className="mt-1 text-slate-500">Tournament fixtures and match-ups</p>
-      </div>
+  const getTeam = (id: string | null) => { if (!id) return null; return readyTeams.find(t => t.id === id) ?? null; };
+  const teamLabel = (id: string | null) => { if (!id) return "Your Team?"; if (id.startsWith("WINNER_") || id.startsWith("RUNNER_")) return id.replace(/_/g, " "); const t = getTeam(id); return t?.name ?? "Your Team?"; };
+  const teamColor = (id: string | null) => getTeam(id)?.color;
+  const isTbd = (id: string | null) => !id || id.startsWith("WINNER_") || id.startsWith("RUNNER_") || !getTeam(id);
+  const entryLabel = (id: string | null) => { if (!id || id.startsWith("W")) return "Register Now!"; const r = pbRegs.find(r => r.id === id); if (!r) return "Register Now!"; return r.player2Name ? `${r.player1Name} & ${r.player2Name}` : r.player1Name; };
+  const isEntryTbd = (id: string | null) => !id || id.startsWith("W") || !pbRegs.find(r => r.id === id);
+  const pct = Math.min(100, Math.round((readyTeams.length / settings.targetCricketTeams) * 100));
 
-      {/* Sport Selector */}
-      <div className="flex justify-center mb-8">
-        <div className="inline-flex gap-1 bg-dark-400/80 backdrop-blur-xl p-1.5 rounded-2xl border border-white/[0.06] shadow-xl shadow-black/20">
-          <button
-            onClick={() => setSport("cricket")}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${sport === "cricket" ? "bg-pitch-500 text-white shadow-lg shadow-pitch-500/25" : "text-slate-400 hover:text-white hover:bg-white/[0.06]"}`}
-          >
-            🏏 Cricket
+  if (loading) return (<div className="flex items-center justify-center min-h-[60vh]"><div className="animate-spin rounded-full h-12 w-12 border-4 border-white/10 border-t-indigo-500" /></div>);
+
+  return (
+    <div className="min-h-screen">
+      <HeroSection sport={sport} setSport={setSport} />
+      {sport === "cricket" ? (
+        <div className="max-w-6xl mx-auto px-4 py-8 space-y-10">
+          <ProgressBar current={readyTeams.length} total={settings.targetCricketTeams} pct={pct} />
+          <GroupStage groups={cGroups} matches={cricketMatches} teamLabel={teamLabel} teamColor={teamColor} isTbd={isTbd} />
+          <KnockoutStage matches={cKnockout} teamLabel={teamLabel} teamColor={teamColor} isTbd={isTbd} />
+        </div>
+      ) : (
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <PbBrackets matchesByCategory={pbMatchesByCategory} entryLabel={entryLabel} isEntryTbd={isEntryTbd} pbRegs={pbRegs} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HeroSection({ sport, setSport }: { sport: Sport; setSport: (s: Sport) => void }) {
+  return (
+    <div className="relative overflow-hidden bg-gradient-to-b from-indigo-950/60 via-slate-900 to-slate-900 border-b border-white/[0.04]">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div key={i} className="absolute w-1 h-1 rounded-full bg-white/[0.08] animate-pulse" style={{ left: `${5 + (i * 47) % 90}%`, top: `${10 + (i * 31) % 80}%`, animationDelay: `${i * 0.3}s`, animationDuration: `${2 + (i % 3)}s` }} />
+        ))}
+      </div>
+      <div className="relative max-w-6xl mx-auto px-4 py-12 text-center">
+        <h1 className="text-3xl md:text-5xl font-black text-white tracking-[0.2em] uppercase mb-2">Align Sports League</h1>
+        <p className="text-sm md:text-base text-slate-400 tracking-widest uppercase mb-8">Tournament Fixtures &amp; Brackets &bull; 2026</p>
+        <div className="inline-flex gap-1.5 bg-dark-400/80 backdrop-blur-xl p-1.5 rounded-2xl border border-white/[0.06] shadow-xl">
+          <button onClick={() => setSport("cricket")} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${sport === "cricket" ? "bg-pitch-500 text-white shadow-lg shadow-pitch-500/30" : "text-slate-400 hover:text-white hover:bg-white/[0.06]"}`}>
+            Cricket
           </button>
-          <button
-            onClick={() => setSport("pickleball")}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${sport === "pickleball" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25" : "text-slate-400 hover:text-white hover:bg-white/[0.06]"}`}
-          >
-            🏓 Pickleball
+          <button onClick={() => setSport("pickleball")} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${sport === "pickleball" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "text-slate-400 hover:text-white hover:bg-white/[0.06]"}`}>
+            Pickleball
           </button>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Cricket Schedule */}
-      {sport === "cricket" && (
-        <div>
-          {readyTeams.length < 2 ? (
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 text-center">
-              <span className="text-4xl mb-3 block">🏏</span>
-              <h2 className="text-xl font-bold text-amber-400 mb-2">Cricket Schedule Not Available Yet</h2>
-              <p className="text-sm text-amber-400/70 max-w-md mx-auto">
-                The match schedule will be generated once all teams are finalized and marked as <strong>READY</strong> by the admin.
-              </p>
-              <div className="mt-4 flex items-center justify-center gap-4 text-sm">
-                <div className="dark-card rounded-xl px-4 py-2">
-                  <span className="font-bold text-pitch-400">{readyTeams.length}</span>
-                  <span className="text-slate-400 ml-1">Ready</span>
-                </div>
-                <div className="dark-card rounded-xl px-4 py-2">
-                  <span className="font-bold text-amber-400">{teams.length - readyTeams.length}</span>
-                  <span className="text-slate-400 ml-1">Pending</span>
-                </div>
+function ProgressBar({ current, total, pct }: { current: number; total: number; pct: number }) {
+  const full = current >= total;
+  return (
+    <div className="relative rounded-2xl bg-white/[0.03] backdrop-blur border border-white/[0.06] p-5" style={{ animation: "fadeIn 0.5s ease-out" }}>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-bold text-white">{full ? "All Slots Filled!" : "Team Registration Progress"}</span>
+        <span className={`text-sm font-bold ${full ? "text-emerald-400" : "text-indigo-400"}`}>{current} / {total} teams</span>
+      </div>
+      <div className="h-3 rounded-full bg-dark-500 overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-1000 ease-out ${full ? "bg-gradient-to-r from-emerald-500 to-green-400 shadow-[0_0_16px_rgba(16,185,129,0.4)]" : "bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 shadow-[0_0_16px_rgba(99,102,241,0.3)]"}`} style={{ width: `${pct}%` }} />
+      </div>
+      {!full && <p className="text-xs text-slate-500 mt-2">Spots are filling up! <Link href="/register?sport=cricket" className="text-indigo-400 hover:text-indigo-300 font-medium">Register your team</Link></p>}
+    </div>
+  );
+}
+
+function GroupStage({ groups, matches, teamLabel, teamColor, isTbd }: { groups: (string | null)[]; matches: MatchData[]; teamLabel: (id: string | null) => string; teamColor: (id: string | null) => string | undefined; isTbd: (id: string | null) => boolean }) {
+  if (groups.length === 0) return null;
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-1.5 h-8 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
+        <h2 className="text-2xl font-black text-white tracking-tight">Group Stage</h2>
+      </div>
+      <div className="grid gap-5 md:grid-cols-2">
+        {groups.map((g, gi) => {
+          const gm = matches.filter(m => m.stage === "GROUP" && m.groupName === g);
+          const teamIds = [...new Set(gm.flatMap(m => [m.team1Id, m.team2Id]))];
+          const accent = GROUP_COLORS[g || "A"] || "#6366f1";
+          return (
+            <div key={g} className="rounded-2xl bg-white/[0.03] backdrop-blur border border-white/[0.06] overflow-hidden" style={{ animation: `fadeIn 0.5s ease-out ${gi * 0.1}s both` }}>
+              <div className="px-5 py-3 flex items-center gap-3" style={{ borderBottom: `2px solid ${accent}20`, background: `linear-gradient(135deg, ${accent}08, transparent)` }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-black" style={{ background: accent }}>{g}</div>
+                <h3 className="text-sm font-bold text-white">Group {g} <span className="text-[10px] text-slate-500 ml-1">{gm.length} matches</span></h3>
               </div>
-            </div>
-          ) : (
-            <>
-              <div className="bg-brand-500/10 border border-brand-500/20 rounded-xl px-4 py-3 mb-6 text-sm text-brand-400 flex items-center gap-2">
-                <span>📅</span>
-                <span><strong>{schedule.length}</strong> matches across <strong>{Object.keys(rounds).length}</strong> round(s) &middot; <strong>{readyTeams.length}</strong> teams</span>
-              </div>
-              <div className="space-y-8">
-                {Object.entries(rounds).map(([round, matches]) => (
-                  <div key={round}>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-1 h-6 bg-gradient-to-b from-brand-400 to-brand-600 rounded-full" />
-                      <h3 className="text-lg font-bold text-white">Round {round}</h3>
-                      <span className="text-sm text-slate-500 font-medium">({matches.length} matches)</span>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {matches.map((match) => (
-                        <div key={match.id} className="dark-card rounded-2xl p-4 hover:border-white/[0.12] transition-all">
-                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Match #{match.matchNumber}</div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 flex-1">
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: match.team1.color || "#6366f1" }}>
-                                {match.team1.name.charAt(0)}
-                              </div>
-                              <div>
-                                <p className="text-sm font-bold text-white leading-tight">{match.team1.name}</p>
-                                <p className="text-[10px] text-slate-500">{match.team1.captainName}</p>
-                              </div>
-                            </div>
-                            <div className="mx-3 px-3 py-1 rounded-lg bg-brand-500/10 text-brand-400 text-xs font-extrabold flex-shrink-0">VS</div>
-                            <div className="flex items-center gap-2 flex-1 justify-end text-right">
-                              <div>
-                                <p className="text-sm font-bold text-white leading-tight">{match.team2.name}</p>
-                                <p className="text-[10px] text-slate-500">{match.team2.captainName}</p>
-                              </div>
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: match.team2.color || "#8b5cf6" }}>
-                                {match.team2.name.charAt(0)}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+              <div className="px-4 py-3 space-y-1.5 border-b border-white/[0.04]">
+                {teamIds.map((tid, ti) => (
+                  <div key={ti} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg ${isTbd(tid) ? "border border-dashed border-slate-700/60" : "bg-white/[0.03]"}`}>
+                    {!isTbd(tid) && <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ background: teamColor(tid) || accent }}>{teamLabel(tid).charAt(0)}</div>}
+                    <span className={`text-sm font-medium ${isTbd(tid) ? "text-slate-500 animate-pulse" : "text-white"}`}>{isTbd(tid) ? <Link href="/register?sport=cricket" className="hover:text-indigo-400 transition-colors">Your Team?</Link> : teamLabel(tid)}</span>
                   </div>
                 ))}
               </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Pickleball Fixtures */}
-      {sport === "pickleball" && (
-        <div className="space-y-10">
-          {pbRegs.length === 0 ? (
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 text-center">
-              <span className="text-4xl mb-3 block">🏓</span>
-              <h2 className="text-xl font-bold text-amber-400 mb-2">Pickleball Fixtures Not Available Yet</h2>
-              <p className="text-sm text-amber-400/70 max-w-md mx-auto">
-                Fixtures will be generated once registrations are approved by the admin.
-              </p>
+              <div className="px-4 py-3 space-y-1.5">
+                {gm.map(m => <MatchCard key={m.id} m={m} l1={teamLabel(m.team1Id)} l2={teamLabel(m.team2Id)} c1={teamColor(m.team1Id)} c2={teamColor(m.team2Id)} t1={isTbd(m.team1Id)} t2={isTbd(m.team2Id)} accent={accent} />)}
+              </div>
             </div>
-          ) : (
-            PB_CATEGORIES.map((cat) => {
-              const entries = pbRegs.filter((r) => r.category === cat.key);
-              if (entries.length < 2) {
-                if (entries.length === 0) return null;
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: MatchData[]; teamLabel: (id: string | null) => string; teamColor: (id: string | null) => string | undefined; isTbd: (id: string | null) => boolean }) {
+  if (matches.length === 0) return null;
+  const rounds = [...new Set(matches.map(m => m.roundNumber))].sort((a, b) => a - b);
+  const totalRounds = rounds.length;
+  const roundMatches: MatchData[][] = rounds.map(r => matches.filter(m => m.roundNumber === r));
+
+  const MATCH_H = 76;
+  const GAP = 12;
+  const COL_W = 210;
+  const CONN_W = 40;
+  const CELL = MATCH_H + GAP;
+  const accent = "#f59e0b";
+
+  const getRoundLabel = (ri: number) => {
+    const remaining = totalRounds - ri;
+    if (remaining === 1) return "Final";
+    if (remaining === 2) return "Semi-Finals";
+    if (remaining === 3) return "Quarter-Finals";
+    return `Round ${ri + 1}`;
+  };
+
+  const getMatchY = (ri: number, mi: number): number => {
+    if (ri === 0) return mi * CELL;
+    const child1Y = getMatchY(ri - 1, mi * 2);
+    const child2Y = getMatchY(ri - 1, mi * 2 + 1);
+    return (child1Y + child2Y) / 2;
+  };
+
+  const r0Count = roundMatches[0]?.length || 0;
+  const totalH = r0Count * CELL - GAP;
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-1.5 h-8 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
+        <h2 className="text-2xl font-black text-white tracking-tight">Knockout Stage</h2>
+      </div>
+
+      <div className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] backdrop-blur border border-white/[0.06] p-5 md:p-8">
+        {/* Round headers */}
+        <div className="flex mb-4">
+          {rounds.map((_, ri) => {
+            const isFinal = ri === totalRounds - 1;
+            return (
+              <div key={ri} style={{ width: COL_W + (ri < totalRounds - 1 ? CONN_W : 0), flexShrink: 0 }} className="text-center">
+                <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border ${isFinal ? "bg-amber-500/10 text-amber-400 border-amber-500/25" : "bg-white/[0.03] text-slate-500 border-white/[0.06]"}`}>
+                  {getRoundLabel(ri)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Bracket canvas */}
+        <div className="relative" style={{ height: Math.max(totalH, MATCH_H) }}>
+          {/* SVG connectors */}
+          <svg className="absolute inset-0 pointer-events-none" width="100%" height="100%" style={{ overflow: "visible" }}>
+            {roundMatches.map((rm, ri) => {
+              if (ri === totalRounds - 1) return null;
+              const x1 = ri * (COL_W + CONN_W) + COL_W;
+              const x2 = x1 + CONN_W;
+              const xMid = x1 + CONN_W / 2;
+
+              return rm.map((_, mi) => {
+                if (mi % 2 !== 0) return null;
+                const topY = getMatchY(ri, mi) + MATCH_H / 2;
+                const botY = getMatchY(ri, mi + 1) + MATCH_H / 2;
+                const midY = (topY + botY) / 2;
+
                 return (
-                  <div key={cat.key}>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className={`w-1 h-6 rounded-full ${cat.accent}`} />
-                      <h3 className="text-lg font-bold text-white">{cat.label}</h3>
-                      <span className="text-sm text-slate-500 font-medium">({entries.length} entry - need at least 2)</span>
-                    </div>
-                    <p className={`text-sm ${cat.color} ${cat.bg} ${cat.border} border rounded-xl px-4 py-3`}>
-                      Waiting for more registrations to generate fixtures.
-                    </p>
-                  </div>
+                  <g key={`${ri}-${mi}`}>
+                    <line x1={x1} y1={topY} x2={xMid} y2={topY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                    <line x1={x1} y1={botY} x2={xMid} y2={botY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                    <line x1={xMid} y1={topY} x2={xMid} y2={botY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                    <line x1={xMid} y1={midY} x2={x2} y2={midY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                    <circle cx={xMid} cy={midY} r="2.5" fill={accent} fillOpacity="0.4" />
+                  </g>
                 );
-              }
-              const fixtures = generatePbFixtures(entries);
-              const isSingles = cat.key.includes("SINGLES");
+              });
+            })}
+          </svg>
+
+          {/* Match cards */}
+          {roundMatches.map((rm, ri) => {
+            const isFinal = ri === totalRounds - 1;
+            const xOffset = ri * (COL_W + CONN_W);
+
+            return rm.map((m, mi) => {
+              const y = getMatchY(ri, mi);
+              const l1 = teamLabel(m.team1Id);
+              const l2 = teamLabel(m.team2Id);
+              const c1 = teamColor(m.team1Id) || accent;
+              const c2 = teamColor(m.team2Id) || accent;
+              const t1 = isTbd(m.team1Id);
+              const t2 = isTbd(m.team2Id);
+
               return (
-                <div key={cat.key}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={`w-1 h-6 rounded-full ${cat.accent}`} />
-                    <h3 className="text-lg font-bold text-white">{cat.label}</h3>
-                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${cat.bg} ${cat.color} ${cat.border} border`}>
-                      {fixtures.length} matches
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mb-4 ml-4">{entries.length} {isSingles ? "players" : "pairs"} &middot; Round-robin format</p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {fixtures.map((f) => (
-                      <div key={f.id} className={`dark-card rounded-2xl border ${cat.border} p-4 hover:border-white/10 transition-all`}>
-                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
-                          Match #{f.matchNumber}
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <div className={`w-8 h-8 rounded-full ${cat.bg} ${cat.color} flex items-center justify-center text-xs font-bold flex-shrink-0`}>
-                              {f.entry1.player1Name.charAt(0)}
-                            </div>
-                            <p className="text-sm font-bold text-white truncate">{entryName(f.entry1)}</p>
-                          </div>
-                          <div className={`mx-2 px-2.5 py-1 rounded-lg ${cat.bg} ${cat.color} text-xs font-extrabold flex-shrink-0`}>
-                            VS
-                          </div>
-                          <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
-                            <p className="text-sm font-bold text-white truncate text-right">{entryName(f.entry2)}</p>
-                            <div className={`w-8 h-8 rounded-full ${cat.bg} ${cat.color} flex items-center justify-center text-xs font-bold flex-shrink-0`}>
-                              {f.entry2.player1Name.charAt(0)}
-                            </div>
-                          </div>
-                        </div>
+                <div key={m.id} className="absolute" style={{ left: xOffset, top: y, width: COL_W, height: MATCH_H, animation: `fadeIn 0.4s ease-out ${ri * 0.1 + mi * 0.04}s both` }}>
+                  <div className={`h-full rounded-lg overflow-hidden border transition-all duration-200 ${isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.06] to-transparent shadow-[0_0_30px_rgba(245,158,11,0.08)]" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.03]"}`}>
+                    {/* Team 1 */}
+                    <div className={`h-[30px] flex items-center px-2.5 gap-2 ${t1 ? "" : "bg-white/[0.02]"}`}>
+                      <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: t1 ? "rgba(55,65,81,0.6)" : c1 }}>
+                        {t1 ? "?" : l1.charAt(0).toUpperCase()}
                       </div>
-                    ))}
+                      <span className={`text-[12px] font-semibold truncate flex-1 ${t1 ? "text-slate-600 italic" : "text-slate-200"}`}>
+                        {t1 ? "TBD" : l1}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-600 w-4 text-center">-</span>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-[16px] flex items-center px-2.5 border-y border-white/[0.04]" style={{ background: `linear-gradient(90deg, ${accent}08, transparent)` }}>
+                      <span className="text-[8px] font-bold text-slate-600 tracking-wider">M{m.matchNumber}</span>
+                      <div className="flex-1" />
+                      {m.scheduledDate && (
+                        <span className="text-[8px] text-cyan-500/80 font-medium">
+                          {new Date(m.scheduledDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Team 2 */}
+                    <div className={`h-[30px] flex items-center px-2.5 gap-2 ${t2 ? "" : "bg-white/[0.02]"}`}>
+                      <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: t2 ? "rgba(55,65,81,0.6)" : c2 }}>
+                        {t2 ? "?" : l2.charAt(0).toUpperCase()}
+                      </div>
+                      <span className={`text-[12px] font-semibold truncate flex-1 ${t2 ? "text-slate-600 italic" : "text-slate-200"}`}>
+                        {t2 ? "TBD" : l2}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-600 w-4 text-center">-</span>
+                    </div>
                   </div>
                 </div>
               );
-            }).filter(Boolean)
+            });
+          })}
+
+          {/* Champion trophy */}
+          {totalRounds > 0 && roundMatches[totalRounds - 1]?.length === 1 && (
+            <div className="absolute flex items-center gap-2" style={{ left: (totalRounds - 1) * (COL_W + CONN_W) + COL_W + 16, top: getMatchY(totalRounds - 1, 0) + MATCH_H / 2 - 16, width: 80, height: 32 }}>
+              <div className="w-8 h-8 rounded-full bg-amber-500/15 flex items-center justify-center border border-amber-500/20">
+                <span className="text-sm">🏆</span>
+              </div>
+              <span className="text-[10px] font-bold text-amber-400/60 uppercase tracking-wider">Winner</span>
+            </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MatchCard({ m, l1, l2, c1, c2, t1, t2, accent, isFinal }: { m: MatchData; l1: string; l2: string; c1?: string; c2?: string; t1: boolean; t2: boolean; accent: string; isFinal?: boolean }) {
+  return (
+    <div className={`rounded-lg overflow-hidden border transition-all duration-200 hover:border-white/[0.15] ${isFinal ? "border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.06)]" : "border-white/[0.08]"}`}>
+      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${t1 ? "" : "bg-white/[0.03]"}`}>
+        <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: t1 ? "rgba(55,65,81,0.6)" : (c1 || accent) }}>
+          {t1 ? "?" : l1.charAt(0).toUpperCase()}
+        </div>
+        <span className={`text-[12px] font-semibold truncate flex-1 ${t1 ? "text-slate-600 italic" : "text-slate-200"}`}>{l1}</span>
+        <span className="text-[10px] font-mono text-slate-600 w-4 text-center">-</span>
+      </div>
+      <div className="h-[16px] flex items-center px-2.5 border-y border-white/[0.04]" style={{ background: `linear-gradient(90deg, ${accent}08, transparent)` }}>
+        <span className="text-[8px] font-bold text-slate-600 tracking-wider">M{m.matchNumber}</span>
+        <div className="flex-1" />
+        {m.scheduledDate && (
+          <span className="text-[8px] text-cyan-500/80 font-medium">
+            {new Date(m.scheduledDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+          </span>
+        )}
+      </div>
+      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${t2 ? "" : "bg-white/[0.03]"}`}>
+        <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: t2 ? "rgba(55,65,81,0.6)" : (c2 || accent) }}>
+          {t2 ? "?" : l2.charAt(0).toUpperCase()}
+        </div>
+        <span className={`text-[12px] font-semibold truncate flex-1 ${t2 ? "text-slate-600 italic" : "text-slate-200"}`}>{l2}</span>
+        <span className="text-[10px] font-mono text-slate-600 w-4 text-center">-</span>
+      </div>
+    </div>
+  );
+}
+
+function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { matchesByCategory: Record<string, MatchData[]>; entryLabel: (id: string | null) => string; isEntryTbd: (id: string | null) => boolean; pbRegs: PbReg[] }) {
+  const [activeCat, setActiveCat] = useState(PB_CATS[0].key);
+  const cat = PB_CATS.find(c => c.key === activeCat)!;
+  const matches = matchesByCategory[activeCat] || [];
+  const rounds = [...new Set(matches.map(m => m.roundNumber))].sort((a, b) => a - b);
+  const totalRounds = rounds.length;
+
+  const getRoundLabel = (ri: number) => {
+    const remaining = totalRounds - ri;
+    if (remaining === 1) return "Final";
+    if (remaining === 2) return "Semi-Finals";
+    if (remaining === 3) return "Quarter-Finals";
+    return `Round ${ri + 1}`;
+  };
+
+  const MATCH_H = 76;
+  const GAP = 12;
+  const COL_W = 210;
+  const CONN_W = 40;
+  const CELL = MATCH_H + GAP;
+
+  const roundMatches: MatchData[][] = rounds.map(r => matches.filter(m => m.roundNumber === r));
+
+  const getMatchY = (ri: number, mi: number): number => {
+    if (ri === 0) return mi * CELL;
+    const child1Y = getMatchY(ri - 1, mi * 2);
+    const child2Y = getMatchY(ri - 1, mi * 2 + 1);
+    return (child1Y + child2Y) / 2;
+  };
+
+  const r0Count = roundMatches[0]?.length || 0;
+  const totalH = r0Count * CELL - GAP;
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-1.5 h-8 rounded-full bg-gradient-to-b from-emerald-400 to-teal-500" />
+        <h2 className="text-2xl font-black text-white tracking-tight">Pickleball Brackets</h2>
+      </div>
+
+      <div className="flex gap-1 bg-dark-400/80 backdrop-blur-xl p-1.5 rounded-2xl mb-6 border border-white/[0.06] shadow-xl overflow-x-auto">
+        {PB_CATS.map(c => {
+          const count = pbRegs.filter(r => r.category === c.key).length;
+          const isActive = activeCat === c.key;
+          return (
+            <button key={c.key} onClick={() => setActiveCat(c.key)}
+              className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${isActive ? "text-white shadow-lg" : "text-slate-400 hover:text-white hover:bg-white/[0.06]"}`}
+              style={isActive ? { background: c.accent, boxShadow: `0 8px 24px ${c.accent}30` } : {}}>
+              {c.label}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isActive ? "bg-white/20" : "bg-white/[0.06]"}`}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {matches.length === 0 ? (
+        <div className="rounded-2xl bg-white/[0.03] backdrop-blur border border-white/[0.06] p-16 text-center">
+          <div className="text-4xl mb-3">🏓</div>
+          <p className="text-slate-400 text-lg font-medium mb-1">No bracket yet</p>
+          <p className="text-slate-500 text-sm">Be the first to enter! <Link href="/register?sport=pickleball" className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors">Register to play</Link></p>
+        </div>
+      ) : (
+        <div className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] backdrop-blur border border-white/[0.06] p-5 md:p-8">
+          {/* Round headers */}
+          <div className="flex mb-4">
+            {rounds.map((_, ri) => {
+              const isFinal = ri === totalRounds - 1;
+              return (
+                <div key={ri} style={{ width: COL_W + (ri < totalRounds - 1 ? CONN_W : 0), flexShrink: 0 }} className="text-center">
+                  <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border ${isFinal ? "bg-amber-500/10 text-amber-400 border-amber-500/25" : "bg-white/[0.03] text-slate-500 border-white/[0.06]"}`}>
+                    {getRoundLabel(ri)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Bracket canvas */}
+          <div className="relative" style={{ height: Math.max(totalH, MATCH_H) }}>
+            {/* SVG connectors layer */}
+            <svg className="absolute inset-0 pointer-events-none" width="100%" height="100%" style={{ overflow: "visible" }}>
+              {roundMatches.map((rm, ri) => {
+                if (ri === totalRounds - 1) return null;
+                const x1 = ri * (COL_W + CONN_W) + COL_W;
+                const x2 = x1 + CONN_W;
+                const xMid = x1 + CONN_W / 2;
+
+                return rm.map((_, mi) => {
+                  if (mi % 2 !== 0) return null;
+                  const topY = getMatchY(ri, mi) + MATCH_H / 2;
+                  const botY = getMatchY(ri, mi + 1) + MATCH_H / 2;
+                  const midY = (topY + botY) / 2;
+
+                  return (
+                    <g key={`${ri}-${mi}`}>
+                      <line x1={x1} y1={topY} x2={xMid} y2={topY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                      <line x1={x1} y1={botY} x2={xMid} y2={botY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                      <line x1={xMid} y1={topY} x2={xMid} y2={botY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                      <line x1={xMid} y1={midY} x2={x2} y2={midY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                      <circle cx={xMid} cy={midY} r="2.5" fill={cat.accent} fillOpacity="0.4" />
+                    </g>
+                  );
+                });
+              })}
+            </svg>
+
+            {/* Match cards layer */}
+            {roundMatches.map((rm, ri) => {
+              const isFinal = ri === totalRounds - 1;
+              const xOffset = ri * (COL_W + CONN_W);
+
+              return rm.map((m, mi) => {
+                const y = getMatchY(ri, mi);
+                const l1 = entryLabel(m.entry1Id);
+                const l2 = entryLabel(m.entry2Id);
+                const tbd1 = isEntryTbd(m.entry1Id);
+                const tbd2 = isEntryTbd(m.entry2Id);
+                const isBye = (m.entry1Id === null && m.entry2Id !== null) || (m.entry2Id === null && m.entry1Id !== null);
+
+                return (
+                  <div key={m.id} className="absolute" style={{ left: xOffset, top: y, width: COL_W, height: MATCH_H, animation: `fadeIn 0.4s ease-out ${ri * 0.1 + mi * 0.04}s both` }}>
+                    <div className={`h-full rounded-lg overflow-hidden border transition-all duration-200 group ${isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.06] to-transparent shadow-[0_0_30px_rgba(245,158,11,0.08)]" : isBye ? "border-white/[0.04] bg-white/[0.01]" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.03]"}`}>
+                      {/* Player 1 row */}
+                      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${tbd1 ? "" : "bg-white/[0.02]"}`}>
+                        <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: tbd1 ? "rgba(55,65,81,0.6)" : cat.accent }}>
+                          {tbd1 ? "?" : l1.charAt(0).toUpperCase()}
+                        </div>
+                        <span className={`text-[12px] font-semibold truncate flex-1 ${tbd1 ? "text-slate-600 italic" : "text-slate-200"}`}>
+                          {tbd1 ? "TBD" : l1}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-600 w-4 text-center">-</span>
+                      </div>
+
+                      {/* Divider with match info */}
+                      <div className="h-[16px] flex items-center px-2.5 border-y border-white/[0.04]" style={{ background: `linear-gradient(90deg, ${cat.accent}08, transparent)` }}>
+                        <span className="text-[8px] font-bold text-slate-600 tracking-wider">M{m.matchNumber}</span>
+                        <div className="flex-1" />
+                        {m.scheduledDate && (
+                          <span className="text-[8px] text-cyan-500/80 font-medium">
+                            {new Date(m.scheduledDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Player 2 row */}
+                      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${tbd2 ? "" : "bg-white/[0.02]"}`}>
+                        <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: tbd2 ? "rgba(55,65,81,0.6)" : cat.accent }}>
+                          {tbd2 ? "?" : l2.charAt(0).toUpperCase()}
+                        </div>
+                        <span className={`text-[12px] font-semibold truncate flex-1 ${tbd2 ? "text-slate-600 italic" : "text-slate-200"}`}>
+                          {tbd2 ? "TBD" : l2}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-600 w-4 text-center">-</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              });
+            })}
+
+            {/* Champion trophy for final */}
+            {totalRounds > 0 && roundMatches[totalRounds - 1]?.length === 1 && (
+              <div className="absolute flex items-center gap-2" style={{ left: (totalRounds - 1) * (COL_W + CONN_W) + COL_W + 16, top: getMatchY(totalRounds - 1, 0) + MATCH_H / 2 - 16, width: 80, height: 32 }}>
+                <div className="w-8 h-8 rounded-full bg-amber-500/15 flex items-center justify-center border border-amber-500/20">
+                  <span className="text-sm">🏆</span>
+                </div>
+                <span className="text-[10px] font-bold text-amber-400/60 uppercase tracking-wider">Winner</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

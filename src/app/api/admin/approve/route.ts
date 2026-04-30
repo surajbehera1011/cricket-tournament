@@ -8,6 +8,7 @@ import { createAuditLog } from "@/lib/business/audit";
 import { recomputeTeamStatus } from "@/lib/business/registration";
 import { z } from "zod";
 import { sendTeamApprovedEmail } from "@/lib/email";
+import { autoRegenerateCricketFixture } from "@/lib/fixture-auto-regen";
 
 const approveSchema = z.object({
   teamId: z.string().uuid(),
@@ -67,6 +68,10 @@ export async function POST(request: NextRequest) {
     const allEmails = team.memberships.map((m) => m.player.email).filter(Boolean) as string[];
     if (allEmails.length > 0 && updated) {
       sendTeamApprovedEmail(allEmails, team.name, updated.status);
+    }
+
+    if (updated?.status === "READY") {
+      autoRegenerateCricketFixture();
     }
 
     return NextResponse.json({ team: updated });

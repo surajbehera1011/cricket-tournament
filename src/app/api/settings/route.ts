@@ -28,6 +28,8 @@ const updateSettingsSchema = z.object({
   cricketVenueMapUrl: z.string().max(500).optional(),
   pickleballVenue: z.string().max(300).optional(),
   pickleballVenueMapUrl: z.string().max(500).optional(),
+  targetCricketTeams: z.number().int().min(4).max(24).optional(),
+  cricketGroupCount: z.number().int().min(2).max(8).optional(),
 });
 
 export async function GET() {

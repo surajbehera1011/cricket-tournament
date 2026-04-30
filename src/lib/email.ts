@@ -1,37 +1,63 @@
-import nodemailer from "nodemailer";
+import { ClientSecretCredential } from "@azure/identity";
+import { Client as GraphClient } from "@microsoft/microsoft-graph-client";
+import { TokenCredentialAuthenticationProvider } from "@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials";
 
-const SMTP_EMAIL = process.env.SMTP_EMAIL;
-const SMTP_PASSWORD = process.env.SMTP_PASSWORD;
-const SMTP_FROM_NAME = process.env.SMTP_FROM_NAME || "Align Sports League";
+const AZURE_MAIL_TENANT_ID = process.env.AZURE_MAIL_TENANT_ID;
+const AZURE_MAIL_CLIENT_ID = process.env.AZURE_MAIL_CLIENT_ID;
+const AZURE_MAIL_CLIENT_SECRET = process.env.AZURE_MAIL_CLIENT_SECRET;
+const MAIL_FROM_ADDRESS = process.env.MAIL_FROM_ADDRESS;
+const MAIL_FROM_NAME = process.env.MAIL_FROM_NAME || "Align Sports League";
 const APP_URL = process.env.APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
 
-const transporter =
-  SMTP_EMAIL && SMTP_PASSWORD
-    ? nodemailer.createTransport({
-        service: "gmail",
-        auth: { user: SMTP_EMAIL, pass: SMTP_PASSWORD },
-      })
-    : null;
+const ALLOWED_DOMAIN = "@aligntech.com";
 
 function emailEnabled(): boolean {
-  if (!transporter) {
-    console.warn("[Email] SMTP not configured — skipping email");
+  if (!AZURE_MAIL_TENANT_ID || !AZURE_MAIL_CLIENT_ID || !AZURE_MAIL_CLIENT_SECRET || !MAIL_FROM_ADDRESS) {
+    console.warn("[Email] Azure Graph API not configured — skipping email");
     return false;
   }
   return true;
 }
 
+function getGraphClient(): GraphClient {
+  const credential = new ClientSecretCredential(
+    AZURE_MAIL_TENANT_ID!,
+    AZURE_MAIL_CLIENT_ID!,
+    AZURE_MAIL_CLIENT_SECRET!,
+  );
+  const authProvider = new TokenCredentialAuthenticationProvider(credential, {
+    scopes: ["https://graph.microsoft.com/.default"],
+  });
+  return GraphClient.initWithMiddleware({ authProvider });
+}
+
 async function sendEmail(to: string | string[], subject: string, html: string) {
   if (!emailEnabled()) return;
-  const recipients = Array.isArray(to) ? to.filter(Boolean) : [to].filter(Boolean);
+  const recipients = (Array.isArray(to) ? to : [to]).filter(Boolean);
   if (recipients.length === 0) return;
+
+  for (const recipient of recipients) {
+    if (!recipient.endsWith(ALLOWED_DOMAIN)) {
+      console.error(`[Email] External recipient blocked: "${recipient}" — only ${ALLOWED_DOMAIN} addresses allowed`);
+      return;
+    }
+  }
+
   try {
-    await transporter!.sendMail({
-      from: `"${SMTP_FROM_NAME}" <${SMTP_EMAIL}>`,
-      to: recipients.join(", "),
-      subject,
-      html,
-    });
+    const message = {
+      message: {
+        subject,
+        body: { contentType: "HTML", content: html },
+        from: { emailAddress: { address: MAIL_FROM_ADDRESS, name: MAIL_FROM_NAME } },
+        toRecipients: recipients.map((addr) => ({ emailAddress: { address: addr } })),
+      },
+      saveToSentItems: false,
+    };
+
+    await getGraphClient()
+      .api(`/users/${MAIL_FROM_ADDRESS}/sendMail`)
+      .post(message);
+
     console.log(`[Email] Sent "${subject}" to ${recipients.join(", ")}`);
   } catch (err) {
     console.error(`[Email] Failed to send "${subject}":`, err);
@@ -496,4 +522,126 @@ export function sendPickleballRejectedEmail(
   const recipients = [player1Email];
   if (isDoubles && player2Email) recipients.push(player2Email);
   sendEmail(recipients, `Registration Update — Pickleball ${catLabel}`, wrap(title, "#ef4444", body));
+}
+
+// ──────────────────────────────────────────────────
+// FIXTURE — Match Scheduled Notification
+// ──────────────────────────────────────────────────
+
+interface MatchForEmail {
+  id: string;
+  sport: string;
+  stage: string;
+  groupName?: string | null;
+  matchNumber: number;
+  category?: string | null;
+  team1Id?: string | null;
+  team2Id?: string | null;
+  entry1Id?: string | null;
+  entry2Id?: string | null;
+  scheduledDate?: Date | null;
+  venue?: string | null;
+}
+
+export async function sendMatchScheduledEmail(match: MatchForEmail) {
+  if (!emailEnabled()) return;
+  if (!match.scheduledDate || !match.venue) return;
+
+  const { prisma } = await import("@/lib/prisma");
+  const dateStr = new Date(match.scheduledDate).toLocaleString("en-IN", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  if (match.sport === "CRICKET") {
+    const team1 = match.team1Id && !match.team1Id.startsWith("WINNER_")
+      ? await prisma.team.findUnique({
+          where: { id: match.team1Id },
+          include: { memberships: { include: { player: true } } },
+        })
+      : null;
+    const team2 = match.team2Id && !match.team2Id.startsWith("WINNER_")
+      ? await prisma.team.findUnique({
+          where: { id: match.team2Id },
+          include: { memberships: { include: { player: true } } },
+        })
+      : null;
+
+    const emails: string[] = [];
+    const team1Name = team1?.name ?? "TBD";
+    const team2Name = team2?.name ?? "TBD";
+
+    if (team1) {
+      for (const m of team1.memberships) {
+        if (m.player.email) emails.push(m.player.email);
+      }
+    }
+    if (team2) {
+      for (const m of team2.memberships) {
+        if (m.player.email) emails.push(m.player.email);
+      }
+    }
+
+    if (emails.length === 0) return;
+
+    const stageLabel = match.stage === "GROUP"
+      ? `Group ${match.groupName} — Match #${match.matchNumber}`
+      : `Knockout — Match #${match.matchNumber}`;
+
+    const title = "Match Scheduled!";
+    const body = `
+      ${para(`Your cricket match has been scheduled!`)}
+      ${detailsTable([
+        ["Match", stageLabel],
+        ["Teams", `<strong style="color:#ffffff;">${team1Name}</strong> vs <strong style="color:#ffffff;">${team2Name}</strong>`],
+        ["Date & Time", `<strong style="color:#22d3ee;">${dateStr}</strong>`],
+        ["Venue", `<strong style="color:#ffffff;">${match.venue}</strong>`],
+      ])}
+      ${para("Make sure your team is ready. Good luck!")}
+      ${btn("View Schedule", `${APP_URL}/schedule`, "#3b82f6")}`;
+
+    sendEmail(emails, `Match Scheduled — ${team1Name} vs ${team2Name}`, wrap(title, "#3b82f6", body));
+  } else {
+    const entry1 = match.entry1Id
+      ? await prisma.pickleballRegistration.findUnique({ where: { id: match.entry1Id } })
+      : null;
+    const entry2 = match.entry2Id
+      ? await prisma.pickleballRegistration.findUnique({ where: { id: match.entry2Id } })
+      : null;
+
+    const emails: string[] = [];
+    const entry1Name = entry1 ? (entry1.player2Name ? `${entry1.player1Name} & ${entry1.player2Name}` : entry1.player1Name) : "TBD";
+    const entry2Name = entry2 ? (entry2.player2Name ? `${entry2.player1Name} & ${entry2.player2Name}` : entry2.player1Name) : "TBD";
+
+    if (entry1) {
+      emails.push(entry1.player1Email);
+      if (entry1.player2Email) emails.push(entry1.player2Email);
+    }
+    if (entry2) {
+      emails.push(entry2.player1Email);
+      if (entry2.player2Email) emails.push(entry2.player2Email);
+    }
+
+    if (emails.length === 0) return;
+
+    const catLabel = match.category ? (CATEGORY_LABELS[match.category] || match.category) : "Pickleball";
+    const title = "Match Scheduled!";
+    const body = `
+      ${para(`Your pickleball match has been scheduled!`)}
+      ${detailsTable([
+        ["Category", `<strong style="color:#ec4899;">${catLabel}</strong>`],
+        ["Match", `#${match.matchNumber}`],
+        ["Players", `<strong style="color:#ffffff;">${entry1Name}</strong> vs <strong style="color:#ffffff;">${entry2Name}</strong>`],
+        ["Date & Time", `<strong style="color:#22d3ee;">${dateStr}</strong>`],
+        ["Venue", `<strong style="color:#ffffff;">${match.venue}</strong>`],
+      ])}
+      ${para("Get your paddles ready! Good luck!")}
+      ${btn("View Schedule", `${APP_URL}/schedule`, "#ec4899")}`;
+
+    sendEmail(emails, `Match Scheduled — ${catLabel} #${match.matchNumber}`, wrap(title, "#ec4899", body));
+  }
 }

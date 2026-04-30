@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendPickleballApprovedEmail, sendPickleballRejectedEmail } from "@/lib/email";
+import { autoRegeneratePickleballFixture } from "@/lib/fixture-auto-regen";
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,6 +62,9 @@ export async function POST(request: NextRequest) {
           sendPickleballRejectedEmail(r.player1Email, r.player1Name, r.category, r.player2Email, r.player2Name);
         }
       }
+      if (action === "approve") {
+        autoRegeneratePickleballFixture();
+      }
       return NextResponse.json({ message: `${action}d ${ids.length} registration(s)` });
     }
 
@@ -76,6 +80,7 @@ export async function POST(request: NextRequest) {
     if (action === "approve") {
       await prisma.pickleballRegistration.update({ where: { id }, data: { status: "APPROVED" } });
       sendPickleballApprovedEmail(reg.player1Email, reg.player1Name, reg.category, reg.player2Email, reg.player2Name);
+      autoRegeneratePickleballFixture();
       return NextResponse.json({ message: "Approved" });
     }
 

@@ -55,7 +55,7 @@ export function StatsCards({ totalTeams, readyTeams, completeTeams, incompleteTe
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
       {stats.map((stat) => (
         <div key={stat.label} className={`stat-card ${stat.glow}`}>
           <div className={`absolute top-0 left-0 right-0 h-1 ${stat.accent} rounded-t-2xl opacity-80`} />

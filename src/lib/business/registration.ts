@@ -155,7 +155,7 @@ export async function registerTeam(input: TeamRegistrationInput, color = "") {
     });
 
     return { team, players };
-  });
+  }, { maxWait: 10000, timeout: 30000 });
 
   sseManager.broadcast({
     type: "registration-created",

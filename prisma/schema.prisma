@@ -12,6 +12,7 @@ datasource db {
 enum UserRole {
   ADMIN
   CAPTAIN
+  MASTER
 }
 
 enum TeamStatus {
@@ -77,6 +78,26 @@ enum PickleballStatus {
   PENDING_APPROVAL
   APPROVED
   REJECTED
+}
+
+enum FixtureSport {
+  CRICKET
+  PICKLEBALL
+}
+
+enum FixtureStatus {
+  DRAFT
+  FROZEN
+}
+
+enum FixtureStage {
+  GROUP
+  KNOCKOUT
+}
+
+enum MatchStatus {
+  SCHEDULED
+  COMPLETED
 }
 
 // ─── Models ─────────────────────────────────────────────
@@ -196,6 +217,8 @@ model TournamentSettings {
   cricketVenueMapUrl       String   @default("")
   pickleballVenue          String   @default("")
   pickleballVenueMapUrl    String   @default("")
+  targetCricketTeams       Int      @default(12)
+  cricketGroupCount        Int      @default(4)
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
@@ -214,4 +237,43 @@ model PickleballRegistration {
   updatedAt     DateTime           @updatedAt
 
   @@map("pickleball_registrations")
+}
+
+model Fixture {
+  id         String        @id @default(uuid())
+  sport      FixtureSport
+  status     FixtureStatus @default(DRAFT)
+  groupCount Int           @default(4)
+  frozenAt   DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  matches Match[]
+
+  @@unique([sport])
+  @@map("fixtures")
+}
+
+model Match {
+  id               String       @id @default(uuid())
+  fixtureId        String
+  fixture          Fixture      @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  sport            FixtureSport
+  stage            FixtureStage
+  groupName        String?
+  roundNumber      Int
+  matchNumber      Int
+  category         String?
+  team1Id          String?
+  team2Id          String?
+  entry1Id         String?
+  entry2Id         String?
+  scheduledDate    DateTime?
+  venue            String?
+  status           MatchStatus  @default(SCHEDULED)
+  notificationSent Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@map("matches")
 }
