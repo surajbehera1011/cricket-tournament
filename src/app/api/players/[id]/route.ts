@@ -40,15 +40,6 @@ export async function PATCH(
 
     if (parsed.data.approve) {
       updateData.poolStatus = PoolStatus.LOOKING_FOR_TEAM;
-
-      await createAuditLog({
-        actorUserId: session.user.id,
-        action: "APPROVE_INDIVIDUAL",
-        entityType: "Player",
-        entityId: id,
-        before: { poolStatus: "PENDING_APPROVAL" },
-        after: { poolStatus: "LOOKING_FOR_TEAM" },
-      });
     }
 
     const player = await prisma.player.update({
@@ -56,8 +47,23 @@ export async function PATCH(
       data: updateData,
     });
 
-    if (parsed.data.approve && player.email) {
-      sendIndividualApprovedEmail(player.fullName, player.email);
+    if (parsed.data.approve) {
+      try {
+        await createAuditLog({
+          actorUserId: session.user.id,
+          action: "APPROVE_INDIVIDUAL",
+          entityType: "Player",
+          entityId: id,
+          before: { poolStatus: "PENDING_APPROVAL" },
+          after: { poolStatus: "LOOKING_FOR_TEAM" },
+        });
+      } catch (auditErr) {
+        console.error("Audit log failed (non-blocking):", auditErr);
+      }
+
+      if (player.email) {
+        sendIndividualApprovedEmail(player.fullName, player.email);
+      }
     }
 
     const membership = await prisma.teamMembership.findFirst({ where: { playerId: id } });
@@ -69,7 +75,8 @@ export async function PATCH(
       teamId: membership?.teamId ?? null,
     });
   } catch (error) {
-    console.error("Update player error:", error);
+    console.error("Update player error:", error instanceof Error ? error.message : error);
+    console.error("Stack:", error instanceof Error ? error.stack : "no stack");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
