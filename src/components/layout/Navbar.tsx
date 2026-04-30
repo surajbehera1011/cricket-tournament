@@ -29,7 +29,7 @@ export function Navbar() {
   const [adminOpen, setAdminOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const currentSport = searchParams.get("sport") || "cricket";
+  const currentSport = searchParams.get("sport") || "pickleball";
   const isAdmin = session?.user?.role === "ADMIN";
   const isAdminPage = adminDropdownLinks.some((l) => pathname === l.href);
 

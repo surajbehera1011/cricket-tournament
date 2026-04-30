@@ -12,8 +12,8 @@ import { Suspense } from "react";
 type Sport = "cricket" | "pickleball";
 
 const SPORTS: { id: Sport; label: string; icon: string; active: string }[] = [
-  { id: "cricket", label: "Cricket", icon: "🏏", active: "bg-pitch-500 text-white shadow-lg shadow-pitch-500/25" },
   { id: "pickleball", label: "Pickleball", icon: "🏓", active: "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25" },
+  { id: "cricket", label: "Cricket", icon: "🏏", active: "bg-pitch-500 text-white shadow-lg shadow-pitch-500/25" },
 ];
 
 function DashboardContent() {
@@ -21,7 +21,7 @@ function DashboardContent() {
   const router = useRouter();
   const tvMode = searchParams.get("tv") === "true";
   const sportParam = searchParams.get("sport");
-  const initialSport: Sport = sportParam === "pickleball" ? "pickleball" : "cricket";
+  const initialSport: Sport = sportParam === "cricket" ? "cricket" : "pickleball";
   const [sport, setSport] = useState<Sport>(initialSport);
   const [tourOpen, setTourOpen] = useState(false);
 
