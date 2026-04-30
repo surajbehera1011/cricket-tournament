@@ -39,9 +39,18 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
       setError("Player 1 name and email are required");
       return;
     }
+    const DOMAIN = "@aligntech.com";
+    if (!player1Email.trim().toLowerCase().endsWith(DOMAIN)) {
+      setError(`Only ${DOMAIN} emails are allowed`);
+      return;
+    }
     if (isDoubles) {
       if (!player2Name.trim() || !player2Email.trim()) {
         setError("Partner name and email are required for doubles");
+        return;
+      }
+      if (!player2Email.trim().toLowerCase().endsWith(DOMAIN)) {
+        setError(`Partner email must be an ${DOMAIN} address`);
         return;
       }
       if (player1Email.trim().toLowerCase() === player2Email.trim().toLowerCase()) {
@@ -90,7 +99,7 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
       )}
 
       <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-3 rounded-xl text-sm">
-        Select your category and fill in the player details. No duplicate entries allowed per category.
+        Select your category and fill in the player details. No duplicate entries allowed per category. All emails must be <strong>@aligntech.com</strong> addresses.
       </div>
 
       {/* Category Selection */}
@@ -153,7 +162,7 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
                   value={player1Email}
                   onChange={(e) => setPlayer1Email(e.target.value)}
                   className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100"
-                  placeholder="email@company.com"
+                  placeholder="name@aligntech.com"
                 />
               </div>
             </div>
@@ -183,7 +192,7 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
                     value={player2Email}
                     onChange={(e) => setPlayer2Email(e.target.value)}
                     className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-violet-400 focus:border-transparent bg-dark-500 text-slate-100"
-                    placeholder="partner@company.com"
+                    placeholder="partner@aligntech.com"
                   />
                 </div>
               </div>

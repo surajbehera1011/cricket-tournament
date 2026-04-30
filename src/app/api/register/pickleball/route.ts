@@ -8,10 +8,17 @@ import { z } from "zod";
 
 const SINGLES = ["MENS_SINGLES", "WOMENS_SINGLES"];
 
+const ALLOWED_DOMAIN = "@aligntech.com";
+const alignEmail = (label: string) =>
+  z.string().email(`Valid email required for ${label}`)
+    .refine((e) => e.toLowerCase().endsWith(ALLOWED_DOMAIN), {
+      message: `Only ${ALLOWED_DOMAIN} emails are allowed`,
+    });
+
 const schema = z.object({
   category: z.enum(["MENS_SINGLES", "WOMENS_SINGLES", "MENS_DOUBLES", "WOMENS_DOUBLES", "MIXED_DOUBLES"]),
   player1Name: z.string().min(1, "Player 1 name is required"),
-  player1Email: z.string().email("Valid email required for Player 1"),
+  player1Email: alignEmail("Player 1"),
   player2Name: z.string().optional(),
   player2Email: z.string().optional(),
 }).refine(
@@ -30,6 +37,14 @@ const schema = z.object({
     return true;
   },
   { message: "Both players cannot have the same email" }
+).refine(
+  (data) => {
+    if (!SINGLES.includes(data.category) && data.player2Email?.trim()) {
+      return data.player2Email.trim().toLowerCase().endsWith(ALLOWED_DOMAIN);
+    }
+    return true;
+  },
+  { message: `Partner email must be an ${ALLOWED_DOMAIN} address` }
 );
 
 export async function POST(request: NextRequest) {

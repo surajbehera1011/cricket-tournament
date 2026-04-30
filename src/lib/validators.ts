@@ -1,15 +1,22 @@
 import { z } from "zod";
 
+const ALLOWED_DOMAIN = "@aligntech.com";
+const alignEmail = (label = "email") =>
+  z.string().email(`Valid ${label} is required`)
+    .refine((e) => e.toLowerCase().endsWith(ALLOWED_DOMAIN), {
+      message: `Only ${ALLOWED_DOMAIN} emails are allowed`,
+    });
+
 const playerEntrySchema = z.object({
   name: z.string().min(1, "Player name is required"),
   gender: z.enum(["MALE", "FEMALE", "OTHER"], { required_error: "Gender is required" }),
-  email: z.string().email("Valid email is required"),
+  email: alignEmail(),
 });
 
 const extraPlayerSchema = z.object({
   name: z.string().min(1, "Player name is required"),
   gender: z.enum(["MALE", "FEMALE"], { required_error: "Gender is required (Male or Female only)" }),
-  email: z.string().email("Valid email is required"),
+  email: alignEmail(),
 });
 
 export const MANDATORY_PLAYER_COUNT = 8;
@@ -22,11 +29,11 @@ export const teamRegistrationSchema = z.object({
   teamName: z.string().min(2, "Team name must be at least 2 characters").max(100),
   captainName: z.string().min(2).max(100),
   captainGender: z.enum(["MALE", "FEMALE", "OTHER"], { required_error: "Captain gender is required" }),
-  captainEmail: z.string().email("Captain email is required"),
+  captainEmail: alignEmail("captain email"),
   players: z.array(playerEntrySchema).min(3, "At least 3 additional players are required (4 total including captain)"),
   extraPlayers: z.array(extraPlayerSchema).max(2, "Maximum 2 extra players allowed").optional().default([]),
   comments: z.string().optional().default(""),
-  submitterEmail: z.string().email(),
+  submitterEmail: alignEmail("submitter email"),
   submitterName: z.string().min(1),
 }).refine((data) => {
   const allEmails = [
@@ -50,12 +57,12 @@ export const teamRegistrationSchema = z.object({
 
 export const individualRegistrationSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters").max(100),
-  email: z.string().email("Valid email is required"),
+  email: alignEmail(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]),
   preferredRole: z.array(z.string()).min(1, "Select at least one role").max(2, "Maximum 2 roles allowed"),
   experienceLevel: z.enum(["Beginner", "Intermediate", "Advanced"]),
   comments: z.string().optional().default(""),
-  submitterEmail: z.string().email(),
+  submitterEmail: alignEmail("submitter email"),
   submitterName: z.string().min(1),
 });
 

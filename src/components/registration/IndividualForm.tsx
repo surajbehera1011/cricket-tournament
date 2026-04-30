@@ -53,6 +53,10 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
       setError("Email is required");
       return;
     }
+    if (!form.email.trim().toLowerCase().endsWith("@aligntech.com")) {
+      setError("Only @aligntech.com emails are allowed");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -111,7 +115,7 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
             value={form.email}
             onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
             className="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
-            placeholder="your.email@company.com"
+            placeholder="name@aligntech.com"
           />
         </div>
       </div>

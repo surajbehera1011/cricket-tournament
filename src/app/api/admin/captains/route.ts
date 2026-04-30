@@ -10,8 +10,12 @@ import { jsonResponse } from "@/lib/api-utils";
 import { z } from "zod";
 import { sendCaptainCredentialsEmail } from "@/lib/email";
 
+const ALLOWED_DOMAIN = "@aligntech.com";
+
 const createCaptainSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().refine((e) => e.toLowerCase().endsWith(ALLOWED_DOMAIN), {
+    message: `Only ${ALLOWED_DOMAIN} emails are allowed`,
+  }),
   displayName: z.string().min(2).max(100),
   password: z.string().min(6, "Password must be at least 6 characters"),
   teamId: z.string().uuid().optional(),
@@ -19,7 +23,9 @@ const createCaptainSchema = z.object({
 
 const updateCaptainSchema = z.object({
   captainId: z.string().uuid(),
-  email: z.string().email().optional(),
+  email: z.string().email().refine((e) => e.toLowerCase().endsWith(ALLOWED_DOMAIN), {
+    message: `Only ${ALLOWED_DOMAIN} emails are allowed`,
+  }).optional(),
   displayName: z.string().min(2).max(100).optional(),
   password: z.string().min(6).optional(),
 });

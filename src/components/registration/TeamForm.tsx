@@ -113,6 +113,13 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       return;
     }
 
+    const DOMAIN = "@aligntech.com";
+
+    if (!captainEmail.toLowerCase().endsWith(DOMAIN)) {
+      setError(`Captain email must be an ${DOMAIN} address`);
+      return;
+    }
+
     const { validMandatory, validExtra } = getAllPlayers();
     const totalMandatory = 1 + validMandatory.length;
 
@@ -166,6 +173,12 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       ...validMandatory.map((p) => p.email.trim().toLowerCase()),
       ...validExtra.map((p) => p.email.trim().toLowerCase()),
     ];
+    for (const email of allEmails) {
+      if (!email.endsWith(DOMAIN)) {
+        setError(`All emails must be ${DOMAIN} addresses. Invalid: ${email}`);
+        return;
+      }
+    }
     const seen = new Set<string>();
     for (const email of allEmails) {
       if (seen.has(email)) {
@@ -241,6 +254,9 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
           <strong>Total max team size:</strong> {MANDATORY_PLAYER_COUNT + MAX_EXTRA_PLAYERS} players.
           Gender is mandatory for all players.
         </p>
+        <p>
+          <strong>Email:</strong> All player emails must be <strong>@aligntech.com</strong> addresses.
+        </p>
       </div>
 
       {/* Team Name */}
@@ -296,7 +312,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
               value={captainEmail}
               onChange={(e) => setCaptainEmail(e.target.value)}
               className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
-              placeholder="captain@company.com"
+              placeholder="captain@aligntech.com"
             />
           </div>
           <div>
@@ -376,7 +392,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
                   value={player.email}
                   onChange={(e) => updatePlayer(idx, "email", e.target.value)}
                   className="px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
-                  placeholder="Email *"
+                  placeholder="name@aligntech.com"
                 />
                 <select
                   value={player.gender}
@@ -457,7 +473,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
                       value={player.email}
                       onChange={(e) => updateExtraPlayer(idx, "email", e.target.value)}
                       className="px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100"
-                      placeholder="Email *"
+                      placeholder="name@aligntech.com"
                     />
                     <select
                       value={player.gender}
