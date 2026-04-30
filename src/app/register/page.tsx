@@ -70,7 +70,7 @@ function SuccessPanel({ success, onRegisterAnother }: { success: SuccessState; o
 function RegisterContent() {
   const searchParams = useSearchParams();
   const sportParam = searchParams.get("sport");
-  const initialSport: Sport = sportParam === "pickleball" ? "pickleball" : "cricket";
+  const initialSport: Sport = sportParam === "cricket" ? "cricket" : "pickleball";
 
   const [sport, setSport] = useState<Sport>(initialSport);
   const [cricketTab, setCricketTab] = useState<CricketTab>("team");
@@ -153,18 +153,6 @@ function RegisterContent() {
 
             <div className="flex gap-1 bg-dark-400/80 backdrop-blur-xl p-1.5 rounded-2xl mb-5 border border-white/[0.06] shadow-xl shadow-black/20">
               <button
-                onClick={() => setSport("cricket")}
-                className={cn(
-                  "flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
-                  sport === "cricket"
-                    ? "bg-pitch-500 text-white shadow-lg shadow-pitch-500/25"
-                    : "text-slate-400 hover:text-white hover:bg-white/[0.06]"
-                )}
-              >
-                <span className="text-lg">🏏</span>
-                Cricket
-              </button>
-              <button
                 onClick={() => setSport("pickleball")}
                 className={cn(
                   "flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
@@ -176,7 +164,27 @@ function RegisterContent() {
                 <span className="text-lg">🏓</span>
                 Pickleball
               </button>
+              <button
+                onClick={() => setSport("cricket")}
+                className={cn(
+                  "flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
+                  sport === "cricket"
+                    ? "bg-pitch-500 text-white shadow-lg shadow-pitch-500/25"
+                    : "text-slate-400 hover:text-white hover:bg-white/[0.06]"
+                )}
+              >
+                <span className="text-lg">🏏</span>
+                Cricket
+              </button>
             </div>
+
+            {sport === "pickleball" && (
+              <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
+                <CardContent className="py-8 px-6 sm:px-8">
+                  <PickleballForm onSuccess={handlePickleballSuccess} />
+                </CardContent>
+              </Card>
+            )}
 
             {sport === "cricket" && (
               <>
@@ -214,16 +222,8 @@ function RegisterContent() {
                       <IndividualForm onSuccess={handleCricketSuccess} />
                     )}
                   </CardContent>
-                </Card>
-              </>
-            )}
-
-            {sport === "pickleball" && (
-              <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
-                <CardContent className="py-8 px-6 sm:px-8">
-                  <PickleballForm onSuccess={handlePickleballSuccess} />
-                </CardContent>
               </Card>
+            </>
             )}
           </>
         )}

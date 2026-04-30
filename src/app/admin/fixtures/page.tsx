@@ -129,7 +129,7 @@ function DroppableMatchCard({
 export default function AdminFixturesPage() {
   const { data: session } = useSession();
   const { toast } = useToast();
-  const [sport, setSport] = useState<Sport>("CRICKET");
+  const [sport, setSport] = useState<Sport>("PICKLEBALL");
   const [fixture, setFixture] = useState<FixtureData | null>(null);
   const [teams, setTeams] = useState<TeamInfo[]>([]);
   const [pbRegs, setPbRegs] = useState<PbRegInfo[]>([]);
@@ -333,7 +333,7 @@ export default function AdminFixturesPage() {
 
       {/* Sport Toggle */}
       <div className="flex items-center gap-3 mb-6">
-        {(["CRICKET", "PICKLEBALL"] as Sport[]).map((s) => (
+        {(["PICKLEBALL", "CRICKET"] as Sport[]).map((s) => (
           <button
             key={s}
             onClick={() => setSport(s)}
