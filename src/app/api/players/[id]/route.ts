@@ -16,9 +16,10 @@ const updatePlayerSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -43,14 +44,14 @@ export async function PATCH(
         actorUserId: session.user.id,
         action: "APPROVE_INDIVIDUAL",
         entityType: "Player",
-        entityId: params.id,
+        entityId: id,
         before: { poolStatus: "PENDING_APPROVAL" },
         after: { poolStatus: "LOOKING_FOR_TEAM" },
       });
     }
 
     const player = await prisma.player.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     });
 
@@ -58,7 +59,7 @@ export async function PATCH(
       sendIndividualApprovedEmail(player.fullName, player.email);
     }
 
-    const membership = await prisma.teamMembership.findFirst({ where: { playerId: params.id } });
+    const membership = await prisma.teamMembership.findFirst({ where: { playerId: id } });
 
     return NextResponse.json({
       id: player.id,

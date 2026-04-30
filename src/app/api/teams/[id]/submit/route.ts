@@ -11,16 +11,17 @@ import { sendTeamSubmittedEmail } from "@/lib/email";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const team = await prisma.team.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         memberships: {
           include: { player: { select: { gender: true, email: true } } },

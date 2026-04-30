@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
 
 const CATEGORIES = [
@@ -23,38 +23,57 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
   const [player2Email, setPlayer2Email] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errorFields, setErrorFields] = useState<Set<string>>(new Set());
+  const [shakeKey, setShakeKey] = useState(0);
+  const errorRef = useRef<HTMLDivElement>(null);
 
   const selected = CATEGORIES.find((c) => c.value === category);
   const isDoubles = selected?.type === "doubles";
 
+  const DOMAIN = "@aligntech.com";
+
+  const showError = useCallback((msg: string, fields: string[] = []) => {
+    setError(msg);
+    setErrorFields(new Set(fields));
+    setShakeKey((k) => k + 1);
+    setTimeout(() => {
+      errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  }, []);
+
+  const isFieldError = (field: string) => errorFields.has(field);
+
+  const clearError = () => {
+    if (error) { setError(""); setErrorFields(new Set()); }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError(""); setErrorFields(new Set());
 
     if (!category) {
-      setError("Please select a category");
+      showError("Please select a category", ["category"]);
       return;
     }
     if (!player1Name.trim() || !player1Email.trim()) {
-      setError("Player 1 name and email are required");
+      showError("Player 1 name and email are required", [!player1Name.trim() ? "p1-name" : "p1-email"]);
       return;
     }
-    const DOMAIN = "@aligntech.com";
     if (!player1Email.trim().toLowerCase().endsWith(DOMAIN)) {
-      setError(`Only ${DOMAIN} emails are allowed`);
+      showError(`Only ${DOMAIN} emails are allowed`, ["p1-email"]);
       return;
     }
     if (isDoubles) {
       if (!player2Name.trim() || !player2Email.trim()) {
-        setError("Partner name and email are required for doubles");
+        showError("Partner name and email are required for doubles", [!player2Name.trim() ? "p2-name" : "p2-email"]);
         return;
       }
       if (!player2Email.trim().toLowerCase().endsWith(DOMAIN)) {
-        setError(`Partner email must be an ${DOMAIN} address`);
+        showError(`Partner email must be an ${DOMAIN} address`, ["p2-email"]);
         return;
       }
       if (player1Email.trim().toLowerCase() === player2Email.trim().toLowerCase()) {
-        setError("Both players cannot have the same email");
+        showError("Both players cannot have the same email", ["p1-email", "p2-email"]);
         return;
       }
     }
@@ -84,17 +103,24 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
       setPlayer2Email("");
       onSuccess(player1Email);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      showError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6" onChange={clearError}>
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">
-          {error}
+        <div
+          key={shakeKey}
+          ref={errorRef}
+          className="animate-shake bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl text-sm flex items-start gap-3"
+        >
+          <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>{error}</span>
         </div>
       )}
 
@@ -161,7 +187,7 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
                   required
                   value={player1Email}
                   onChange={(e) => setPlayer1Email(e.target.value)}
-                  className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100"
+                  className={`w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100 ${isFieldError("p1-email") ? "field-error" : "border-white/10"}`}
                   placeholder="name@aligntech.com"
                 />
               </div>
@@ -191,7 +217,7 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
                     required
                     value={player2Email}
                     onChange={(e) => setPlayer2Email(e.target.value)}
-                    className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-violet-400 focus:border-transparent bg-dark-500 text-slate-100"
+                    className={`w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-violet-400 focus:border-transparent bg-dark-500 text-slate-100 ${isFieldError("p2-email") ? "field-error" : "border-white/10"}`}
                     placeholder="partner@aligntech.com"
                   />
                 </div>
@@ -201,7 +227,7 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
         </>
       )}
 
-      <Button type="submit" loading={loading} size="lg" className="w-full">
+      <Button type="submit" loading={loading} size="lg" className={`w-full ${error ? "btn-error-pulse" : ""}`}>
         Register for Pickleball
       </Button>
     </form>

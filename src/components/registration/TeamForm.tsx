@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
 
 interface PlayerEntry {
@@ -47,6 +47,29 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
   const [extraPlayers, setExtraPlayers] = useState<PlayerEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errorFields, setErrorFields] = useState<Set<string>>(new Set());
+  const [shakeKey, setShakeKey] = useState(0);
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  const DOMAIN = "@aligntech.com";
+
+  const showError = useCallback((msg: string, fields: string[] = []) => {
+    setError(msg);
+    setErrorFields(new Set(fields));
+    setShakeKey((k) => k + 1);
+    setTimeout(() => {
+      errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  }, []);
+
+  const isFieldError = (field: string) => errorFields.has(field);
+
+  const clearError = () => {
+    if (error) {
+      setError("");
+      setErrorFields(new Set());
+    }
+  };
 
   const maxAdditionalMandatory = MANDATORY_PLAYER_COUNT - 1;
   const minAdditionalMandatory = MIN_PLAYERS_TO_REGISTER - 1;
@@ -103,20 +126,19 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setErrorFields(new Set());
 
     if (!captainGender) {
-      setError("Please select gender for the captain");
+      showError("Please select gender for the captain", ["captain-gender"]);
       return;
     }
     if (!captainEmail.trim()) {
-      setError("Captain email is required");
+      showError("Captain email is required", ["captain-email"]);
       return;
     }
 
-    const DOMAIN = "@aligntech.com";
-
     if (!captainEmail.toLowerCase().endsWith(DOMAIN)) {
-      setError(`Captain email must be an ${DOMAIN} address`);
+      showError(`Captain email must be an ${DOMAIN} address`, ["captain-email"]);
       return;
     }
 
@@ -124,38 +146,38 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
     const totalMandatory = 1 + validMandatory.length;
 
     if (totalMandatory < MIN_PLAYERS_TO_REGISTER) {
-      setError(`Minimum ${MIN_PLAYERS_TO_REGISTER} players required to register (including captain). You have ${totalMandatory}.`);
+      showError(`Minimum ${MIN_PLAYERS_TO_REGISTER} players required to register (including captain). You have ${totalMandatory}.`, ["players"]);
       return;
     }
 
     const mandatoryFemaleCount = [captainGender, ...validMandatory.map((p) => p.gender)].filter((g) => g === "FEMALE").length;
     if (mandatoryFemaleCount < 1) {
-      setError("At least 1 female player is required among the mandatory players (including captain).");
+      showError("At least 1 female player is required among the mandatory players (including captain).", ["players"]);
       return;
     }
 
     for (let i = 0; i < validMandatory.length; i++) {
       if (!validMandatory[i].gender) {
-        setError(`Please select gender for ${validMandatory[i].name || `Mandatory Player ${i + 2}`}`);
+        showError(`Please select gender for ${validMandatory[i].name || `Mandatory Player ${i + 2}`}`, [`player-${i}-gender`]);
         return;
       }
       if (!validMandatory[i].email.trim()) {
-        setError(`Please enter email for ${validMandatory[i].name || `Mandatory Player ${i + 2}`}`);
+        showError(`Please enter email for ${validMandatory[i].name || `Mandatory Player ${i + 2}`}`, [`player-${i}-email`]);
         return;
       }
     }
 
     for (let i = 0; i < validExtra.length; i++) {
       if (!validExtra[i].gender) {
-        setError(`Please select gender for extra player: ${validExtra[i].name || `Extra Player ${i + 1}`}`);
+        showError(`Please select gender for extra player: ${validExtra[i].name || `Extra Player ${i + 1}`}`, [`extra-${i}-gender`]);
         return;
       }
       if (validExtra[i].gender !== "MALE" && validExtra[i].gender !== "FEMALE") {
-        setError(`Extra players must be Male or Female only`);
+        showError(`Extra players must be Male or Female only`, [`extra-${i}-gender`]);
         return;
       }
       if (!validExtra[i].email.trim()) {
-        setError(`Please enter email for extra player: ${validExtra[i].name || `Extra Player ${i + 1}`}`);
+        showError(`Please enter email for extra player: ${validExtra[i].name || `Extra Player ${i + 1}`}`, [`extra-${i}-email`]);
         return;
       }
     }
@@ -163,7 +185,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
     if (validExtra.length > 0) {
       const extraMales = validExtra.filter((p) => p.gender === "MALE").length;
       if (extraMales > 1) {
-        setError("Extra players: only 1 male allowed (2 females is OK, but not 2 males)");
+        showError("Extra players: only 1 male allowed (2 females is OK, but not 2 males)", validExtra.map((_, i) => `extra-${i}-gender`));
         return;
       }
     }
@@ -173,16 +195,27 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       ...validMandatory.map((p) => p.email.trim().toLowerCase()),
       ...validExtra.map((p) => p.email.trim().toLowerCase()),
     ];
-    for (const email of allEmails) {
-      if (!email.endsWith(DOMAIN)) {
-        setError(`All emails must be ${DOMAIN} addresses. Invalid: ${email}`);
-        return;
+    const badFields: string[] = [];
+    for (let idx = 0; idx < allEmails.length; idx++) {
+      if (!allEmails[idx].endsWith(DOMAIN)) {
+        if (idx === 0) badFields.push("captain-email");
+        else if (idx <= validMandatory.length) badFields.push(`player-${idx - 1}-email`);
+        else badFields.push(`extra-${idx - 1 - validMandatory.length}-email`);
       }
     }
+    if (badFields.length > 0) {
+      showError(`All emails must be ${DOMAIN} addresses`, badFields);
+      return;
+    }
     const seen = new Set<string>();
-    for (const email of allEmails) {
+    for (let idx = 0; idx < allEmails.length; idx++) {
+      const email = allEmails[idx];
       if (seen.has(email)) {
-        setError(`Duplicate email found: ${email}. Each player must have a unique email.`);
+        const dupFields: string[] = [];
+        if (idx === 0) dupFields.push("captain-email");
+        else if (idx <= validMandatory.length) dupFields.push(`player-${idx - 1}-email`);
+        else dupFields.push(`extra-${idx - 1 - validMandatory.length}-email`);
+        showError(`Duplicate email found: ${email}. Each player must have a unique email.`, dupFields);
         return;
       }
       seen.add(email);
@@ -224,7 +257,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
       setExtraPlayers([]);
       onSuccess(captainEmail);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      showError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -234,10 +267,17 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
   const totalCount = totalMandatoryCount + extraPlayers.length;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6" onChange={clearError}>
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">
-          {error}
+        <div
+          key={shakeKey}
+          ref={errorRef}
+          className="animate-shake bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl text-sm flex items-start gap-3"
+        >
+          <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>{error}</span>
         </div>
       )}
 
@@ -311,7 +351,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
               required
               value={captainEmail}
               onChange={(e) => setCaptainEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
+              className={`w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100 ${isFieldError("captain-email") ? "field-error" : "border-white/10"}`}
               placeholder="captain@aligntech.com"
             />
           </div>
@@ -322,7 +362,9 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
               onChange={(e) => setCaptainGender(e.target.value)}
               required
               className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100 ${
-                captainGender === "FEMALE"
+                isFieldError("captain-gender")
+                  ? "field-error"
+                  : captainGender === "FEMALE"
                   ? "border-pink-500/30"
                   : "border-white/10"
               }`}
@@ -391,14 +433,16 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
                   type="email"
                   value={player.email}
                   onChange={(e) => updatePlayer(idx, "email", e.target.value)}
-                  className="px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
+                  className={`px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100 ${isFieldError(`player-${idx}-email`) ? "field-error" : "border-white/10"}`}
                   placeholder="name@aligntech.com"
                 />
                 <select
                   value={player.gender}
                   onChange={(e) => updatePlayer(idx, "gender", e.target.value)}
                   className={`px-2 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100 ${
-                    player.gender === "FEMALE"
+                    isFieldError(`player-${idx}-gender`)
+                      ? "field-error"
+                      : player.gender === "FEMALE"
                       ? "border-pink-500/30"
                       : "border-white/10"
                   }`}
@@ -472,14 +516,16 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
                       type="email"
                       value={player.email}
                       onChange={(e) => updateExtraPlayer(idx, "email", e.target.value)}
-                      className="px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100"
+                      className={`px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100 ${isFieldError(`extra-${idx}-email`) ? "field-error" : "border-white/10"}`}
                       placeholder="name@aligntech.com"
                     />
                     <select
                       value={player.gender}
                       onChange={(e) => updateExtraPlayer(idx, "gender", e.target.value)}
                       className={`px-2 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100 ${
-                        player.gender === "FEMALE"
+                        isFieldError(`extra-${idx}-gender`)
+                          ? "field-error"
+                          : player.gender === "FEMALE"
                           ? "border-pink-500/30"
                           : "border-white/10"
                       }`}
@@ -519,7 +565,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
         />
       </div>
 
-      <Button type="submit" loading={loading} size="lg" className="w-full">
+      <Button type="submit" loading={loading} size="lg" className={`w-full ${error ? "btn-error-pulse" : ""}`}>
         Register Team
       </Button>
     </form>

@@ -8,11 +8,12 @@ import { jsonResponse } from "@/lib/api-utils";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const team = await prisma.team.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         captain: { select: { id: true, displayName: true, email: true } },
         memberships: {
