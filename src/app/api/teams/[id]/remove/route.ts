@@ -9,10 +9,11 @@ import { removePlayerFromTeam, AuthorizationError, BusinessError } from "@/lib/b
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: { id: string } | Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const resolvedParams = await Promise.resolve(context.params);
+    const id = resolvedParams.id;
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
