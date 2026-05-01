@@ -63,12 +63,6 @@ export async function GET() {
 
     const allFiltered = [...filteredLive, ...filteredRecent, ...filteredUpcoming];
 
-    const matchIds = [
-      ...liveMatches,
-      ...allRecent,
-      ...upcoming,
-    ];
-
     const teamIds = new Set<string>();
     const entryIds = new Set<string>();
     for (const m of allFiltered) {
