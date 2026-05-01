@@ -24,7 +24,7 @@ interface PlayerProfile {
   }[];
 }
 
-const genderLabel: Record<string, string> = { MALE: "Male", FEMALE: "Female", OTHER: "Other" };
+const genderLabel: Record<string, string> = { MALE: "Male", FEMALE: "Female" };
 const poolLabel: Record<string, { text: string; variant: "success" | "warning" | "info" | "danger" | "default" }> = {
   LOOKING_FOR_TEAM: { text: "Looking for Team", variant: "info" },
   ASSIGNED: { text: "Assigned", variant: "success" },
@@ -86,7 +86,6 @@ export default function PlayerProfilePage() {
 
   const genderColor =
     player.gender === "FEMALE" ? "from-pink-500 to-rose-500" :
-    player.gender === "OTHER" ? "from-violet-500 to-purple-500" :
     "from-sky-500 to-blue-500";
 
   const ps = poolLabel[player.poolStatus] || poolLabel.NONE;

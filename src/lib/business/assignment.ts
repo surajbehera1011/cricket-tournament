@@ -90,7 +90,12 @@ export async function assignPlayerToTeam(
     if (player.gender === "MALE" && extraMales >= 1) {
       throw new BusinessError("Extra slots can have at most 1 male. This player is male and there is already 1 male in extra.");
     }
-    positionSlot = `Extra ${currentExtra.length + 1}`;
+    const usedExtraNums = currentExtra
+      .map((m) => parseInt(m.positionSlot?.replace("Extra ", "") || "0", 10))
+      .filter((n) => !isNaN(n));
+    let nextExtra = 1;
+    while (usedExtraNums.includes(nextExtra)) nextExtra++;
+    positionSlot = `Extra ${nextExtra}`;
   }
 
   const otherMembership = await prisma.teamMembership.findFirst({

@@ -112,7 +112,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
 
   const addPlayer = () => {
     if (players.length < maxAdditionalMandatory) {
-      setPlayers((prev) => [{ name: "", gender: "", email: "" }, ...prev]);
+      setPlayers((prev) => [...prev, { name: "", gender: "", email: "" }]);
     }
   };
 
@@ -403,7 +403,6 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
               <option value="">Select gender</option>
               <option value="MALE">Male</option>
               <option value="FEMALE">Female</option>
-              <option value="OTHER">Other</option>
             </select>
           </div>
         </div>
@@ -481,7 +480,6 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
                   <option value="">Gender *</option>
                   <option value="MALE">Male</option>
                   <option value="FEMALE">Female</option>
-                  <option value="OTHER">Other</option>
                 </select>
               </div>
               {players.length > minAdditionalMandatory && (

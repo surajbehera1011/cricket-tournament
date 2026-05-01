@@ -6,7 +6,7 @@ import { useFormAutosave } from "@/lib/useFormAutosave";
 
 const ROLES = ["Batsman", "Bowler", "All-Rounder", "Wicket Keeper"];
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
-const GENDERS = ["MALE", "FEMALE", "OTHER"] as const;
+const GENDERS = ["MALE", "FEMALE"] as const;
 
 interface IndividualFormProps {
   onSuccess: (email: string) => void;

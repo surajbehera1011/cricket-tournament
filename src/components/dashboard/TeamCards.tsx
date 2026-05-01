@@ -39,12 +39,10 @@ function GenderBadge({ gender }: { gender?: string }) {
   const styles =
     gender === "FEMALE"
       ? "bg-pink-500/10 text-pink-400 border-pink-500/20"
-      : gender === "OTHER"
-      ? "bg-violet-500/10 text-violet-400 border-violet-500/20"
       : "bg-sky-500/10 text-sky-400 border-sky-500/20";
   return (
     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${styles}`}>
-      {gender === "FEMALE" ? "F" : gender === "OTHER" ? "O" : "M"}
+      {gender === "FEMALE" ? "F" : "M"}
     </span>
   );
 }
@@ -60,8 +58,8 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function PlayerProfile({ player, onClose }: { player: Player; onClose: () => void }) {
-  const genderLabel = player.gender === "FEMALE" ? "Female" : player.gender === "OTHER" ? "Other" : "Male";
-  const genderColor = player.gender === "FEMALE" ? "text-pink-400 bg-pink-500/10" : player.gender === "OTHER" ? "text-violet-400 bg-violet-500/10" : "text-sky-400 bg-sky-500/10";
+  const genderLabel = player.gender === "FEMALE" ? "Female" : "Male";
+  const genderColor = player.gender === "FEMALE" ? "text-pink-400 bg-pink-500/10" : "text-sky-400 bg-sky-500/10";
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={onClose}>
@@ -114,7 +112,6 @@ function TeamModal({ team, onClose }: { team: Team; onClose: () => void }) {
   const [profilePlayer, setProfilePlayer] = useState<Player | null>(null);
   const maleCount = team.players.filter((p) => p.gender === "MALE").length;
   const femaleCount = team.players.filter((p) => p.gender === "FEMALE").length;
-  const otherCount = team.players.filter((p) => p.gender === "OTHER").length;
   const pct = Math.round((team.memberCount / team.teamSize) * 100);
 
   return (
@@ -192,7 +189,7 @@ function TeamModal({ team, onClose }: { team: Team; onClose: () => void }) {
             </div>
             <div className="bg-amber-500/10 rounded-xl p-3 text-center border border-amber-500/15">
               <p className="text-xl font-extrabold text-amber-400">{team.slotsRemaining}</p>
-              <p className="text-[10px] text-amber-500 font-semibold uppercase tracking-wider">{otherCount > 0 ? `Open (${otherCount} Other)` : "Open Slots"}</p>
+              <p className="text-[10px] text-amber-500 font-semibold uppercase tracking-wider">Open Slots</p>
             </div>
           </div>
         </div>

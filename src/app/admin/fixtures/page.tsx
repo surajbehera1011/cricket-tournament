@@ -39,6 +39,7 @@ interface FixtureData {
   sport: string;
   status: string;
   groupCount: number;
+  frozenCategories?: string[];
   matches: MatchData[];
 }
 
@@ -192,18 +193,27 @@ export default function AdminFixturesPage() {
     }
   };
 
-  const toggleFreeze = async () => {
+  const toggleFreeze = async (category?: string) => {
     if (!fixture) return;
-    const action = fixture.status === "FROZEN" ? "unfreeze" : "freeze";
+    const isCricket = sport === "CRICKET";
+
+    let action: string;
+    if (isCricket) {
+      action = fixture.status === "FROZEN" ? "unfreeze" : "freeze";
+    } else {
+      const frozen = fixture.frozenCategories || [];
+      action = category && frozen.includes(category) ? "unfreeze" : "freeze";
+    }
+
     try {
       const res = await fetch("/api/admin/fixtures/freeze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sport, action }),
+        body: JSON.stringify({ sport, action, category }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast(`Fixture ${action}d`, "success");
+      toast(`${category || "Fixture"} ${action}d`, "success");
       fetchFixture();
     } catch (err) {
       toast(err instanceof Error ? err.message : "Failed", "error");
@@ -408,9 +418,9 @@ export default function AdminFixturesPage() {
           >
             {generating ? "Generating..." : fixture ? "Regenerate" : "Generate Fixtures"}
           </button>
-          {fixture && (
+          {fixture && sport === "CRICKET" && (
             <button
-              onClick={toggleFreeze}
+              onClick={() => toggleFreeze()}
               className={`px-5 py-2 rounded-lg text-sm font-bold transition-colors ${
                 fixture.status === "FROZEN"
                   ? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30"
@@ -420,7 +430,27 @@ export default function AdminFixturesPage() {
               {fixture.status === "FROZEN" ? "Unfreeze" : "Freeze"}
             </button>
           )}
-          {fixture && (
+          {fixture && sport === "PICKLEBALL" && (
+            <div className="flex flex-wrap gap-1.5">
+              {PB_CATS.map((cat) => {
+                const frozen = (fixture.frozenCategories || []).includes(cat);
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => toggleFreeze(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors ${
+                      frozen
+                        ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+                        : "bg-slate-500/10 text-slate-500 border border-white/[0.06] hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    {frozen ? "🔒" : "🔓"} {PB_CAT_LABELS[cat]?.split(" ")[0]?.slice(0, 1)}{PB_CAT_LABELS[cat]?.split(" ")[1]?.charAt(0) || ""}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {fixture && sport === "CRICKET" && (
             <span className={`text-xs font-bold px-3 py-1 rounded-full ${
               fixture.status === "FROZEN"
                 ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
@@ -429,10 +459,15 @@ export default function AdminFixturesPage() {
               {fixture.status} &middot; {matches.length} matches
             </span>
           )}
+          {fixture && sport === "PICKLEBALL" && (
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-500/10 text-slate-400 border border-slate-500/20">
+              {(fixture.frozenCategories || []).length}/5 frozen &middot; {matches.length} matches
+            </span>
+          )}
         </div>
 
         {/* Bulk Schedule */}
-        {fixture?.status === "FROZEN" && (
+        {(fixture?.status === "FROZEN" || (fixture?.frozenCategories || []).length > 0) && (
           <div className="flex flex-wrap items-end gap-3 pt-3 border-t border-white/[0.06]">
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">Bulk Date/Time</label>
@@ -540,12 +575,18 @@ export default function AdminFixturesPage() {
           {sport === "PICKLEBALL" &&
             pbCategories.map((cat) => {
               const catMatches = matches.filter((m) => m.category === cat);
+              const catFrozen = (fixture.frozenCategories || []).includes(cat!);
               return (
                 <div key={cat} className="mb-8">
-                  <h2 className="text-lg font-bold text-white mb-3">
-                    {PB_CAT_LABELS[cat!] ?? cat}
-                    <span className="text-xs text-slate-500 ml-2">{catMatches.length} matches</span>
-                  </h2>
+                  <div className="flex items-center gap-3 mb-3">
+                    <h2 className="text-lg font-bold text-white">
+                      {PB_CAT_LABELS[cat!] ?? cat}
+                      <span className="text-xs text-slate-500 ml-2">{catMatches.length} matches</span>
+                    </h2>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${catFrozen ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/20" : "bg-slate-500/10 text-slate-500 border border-white/[0.06]"}`}>
+                      {catFrozen ? "FROZEN" : "DRAFT"}
+                    </span>
+                  </div>
                   <BracketView
                     matches={catMatches}
                     sport={sport}
@@ -553,7 +594,7 @@ export default function AdminFixturesPage() {
                     slotColor={slotColor}
                     slotId={slotId}
                     isTBD={isTBD}
-                    isFrozen={fixture.status === "FROZEN"}
+                    isFrozen={catFrozen}
                     onSchedule={scheduleMatch}
                     onRecordScore={recordScore}
                     onToggleLive={toggleLive}

@@ -56,6 +56,8 @@ export async function autoRegenerateCricketFixture() {
           team2Id: m.team2Id ?? null,
           entry1Id: m.entry1Id ?? null,
           entry2Id: m.entry2Id ?? null,
+          winnerId: m.winnerId ?? null,
+          status: m.status ?? "SCHEDULED",
         })),
       });
     }
@@ -78,6 +80,7 @@ export async function autoRegeneratePickleballFixture() {
       where: { sport: "PICKLEBALL" },
     });
     if (!fixture || fixture.status === "FROZEN") return;
+    if ((fixture.frozenCategories || []).length > 0) return;
 
     const regs = await prisma.pickleballRegistration.findMany({
       where: { status: "APPROVED" },
@@ -115,6 +118,8 @@ export async function autoRegeneratePickleballFixture() {
           team2Id: m.team2Id ?? null,
           entry1Id: m.entry1Id ?? null,
           entry2Id: m.entry2Id ?? null,
+          winnerId: m.winnerId ?? null,
+          status: m.status ?? "SCHEDULED",
         })),
       });
     }

@@ -89,6 +89,8 @@ export async function POST(request: NextRequest) {
             team2Id: m.team2Id ?? null,
             entry1Id: m.entry1Id ?? null,
             entry2Id: m.entry2Id ?? null,
+            winnerId: m.winnerId ?? null,
+            status: m.status ?? "SCHEDULED",
           })),
         });
       }
@@ -109,6 +111,8 @@ export async function POST(request: NextRequest) {
               team2Id: m.team2Id ?? null,
               entry1Id: m.entry1Id ?? null,
               entry2Id: m.entry2Id ?? null,
+              winnerId: m.winnerId ?? null,
+              status: m.status ?? "SCHEDULED",
             })),
           },
         },

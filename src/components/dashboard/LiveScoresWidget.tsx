@@ -176,7 +176,7 @@ export function LiveScoresWidget() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="fixed bottom-4 right-4 z-40 w-80 max-h-[70vh] flex flex-col"
+      className="fixed bottom-4 right-4 z-[9999] w-80 max-h-[70vh] flex flex-col drop-shadow-2xl"
     >
       {/* Header */}
       <button

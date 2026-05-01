@@ -77,14 +77,12 @@ function GenderSelect({
   const bgColor =
     currentGender === "FEMALE"
       ? "bg-pink-500/10 border-pink-500/30 text-pink-400"
-      : currentGender === "OTHER"
-      ? "bg-violet-500/10 border-violet-500/30 text-violet-400"
       : "bg-sky-500/10 border-sky-500/30 text-sky-400";
 
   if (!isAdmin) {
     return (
       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${bgColor}`}>
-        {currentGender === "FEMALE" ? "F" : currentGender === "OTHER" ? "O" : "M"}
+        {currentGender === "FEMALE" ? "F" : "M"}
       </span>
     );
   }
@@ -98,7 +96,6 @@ function GenderSelect({
     >
       <option value="MALE">M</option>
       <option value="FEMALE">F</option>
-      <option value="OTHER">O</option>
     </select>
   );
 }

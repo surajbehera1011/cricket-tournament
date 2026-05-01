@@ -70,10 +70,19 @@ export async function POST(
       reasons.push(`Maximum ${maxAllowed} players allowed (${mandatoryCount} mandatory + ${extraLimit} extra), have ${memberCount}`);
     }
 
-    if (memberCount > mandatoryCount) {
-      const extraMembers = team.memberships.slice(mandatoryCount);
+    const extraMembers = team.memberships.filter((m) => m.positionSlot?.startsWith("Extra"));
+    const mandatoryMembers = team.memberships.filter((m) => !m.positionSlot?.startsWith("Extra"));
+
+    if (mandatoryMembers.length >= mandatoryCount && extraMembers.length > 0) {
       const extraMales = extraMembers.filter((m) => m.player.gender === "MALE").length;
       if (extraMales > 1) reasons.push(`Extra players can have at most 1 male (have ${extraMales})`);
+    } else if (memberCount > mandatoryCount) {
+      const sorted = [...team.memberships].sort((a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      const overflow = sorted.slice(mandatoryCount);
+      const overflowMales = overflow.filter((m) => m.player.gender === "MALE").length;
+      if (overflowMales > 1) reasons.push(`Extra players can have at most 1 male (have ${overflowMales})`);
     }
 
     if (reasons.length > 0) {

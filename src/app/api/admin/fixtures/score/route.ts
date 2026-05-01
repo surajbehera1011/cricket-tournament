@@ -29,11 +29,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    if (match.fixture.status !== "FROZEN") {
+    if (match.fixture.sport === "CRICKET" && match.fixture.status !== "FROZEN") {
       return NextResponse.json(
-        { error: "Fixture must be frozen to record scores" },
+        { error: "Cricket fixture must be frozen to record scores" },
         { status: 400 }
       );
+    }
+
+    if (match.fixture.sport === "PICKLEBALL") {
+      const frozen = match.fixture.frozenCategories || [];
+      if (!match.category || !frozen.includes(match.category)) {
+        return NextResponse.json(
+          { error: `Category ${match.category || "unknown"} is not frozen. Freeze it first to record scores.` },
+          { status: 400 }
+        );
+      }
     }
 
     const participant1 = match.team1Id || match.entry1Id;

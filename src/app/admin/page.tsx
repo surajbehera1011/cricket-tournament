@@ -484,7 +484,7 @@ export default function AdminPage() {
                             <p className="font-medium text-slate-200">{player.fullName}</p>
                             <div className="flex gap-1 mt-1">
                               <Badge variant={player.gender === "FEMALE" ? "danger" : "info"} className="text-[10px]">
-                                {player.gender === "FEMALE" ? "F" : player.gender === "OTHER" ? "O" : "M"}
+                                {player.gender === "FEMALE" ? "F" : "M"}
                               </Badge>
                               <Badge variant="info" className="text-[10px]">{player.preferredRole}</Badge>
                               <Badge variant="default" className="text-[10px]">{player.experienceLevel}</Badge>

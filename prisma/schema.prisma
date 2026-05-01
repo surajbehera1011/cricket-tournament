@@ -64,7 +64,6 @@ enum AuditAction {
 enum Gender {
   MALE
   FEMALE
-  OTHER
 }
 
 enum PickleballCategory {
@@ -242,13 +241,14 @@ model PickleballRegistration {
 }
 
 model Fixture {
-  id         String        @id @default(uuid())
-  sport      FixtureSport
-  status     FixtureStatus @default(DRAFT)
-  groupCount Int           @default(4)
-  frozenAt   DateTime?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id               String        @id @default(uuid())
+  sport            FixtureSport
+  status           FixtureStatus @default(DRAFT)
+  groupCount       Int           @default(4)
+  frozenAt         DateTime?
+  frozenCategories String[]      @default([])
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   matches Match[]
 

@@ -5,39 +5,73 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const fixtures = await prisma.fixture.findMany({
+      select: { id: true, sport: true, status: true, frozenCategories: true },
+    });
+
+    const cricketFixture = fixtures.find((f) => f.sport === "CRICKET" && f.status === "FROZEN");
+    const pbFixture = fixtures.find((f) => f.sport === "PICKLEBALL");
+    const frozenPbCats = pbFixture?.frozenCategories || [];
+
+    const frozenFixtureIds: string[] = [];
+    if (cricketFixture) frozenFixtureIds.push(cricketFixture.id);
+    if (pbFixture && frozenPbCats.length > 0) frozenFixtureIds.push(pbFixture.id);
+
+    if (frozenFixtureIds.length === 0) {
+      return NextResponse.json({ live: [], recent: [], upcoming: [] });
+    }
+
     const liveMatches = await prisma.match.findMany({
-      where: { status: "LIVE" },
+      where: { status: "LIVE", fixtureId: { in: frozenFixtureIds } },
       orderBy: { matchNumber: "asc" },
       take: 20,
     });
 
-    const recentCompleted = await prisma.match.findMany({
-      where: { status: "COMPLETED" },
+    const completedMatches = await prisma.match.findMany({
+      where: {
+        status: "COMPLETED",
+        fixtureId: { in: frozenFixtureIds },
+        winnerId: { not: null },
+      },
       orderBy: { updatedAt: "desc" },
-      take: 5,
+      take: 20,
     });
 
-    const upcoming = await prisma.match.findMany({
+    const upcomingMatches = await prisma.match.findMany({
       where: {
         status: "SCHEDULED",
+        fixtureId: { in: frozenFixtureIds },
         OR: [
           { team1Id: { not: null }, team2Id: { not: null } },
           { entry1Id: { not: null }, entry2Id: { not: null } },
         ],
       },
       orderBy: { matchNumber: "asc" },
-      take: 5,
+      take: 20,
     });
+
+    const isCatFrozen = (m: { sport: string; category: string | null }) => {
+      if (m.sport === "CRICKET") return !!cricketFixture;
+      return m.category ? frozenPbCats.includes(m.category) : false;
+    };
+    const isNotBye = (m: { entry1Id: string | null; entry2Id: string | null; team1Id: string | null; team2Id: string | null }) =>
+      (m.entry1Id && m.entry2Id) || (m.team1Id && m.team2Id);
+
+    const filteredLive = liveMatches.filter(isCatFrozen);
+    const filteredRecent = completedMatches.filter((m) => isCatFrozen(m) && isNotBye(m)).slice(0, 3);
+    const filteredUpcoming = upcomingMatches.filter(isCatFrozen).slice(0, 3);
+
+    const allFiltered = [...filteredLive, ...filteredRecent, ...filteredUpcoming];
 
     const matchIds = [
       ...liveMatches,
-      ...recentCompleted,
+      ...allRecent,
       ...upcoming,
     ];
 
     const teamIds = new Set<string>();
     const entryIds = new Set<string>();
-    for (const m of matchIds) {
+    for (const m of allFiltered) {
       if (m.team1Id && !m.team1Id.startsWith("WINNER_")) teamIds.add(m.team1Id);
       if (m.team2Id && !m.team2Id.startsWith("WINNER_")) teamIds.add(m.team2Id);
       if (m.entry1Id && !m.entry1Id.startsWith("WINNER_")) entryIds.add(m.entry1Id);
@@ -89,9 +123,9 @@ export async function GET() {
       }));
 
     return NextResponse.json({
-      live: format(liveMatches),
-      recent: format(recentCompleted),
-      upcoming: format(upcoming),
+      live: format(filteredLive),
+      recent: format(filteredRecent),
+      upcoming: format(filteredUpcoming),
     });
   } catch (err) {
     console.error("[matches/live GET]", err);

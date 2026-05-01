@@ -3,13 +3,14 @@ import { z } from "zod";
 const ALLOWED_DOMAIN = "@aligntech.com";
 const alignEmail = (label = "email") =>
   z.string().email(`Valid ${label} is required`)
-    .refine((e) => e.toLowerCase().endsWith(ALLOWED_DOMAIN), {
+    .transform((e) => e.toLowerCase())
+    .refine((e) => e.endsWith(ALLOWED_DOMAIN), {
       message: `Only ${ALLOWED_DOMAIN} emails are allowed`,
     });
 
 const playerEntrySchema = z.object({
   name: z.string().min(1, "Player name is required"),
-  gender: z.enum(["MALE", "FEMALE", "OTHER"], { required_error: "Gender is required" }),
+  gender: z.enum(["MALE", "FEMALE"], { required_error: "Gender is required" }),
   email: alignEmail(),
 });
 
@@ -28,7 +29,7 @@ export const MAX_TEAM_SIZE = 10;
 export const teamRegistrationSchema = z.object({
   teamName: z.string().min(2, "Team name must be at least 2 characters").max(100),
   captainName: z.string().min(2).max(100),
-  captainGender: z.enum(["MALE", "FEMALE", "OTHER"], { required_error: "Captain gender is required" }),
+  captainGender: z.enum(["MALE", "FEMALE"], { required_error: "Captain gender is required" }),
   captainEmail: alignEmail("captain email"),
   players: z.array(playerEntrySchema).min(3, "At least 3 additional players are required (4 total including captain)"),
   extraPlayers: z.array(extraPlayerSchema).max(2, "Maximum 2 extra players allowed").optional().default([]),
@@ -58,7 +59,7 @@ export const teamRegistrationSchema = z.object({
 export const individualRegistrationSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters").max(100),
   email: alignEmail(),
-  gender: z.enum(["MALE", "FEMALE", "OTHER"]),
+  gender: z.enum(["MALE", "FEMALE"]),
   preferredRole: z.array(z.string()).min(1, "Select at least one role").max(2, "Maximum 2 roles allowed"),
   experienceLevel: z.enum(["Beginner", "Intermediate", "Advanced"]),
   comments: z.string().optional().default(""),

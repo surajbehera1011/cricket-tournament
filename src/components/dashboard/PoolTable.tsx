@@ -22,10 +22,8 @@ function GenderBadge({ gender }: { gender?: string }) {
   const styles =
     gender === "FEMALE"
       ? "bg-pink-500/10 text-pink-400 border-pink-500/20"
-      : gender === "OTHER"
-      ? "bg-violet-500/10 text-violet-400 border-violet-500/20"
       : "bg-sky-500/10 text-sky-400 border-sky-500/20";
-  const label = gender === "FEMALE" ? "Female" : gender === "OTHER" ? "Other" : "Male";
+  const label = gender === "FEMALE" ? "Female" : "Male";
   return (
     <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${styles}`}>
       {label}

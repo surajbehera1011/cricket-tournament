@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { sport, action } = await request.json();
+    const { sport, action, category } = await request.json();
     const sportUpper = (sport || "").toUpperCase();
     if (!["CRICKET", "PICKLEBALL"].includes(sportUpper)) {
       return NextResponse.json({ error: "Invalid sport" }, { status: 400 });
@@ -29,18 +29,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (sportUpper === "CRICKET") {
+      if (action === "freeze") {
+        await prisma.fixture.update({
+          where: { id: fixture.id },
+          data: { status: "FROZEN", frozenAt: new Date() },
+        });
+        return NextResponse.json({ message: "Cricket fixture frozen", status: "FROZEN" });
+      } else {
+        await prisma.fixture.update({
+          where: { id: fixture.id },
+          data: { status: "DRAFT", frozenAt: null },
+        });
+        return NextResponse.json({ message: "Cricket fixture unfrozen", status: "DRAFT" });
+      }
+    }
+
+    if (!category) {
+      return NextResponse.json({ error: "Category required for pickleball" }, { status: 400 });
+    }
+
+    const cats = fixture.frozenCategories || [];
     if (action === "freeze") {
-      await prisma.fixture.update({
-        where: { id: fixture.id },
-        data: { status: "FROZEN", frozenAt: new Date() },
+      if (!cats.includes(category)) {
+        const updated = [...cats, category];
+        const allFrozen = updated.length >= 5;
+        await prisma.fixture.update({
+          where: { id: fixture.id },
+          data: {
+            frozenCategories: updated,
+            status: allFrozen ? "FROZEN" : fixture.status,
+            frozenAt: allFrozen ? new Date() : fixture.frozenAt,
+          },
+        });
+      }
+      return NextResponse.json({
+        message: `${category} frozen`,
+        frozenCategories: [...new Set([...cats, category])],
       });
-      return NextResponse.json({ message: "Fixture frozen", status: "FROZEN" });
     } else {
+      const updated = cats.filter((c: string) => c !== category);
       await prisma.fixture.update({
         where: { id: fixture.id },
-        data: { status: "DRAFT", frozenAt: null },
+        data: {
+          frozenCategories: updated,
+          status: updated.length === 0 ? "DRAFT" : fixture.status,
+        },
       });
-      return NextResponse.json({ message: "Fixture unfrozen", status: "DRAFT" });
+      return NextResponse.json({
+        message: `${category} unfrozen`,
+        frozenCategories: updated,
+      });
     }
   } catch (err) {
     console.error("[admin/fixtures/freeze POST]", err);

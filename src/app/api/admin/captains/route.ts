@@ -8,13 +8,13 @@ import { UserRole, TeamStatus } from "@prisma/client";
 import { createAuditLog } from "@/lib/business/audit";
 import { jsonResponse } from "@/lib/api-utils";
 import { z } from "zod";
-import { sendCaptainCredentialsEmail } from "@/lib/email";
+import { sendCaptainCredentialsEmail, sendCaptainCredentialsUpdatedEmail } from "@/lib/email";
 import { notifyAllAdmins } from "@/lib/notifications";
 
 const ALLOWED_DOMAIN = "@aligntech.com";
 
 const createCaptainSchema = z.object({
-  email: z.string().email().refine((e) => e.toLowerCase().endsWith(ALLOWED_DOMAIN), {
+  email: z.string().email().transform((e) => e.toLowerCase()).refine((e) => e.endsWith(ALLOWED_DOMAIN), {
     message: `Only ${ALLOWED_DOMAIN} emails are allowed`,
   }),
   displayName: z.string().min(2).max(100),
@@ -24,7 +24,7 @@ const createCaptainSchema = z.object({
 
 const updateCaptainSchema = z.object({
   captainId: z.string().uuid(),
-  email: z.string().email().refine((e) => e.toLowerCase().endsWith(ALLOWED_DOMAIN), {
+  email: z.string().email().transform((e) => e.toLowerCase()).refine((e) => e.endsWith(ALLOWED_DOMAIN), {
     message: `Only ${ALLOWED_DOMAIN} emails are allowed`,
   }).optional(),
   displayName: z.string().min(2).max(100).optional(),
@@ -212,6 +212,16 @@ export async function PATCH(request: NextRequest) {
       entityId: updated.id,
       after: { email: updated.email, displayName: updated.displayName, passwordChanged: !!parsed.data.password },
     });
+
+    const emailChanged = !!parsed.data.email && parsed.data.email !== captain.email;
+    const passwordChanged = !!parsed.data.password;
+    if (emailChanged || passwordChanged) {
+      sendCaptainCredentialsUpdatedEmail(
+        updated.email,
+        updated.displayName,
+        { emailChanged, passwordChanged, newPassword: parsed.data.password }
+      );
+    }
 
     return NextResponse.json({ id: updated.id, email: updated.email, displayName: updated.displayName });
   } catch (error) {

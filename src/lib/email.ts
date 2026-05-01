@@ -68,7 +68,13 @@ async function sendEmail(to: string | string[], subject: string, html: string) {
 // HTML Template
 // ──────────────────────────────────────────────────
 
-function wrap(title: string, accentColor: string, body: string) {
+function wrap(title: string, accentColor: string, body: string, sport?: "cricket" | "pickleball") {
+  const sportBadge = sport === "cricket"
+    ? `<span style="display:inline-block;background:#16a34a20;color:#22c55e;font-size:11px;font-weight:800;padding:4px 12px;border-radius:6px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">&#127951; Cricket</span><br/>`
+    : sport === "pickleball"
+    ? `<span style="display:inline-block;background:#ec489920;color:#ec4899;font-size:11px;font-weight:800;padding:4px 12px;border-radius:6px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">&#127955; Pickleball</span><br/>`
+    : "";
+
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
 <body style="margin:0;padding:0;background:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
@@ -91,6 +97,7 @@ function wrap(title: string, accentColor: string, body: string) {
 
     <!-- Title -->
     <tr><td style="padding:28px 32px 20px;">
+      ${sportBadge}
       <h2 style="margin:0;font-size:20px;font-weight:800;color:#ffffff;line-height:1.3;">${title}</h2>
     </td></tr>
 
@@ -187,7 +194,7 @@ export function sendTeamSubmittedEmail(
     ${para("You can still make roster changes until the admin approves and freezes the team.")}
     ${btn("View Your Team", `${APP_URL}/manage`, "#8b5cf6")}`;
 
-  sendEmail(allEmails, `Team Submitted — ${teamName}`, wrap(title, "#8b5cf6", body));
+  sendEmail(allEmails, `[Cricket] Team Submitted — ${teamName}`, wrap(title, "#8b5cf6", body, "cricket"));
 }
 
 // ──────────────────────────────────────────────────
@@ -213,7 +220,7 @@ export function sendTeamRegistrationConfirmation(
     ${para("While you wait, you can check your registration status anytime:")}
     ${btn("Check Registration Status", `${APP_URL}/status`, "#3b82f6")}`;
 
-  sendEmail(allEmails, `Registration Received — ${teamName}`, wrap(title, "#3b82f6", body));
+  sendEmail(allEmails, `[Cricket] Registration Received — ${teamName}`, wrap(title, "#3b82f6", body, "cricket"));
 }
 
 export function sendIndividualRegistrationConfirmation(
@@ -231,7 +238,7 @@ export function sendIndividualRegistrationConfirmation(
     ])}
     ${btn("Check Your Status", `${APP_URL}/status`, "#3b82f6")}`;
 
-  sendEmail(playerEmail, "Registration Received — Cricket Individual", wrap(title, "#3b82f6", body));
+  sendEmail(playerEmail, "[Cricket] Registration Received — Individual Player", wrap(title, "#3b82f6", body, "cricket"));
 }
 
 // ──────────────────────────────────────────────────
@@ -263,7 +270,7 @@ export function sendTeamApprovedEmail(
       : "Captain: sign in to manage your team, draft players from the pool, and submit your final roster.")}
     ${btn(isReady ? "View Dashboard" : "Manage Your Team", isReady ? APP_URL : `${APP_URL}/manage`, accent)}`;
 
-  sendEmail(allEmails, `${title} — ${teamName}`, wrap(title, accent, body));
+  sendEmail(allEmails, `[Cricket] ${title} — ${teamName}`, wrap(title, accent, body, "cricket"));
 }
 
 // ──────────────────────────────────────────────────
@@ -287,7 +294,7 @@ export function sendTeamRejectedEmail(
     ${para("If you believe this was a mistake, please reach out to the organizer for more details.")}
     ${btn("Contact Organizer", "mailto:sbehera@aligntech.com", "#ef4444")}`;
 
-  sendEmail(allEmails, `Registration Update — ${teamName}`, wrap(title, "#ef4444", body));
+  sendEmail(allEmails, `[Cricket] Registration Update — ${teamName}`, wrap(title, "#ef4444", body, "cricket"));
 }
 
 export function sendRosterRejectedEmail(
@@ -307,7 +314,7 @@ export function sendRosterRejectedEmail(
     ${para("The captain should sign in, review the roster, draft replacement players if needed, and re-submit for approval.")}
     ${btn("Manage Team", `${APP_URL}/manage`, "#f59e0b")}`;
 
-  sendEmail(allEmails, `Roster Update — ${teamName}`, wrap(title, "#f59e0b", body));
+  sendEmail(allEmails, `[Cricket] Roster Update — ${teamName}`, wrap(title, "#f59e0b", body, "cricket"));
 }
 
 // ──────────────────────────────────────────────────
@@ -330,7 +337,7 @@ export function sendIndividualApprovedEmail(
     ${para("Captains will browse the pool and pick players for their teams. You'll get an email the moment a captain drafts you!")}
     ${btn("Check Your Status", `${APP_URL}/status`, "#10b981")}`;
 
-  sendEmail(playerEmail, "You're Approved — Welcome to the Pool!", wrap(title, "#10b981", body));
+  sendEmail(playerEmail, "[Cricket] You're Approved — Welcome to the Pool!", wrap(title, "#10b981", body, "cricket"));
 }
 
 // ──────────────────────────────────────────────────
@@ -356,7 +363,7 @@ export function sendPlayerDraftedEmail(
     ${para("The captain may still make roster changes before submitting. Once the final roster is approved by admin, your spot is locked in. Get ready to play!")}
     ${btn("Check Your Status", `${APP_URL}/status`, "#8b5cf6")}`;
 
-  sendEmail(playerEmail, `You've been drafted by ${teamName}!`, wrap(title, "#8b5cf6", body));
+  sendEmail(playerEmail, `[Cricket] You've been drafted by ${teamName}!`, wrap(title, "#8b5cf6", body, "cricket"));
 }
 
 export function sendPlayerRemovedEmail(
@@ -375,7 +382,7 @@ export function sendPlayerRemovedEmail(
     ${para("Don't worry — you're still in the pool and other captains can draft you. If you have any questions, reach out to the organizer.")}
     ${btn("Check Your Status", `${APP_URL}/status`, "#f59e0b")}`;
 
-  sendEmail(playerEmail, "Roster Update — You're back in the pool", wrap(title, "#f59e0b", body));
+  sendEmail(playerEmail, "[Cricket] Roster Update — You're back in the pool", wrap(title, "#f59e0b", body, "cricket"));
 }
 
 // ──────────────────────────────────────────────────
@@ -411,7 +418,43 @@ export function sendCaptainCredentialsEmail(
     </table>
     ${btn("Sign In Now", `${APP_URL}/auth/signin`, "#3b82f6")}`;
 
-  sendEmail(captainEmail, "Your Captain Login — Align Sports League", wrap(title, "#3b82f6", body));
+  sendEmail(captainEmail, "[Cricket] Your Captain Login — Align Sports League", wrap(title, "#3b82f6", body, "cricket"));
+}
+
+// ──────────────────────────────────────────────────
+// CRICKET — Captain Credentials Updated
+// ──────────────────────────────────────────────────
+
+export function sendCaptainCredentialsUpdatedEmail(
+  captainEmail: string,
+  displayName: string,
+  changes: { emailChanged?: boolean; passwordChanged?: boolean; newPassword?: string }
+) {
+  const title = "Your Captain Credentials Updated";
+  const rows: [string, string][] = [
+    ["Login Email", `<strong style="color:#ffffff;">${captainEmail}</strong>`],
+  ];
+  if (changes.passwordChanged && changes.newPassword) {
+    rows.push(["New Password", `<code style="background:#ef444420;padding:3px 12px;border-radius:6px;font-size:15px;color:#fca5a5;font-weight:700;letter-spacing:1px;">${changes.newPassword}</code>`]);
+  }
+
+  const changeList: string[] = [];
+  if (changes.emailChanged) changeList.push("login email");
+  if (changes.passwordChanged) changeList.push("password");
+  const changeDesc = changeList.join(" and ");
+
+  const body = `
+    ${para(`Hi <strong style="color:#ffffff;">${displayName}</strong>,`)}
+    ${para(`Your ${changeDesc} ${changeList.length > 1 ? "have" : "has"} been updated by the admin.`)}
+    ${detailsTable(rows)}
+    <div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:14px 18px;margin:16px 0;">
+      <p style="margin:0;font-size:12px;color:#fbbf24;font-weight:600;">
+        If you did not expect this change, contact the organizer immediately.
+      </p>
+    </div>
+    ${btn("Sign In Now", `${APP_URL}/auth/signin`, "#f59e0b")}`;
+
+  sendEmail(captainEmail, "[Cricket] Credentials Updated — Align Sports League", wrap(title, "#f59e0b", body, "cricket"));
 }
 
 // ──────────────────────────────────────────────────
@@ -455,7 +498,7 @@ export function sendPickleballRegistrationConfirmation(
 
   const recipients = [player1Email];
   if (isDoubles && player2Email) recipients.push(player2Email);
-  sendEmail(recipients, `Pickleball Registration Received — ${catLabel}`, wrap(title, "#ec4899", body));
+  sendEmail(recipients, `[Pickleball] Registration Received — ${catLabel}`, wrap(title, "#ec4899", body, "pickleball"));
 }
 
 // ──────────────────────────────────────────────────
@@ -491,7 +534,7 @@ export function sendPickleballApprovedEmail(
 
   const recipients = [player1Email];
   if (isDoubles && player2Email) recipients.push(player2Email);
-  sendEmail(recipients, `Approved — Pickleball ${catLabel}`, wrap(title, "#10b981", body));
+  sendEmail(recipients, `[Pickleball] Approved — ${catLabel}`, wrap(title, "#10b981", body, "pickleball"));
 }
 
 // ──────────────────────────────────────────────────
@@ -521,7 +564,7 @@ export function sendPickleballRejectedEmail(
 
   const recipients = [player1Email];
   if (isDoubles && player2Email) recipients.push(player2Email);
-  sendEmail(recipients, `Registration Update — Pickleball ${catLabel}`, wrap(title, "#ef4444", body));
+  sendEmail(recipients, `[Pickleball] Registration Update — ${catLabel}`, wrap(title, "#ef4444", body, "pickleball"));
 }
 
 // ──────────────────────────────────────────────────
@@ -592,7 +635,7 @@ export async function sendMatchScheduledEmail(match: MatchForEmail) {
       ? `Group ${match.groupName} — Match #${match.matchNumber}`
       : `Knockout — Match #${match.matchNumber}`;
 
-    const title = "Match Scheduled!";
+    const title = "Cricket Match Scheduled!";
     const body = `
       ${para(`Your cricket match has been scheduled!`)}
       ${detailsTable([
@@ -604,7 +647,7 @@ export async function sendMatchScheduledEmail(match: MatchForEmail) {
       ${para("Make sure your team is ready. Good luck!")}
       ${btn("View Schedule", `${APP_URL}/schedule`, "#3b82f6")}`;
 
-    sendEmail(emails, `Match Scheduled — ${team1Name} vs ${team2Name}`, wrap(title, "#3b82f6", body));
+    sendEmail(emails, `[Cricket] Match Scheduled — ${team1Name} vs ${team2Name}`, wrap(title, "#3b82f6", body, "cricket"));
   } else {
     const entry1 = match.entry1Id
       ? await prisma.pickleballRegistration.findUnique({ where: { id: match.entry1Id } })
@@ -629,7 +672,7 @@ export async function sendMatchScheduledEmail(match: MatchForEmail) {
     if (emails.length === 0) return;
 
     const catLabel = match.category ? (CATEGORY_LABELS[match.category] || match.category) : "Pickleball";
-    const title = "Match Scheduled!";
+    const title = "Pickleball Match Scheduled!";
     const body = `
       ${para(`Your pickleball match has been scheduled!`)}
       ${detailsTable([
@@ -642,6 +685,6 @@ export async function sendMatchScheduledEmail(match: MatchForEmail) {
       ${para("Get your paddles ready! Good luck!")}
       ${btn("View Schedule", `${APP_URL}/schedule`, "#ec4899")}`;
 
-    sendEmail(emails, `Match Scheduled — ${catLabel} #${match.matchNumber}`, wrap(title, "#ec4899", body));
+    sendEmail(emails, `[Pickleball] Match Scheduled — ${catLabel} #${match.matchNumber}`, wrap(title, "#ec4899", body, "pickleball"));
   }
 }

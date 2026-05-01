@@ -22,6 +22,8 @@ export interface GeneratedMatch {
   team2Id?: string | null;
   entry1Id?: string | null;
   entry2Id?: string | null;
+  winnerId?: string | null;
+  status?: "SCHEDULED" | "COMPLETED";
 }
 
 // ─── Cricket: Round-Robin Groups + Knockout ─────────────────
@@ -188,19 +190,21 @@ function generateSingleElimination(
   startMatchNum: number,
   isCricketKnockout?: boolean
 ): GeneratedMatch[] {
-  const bracketSize = nextPowerOf2(entryIds.length);
-  const slots: (string | null)[] = new Array(bracketSize).fill(null);
+  const n = entryIds.length;
+  if (n < 2) return [];
 
+  const bracketSize = nextPowerOf2(n);
+
+  const slots: (string | null)[] = new Array(bracketSize).fill(null);
   const order = seedOrder(bracketSize);
-  for (let i = 0; i < entryIds.length; i++) {
+  for (let i = 0; i < n; i++) {
     slots[order[i]] = entryIds[i];
   }
 
   const matches: GeneratedMatch[] = [];
   let matchNum = startMatchNum;
   let currentRound = slots;
-  let roundNumber = 1;
-  const totalRounds = Math.log2(bracketSize);
+  let roundNum = 1;
 
   while (currentRound.length > 1) {
     const nextRound: (string | null)[] = [];
@@ -209,30 +213,49 @@ function generateSingleElimination(
       const a = currentRound[i];
       const b = currentRound[i + 1];
 
-      if (a !== null && b === null) {
-        nextRound.push(a);
-        continue;
-      }
-      if (a === null && b !== null) {
-        nextRound.push(b);
-        continue;
-      }
       if (a === null && b === null) {
         nextRound.push(null);
+        continue;
+      }
+
+      if ((a !== null && b === null) || (a === null && b !== null)) {
+        const present = a ?? b;
+        const match: GeneratedMatch = isCricketKnockout
+          ? {
+              stage: "KNOCKOUT",
+              roundNumber: roundNum,
+              matchNumber: matchNum,
+              team1Id: present,
+              team2Id: null,
+              winnerId: present,
+              status: "COMPLETED",
+            }
+          : {
+              stage: "KNOCKOUT",
+              roundNumber: roundNum,
+              matchNumber: matchNum,
+              entry1Id: present,
+              entry2Id: null,
+              winnerId: present,
+              status: "COMPLETED",
+            };
+        matches.push(match);
+        nextRound.push(present);
+        matchNum++;
         continue;
       }
 
       const match: GeneratedMatch = isCricketKnockout
         ? {
             stage: "KNOCKOUT",
-            roundNumber,
+            roundNumber: roundNum,
             matchNumber: matchNum,
             team1Id: a,
             team2Id: b,
           }
         : {
             stage: "KNOCKOUT",
-            roundNumber,
+            roundNumber: roundNum,
             matchNumber: matchNum,
             entry1Id: a,
             entry2Id: b,
@@ -243,8 +266,8 @@ function generateSingleElimination(
       matchNum++;
     }
 
+    roundNum++;
     currentRound = nextRound;
-    roundNumber++;
   }
 
   return matches;

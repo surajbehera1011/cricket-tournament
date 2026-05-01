@@ -11,7 +11,7 @@ import { sendIndividualApprovedEmail } from "@/lib/email";
 import { notifyAllAdmins } from "@/lib/notifications";
 
 const updatePlayerSchema = z.object({
-  gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
+  gender: z.enum(["MALE", "FEMALE"]).optional(),
   approve: z.boolean().optional(),
 });
 

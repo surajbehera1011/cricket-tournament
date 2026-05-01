@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       fixture,
-      frozen: fixture.status === "FROZEN",
+      frozen: fixture.status === "FROZEN" || (fixture.frozenCategories || []).length > 0,
+      frozenCategories: fixture.frozenCategories || [],
       teams,
       pbRegs,
       settings: {
