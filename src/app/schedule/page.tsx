@@ -325,9 +325,12 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
   const GAP = 6;
   const CONN_W = 36;
   const TROPHY_W = 48;
-  const COL_W = containerW > 0 && totalRounds > 0
+  const MIN_COL_W = 200;
+  const fitCol = containerW > 0 && totalRounds > 0
     ? Math.floor((containerW - (totalRounds - 1) * CONN_W - TROPHY_W) / totalRounds)
     : 220;
+  const COL_W = Math.max(fitCol, MIN_COL_W);
+  const bracketW = totalRounds > 0 ? totalRounds * COL_W + (totalRounds - 1) * CONN_W + TROPHY_W : 0;
   const CELL = MATCH_H + GAP;
   const accent = "#f59e0b";
 
@@ -360,8 +363,8 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
         <h2 className="text-2xl font-black text-white tracking-tight">Knockout Stage</h2>
       </div>
 
-      <div ref={containerRef} className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] border border-white/[0.06] p-4 md:p-6">
-        {containerW > 0 && <>
+      <div ref={containerRef} className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] border border-white/[0.06] p-4 md:p-6 overflow-x-auto">
+        {containerW > 0 && <div style={{ minWidth: bracketW }}>
         {/* Round headers */}
         <div className="flex mb-3">
           {rounds.map((_, ri) => {
@@ -466,7 +469,7 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
             </div>
           )}
         </div>
-        </>}
+        </div>}
       </div>
     </div>
   );
@@ -689,9 +692,12 @@ function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { mat
   const GAP = 6;
   const CONN_W = 36;
   const TROPHY_W = 48;
-  const COL_W = pbContainerW > 0 && totalRounds > 0
+  const MIN_COL_W = 200;
+  const fitCol = pbContainerW > 0 && totalRounds > 0
     ? Math.floor((pbContainerW - (totalRounds - 1) * CONN_W - TROPHY_W) / totalRounds)
     : 220;
+  const COL_W = Math.max(fitCol, MIN_COL_W);
+  const bracketW = totalRounds > 0 ? totalRounds * COL_W + (totalRounds - 1) * CONN_W + TROPHY_W : 0;
   const CELL = MATCH_H + GAP;
 
   const roundMatches: MatchData[][] = rounds.map(r => matches.filter(m => m.roundNumber === r));
@@ -744,8 +750,8 @@ function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { mat
           <p className="text-slate-500 text-sm">Be the first to enter! <Link href="/register?sport=pickleball" className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors">Register to play</Link></p>
         </div>
       ) : (
-        <div ref={pbContainerRef} className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] border border-white/[0.06] p-4 md:p-6">
-          {pbContainerW > 0 && <>
+        <div ref={pbContainerRef} className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] border border-white/[0.06] p-4 md:p-6 overflow-x-auto">
+          {pbContainerW > 0 && <div style={{ minWidth: bracketW }}>
             {/* Round headers */}
             <div className="flex mb-3">
               {rounds.map((_, ri) => {
@@ -855,7 +861,7 @@ function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { mat
                 </div>
               )}
             </div>
-          </>}
+          </div>}
         </div>
       )}
       </div>
