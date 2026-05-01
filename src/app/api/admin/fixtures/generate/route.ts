@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
       }));
       matches = generateCricketFixtures(slots, targetTeams, gCount);
     } else {
+      const frozenCats = existing?.frozenCategories || [];
       const regs = await prisma.pickleballRegistration.findMany({
         where: { status: "APPROVED" },
         orderBy: { createdAt: "asc" },
@@ -66,11 +67,20 @@ export async function POST(request: NextRequest) {
           category: r.category,
         });
       }
-      matches = generateAllPickleballFixtures(byCategory);
+      const allCats = ["MENS_SINGLES", "WOMENS_SINGLES", "MENS_DOUBLES", "WOMENS_DOUBLES", "MIXED_DOUBLES"];
+      const unfrozenCats = allCats.filter(c => !frozenCats.includes(c));
+      matches = generateAllPickleballFixtures(byCategory, unfrozenCats);
     }
 
+    const frozenCats = existing?.frozenCategories || [];
     if (existing) {
-      await prisma.match.deleteMany({ where: { fixtureId: existing.id } });
+      if (sportUpper === "PICKLEBALL" && frozenCats.length > 0) {
+        const allCats = ["MENS_SINGLES", "WOMENS_SINGLES", "MENS_DOUBLES", "WOMENS_DOUBLES", "MIXED_DOUBLES"];
+        const unfrozenCats = allCats.filter(c => !frozenCats.includes(c));
+        await prisma.match.deleteMany({ where: { fixtureId: existing.id, category: { in: unfrozenCats } } });
+      } else {
+        await prisma.match.deleteMany({ where: { fixtureId: existing.id } });
+      }
       await prisma.fixture.update({
         where: { id: existing.id },
         data: { groupCount: gCount, updatedAt: new Date() },

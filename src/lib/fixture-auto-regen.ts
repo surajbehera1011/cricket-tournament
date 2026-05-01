@@ -80,7 +80,17 @@ export async function autoRegeneratePickleballFixture() {
       where: { sport: "PICKLEBALL" },
     });
     if (!fixture || fixture.status === "FROZEN") return;
-    if ((fixture.frozenCategories || []).length > 0) return;
+
+    const frozenCats = fixture.frozenCategories || [];
+    const allCats = [
+      "MENS_SINGLES",
+      "WOMENS_SINGLES",
+      "MENS_DOUBLES",
+      "WOMENS_DOUBLES",
+      "MIXED_DOUBLES",
+    ];
+    const unfrozenCats = allCats.filter((c) => !frozenCats.includes(c));
+    if (unfrozenCats.length === 0) return;
 
     const regs = await prisma.pickleballRegistration.findMany({
       where: { status: "APPROVED" },
@@ -97,13 +107,15 @@ export async function autoRegeneratePickleballFixture() {
         category: r.category,
       });
     }
-    for (const cat of Object.keys(byCategory)) {
-      byCategory[cat] = shuffle(byCategory[cat]);
+    for (const cat of unfrozenCats) {
+      if (byCategory[cat]) byCategory[cat] = shuffle(byCategory[cat]);
     }
 
-    const matches = generateAllPickleballFixtures(byCategory);
+    const matches = generateAllPickleballFixtures(byCategory, unfrozenCats);
 
-    await prisma.match.deleteMany({ where: { fixtureId: fixture.id } });
+    await prisma.match.deleteMany({
+      where: { fixtureId: fixture.id, category: { in: unfrozenCats } },
+    });
     if (matches.length > 0) {
       await prisma.match.createMany({
         data: matches.map((m) => ({
@@ -129,7 +141,7 @@ export async function autoRegeneratePickleballFixture() {
     });
 
     console.log(
-      `[auto-regen] Pickleball fixture regenerated with ${regs.length} entries, ${matches.length} matches`
+      `[auto-regen] Pickleball: regenerated ${unfrozenCats.length} unfrozen categories (${matches.length} matches), preserved ${frozenCats.length} frozen categories`
     );
   } catch (err) {
     console.error("[auto-regen] Pickleball fixture error:", err);

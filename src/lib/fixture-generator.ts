@@ -335,11 +335,15 @@ export const PB_CATEGORIES = [
 ] as const;
 
 export function generateAllPickleballFixtures(
-  entriesByCategory: Record<string, PbEntrySlot[]>
+  entriesByCategory: Record<string, PbEntrySlot[]>,
+  onlyCategories?: string[]
 ): GeneratedMatch[] {
   const allMatches: GeneratedMatch[] = [];
+  const cats = onlyCategories
+    ? PB_CATEGORIES.filter(c => onlyCategories.includes(c))
+    : PB_CATEGORIES;
 
-  for (const cat of PB_CATEGORIES) {
+  for (const cat of cats) {
     const entries = entriesByCategory[cat] || [];
     const { matches } = generatePickleballFixtures(
       entries,
