@@ -344,9 +344,10 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
 
   const getMatchY = (ri: number, mi: number): number => {
     if (ri === 0) return mi * CELL;
-    const child1Y = getMatchY(ri - 1, mi * 2);
-    const child2Y = getMatchY(ri - 1, mi * 2 + 1);
-    return (child1Y + child2Y) / 2;
+    const prevCount = roundMatches[ri - 1]?.length || 0;
+    const c1 = mi * 2 < prevCount ? getMatchY(ri - 1, mi * 2) : mi * 2 * CELL;
+    const c2 = mi * 2 + 1 < prevCount ? getMatchY(ri - 1, mi * 2 + 1) : (mi * 2 + 1) * CELL;
+    return (c1 + c2) / 2;
   };
 
   const totalH = Math.max(
@@ -705,8 +706,8 @@ function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { mat
   const getMatchY = (ri: number, mi: number): number => {
     if (ri === 0) return mi * CELL;
     const prevCount = roundMatches[ri - 1]?.length || 0;
-    const c1 = mi * 2 < prevCount ? getMatchY(ri - 1, mi * 2) : mi * CELL;
-    const c2 = mi * 2 + 1 < prevCount ? getMatchY(ri - 1, mi * 2 + 1) : c1 + CELL;
+    const c1 = mi * 2 < prevCount ? getMatchY(ri - 1, mi * 2) : mi * 2 * CELL;
+    const c2 = mi * 2 + 1 < prevCount ? getMatchY(ri - 1, mi * 2 + 1) : (mi * 2 + 1) * CELL;
     return (c1 + c2) / 2;
   };
 
