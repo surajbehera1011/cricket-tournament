@@ -845,7 +845,7 @@ function BracketView({
           return rm.map((m, mi) => {
             const y = getMatchY(ri, mi);
             return (
-              <div key={m.id} className="absolute" style={{ left: xOffset, top: y, width: colW, height: MATCH_H }}>
+              <div key={m.id} className="absolute" style={{ left: xOffset, top: y, width: colW, minHeight: MATCH_H }}>
                 <BracketMatchCard match={m} sport={sport} slotLabel={slotLabel} slotColor={slotColor} slotId={slotId} isTBD={isTBD} isFrozen={isFrozen} onSchedule={onSchedule} onRecordScore={onRecordScore} onToggleLive={onToggleLive} accent={accent} isFinal={isFinalRound} />
               </div>
             );
@@ -906,9 +906,10 @@ function BracketMatchCard({
   const isCompleted = match.status === "COMPLETED";
   const isLive = match.status === "LIVE";
   const canScore = isFrozen && p1 && p2 && !isTBD(p1) && !isTBD(p2);
+  const isExpanded = scoring || editing;
 
   return (
-    <div className={`h-full rounded-lg overflow-hidden border transition-all ${isCompleted ? "border-emerald-500/30 bg-emerald-500/[0.03]" : isLive ? "border-red-500/30 bg-red-500/[0.03]" : isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.06] to-transparent shadow-[0_0_20px_rgba(245,158,11,0.06)]" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15]"}`}>
+    <div className={`rounded-lg border transition-all ${isExpanded ? "relative z-20" : ""} ${isCompleted ? "border-emerald-500/30 bg-emerald-500/[0.03]" : isLive ? "border-red-500/30 bg-red-500/[0.03]" : isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.06] to-transparent shadow-[0_0_20px_rgba(245,158,11,0.06)]" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15]"}`} style={{ background: isExpanded ? "#0d1117" : undefined }}>
       {/* Slot 1 */}
       <DroppableMatchCard match={match} slot="1">
         <DraggableSlot id={`${match.id}__1`} label={slotLabel(match, "1")} color={slotColor(match, "1")} isTBD={isTBD(slotId(match, "1"))} />
