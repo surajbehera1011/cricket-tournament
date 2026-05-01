@@ -143,6 +143,7 @@ async function advanceWinner(
   // For knockout matches, find the next round match that references this match's winner
   const winnerRef = `WINNER_M${match.matchNumber}`;
   const nextMatch = allMatches.find((m) => {
+    if (match.category && m.category !== match.category) return false;
     if (isCricket) {
       return m.team1Id === winnerRef || m.team2Id === winnerRef;
     }
