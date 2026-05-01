@@ -346,8 +346,12 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
     return (child1Y + child2Y) / 2;
   };
 
-  const r0Count = roundMatches[0]?.length || 0;
-  const totalH = Math.max(r0Count * CELL - GAP, MATCH_H);
+  const totalH = Math.max(
+    MATCH_H,
+    ...roundMatches.map((rm, ri) =>
+      rm.length > 0 ? getMatchY(ri, rm.length - 1) + MATCH_H : 0
+    )
+  );
 
   return (
     <div>
@@ -700,8 +704,12 @@ function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { mat
     return (c1 + c2) / 2;
   };
 
-  const r0Count = roundMatches[0]?.length || 0;
-  const totalH = Math.max(r0Count * CELL - GAP, MATCH_H);
+  const totalH = Math.max(
+    MATCH_H,
+    ...roundMatches.map((rm, ri) =>
+      rm.length > 0 ? getMatchY(ri, rm.length - 1) + MATCH_H : 0
+    )
+  );
 
   return (
     <div>
