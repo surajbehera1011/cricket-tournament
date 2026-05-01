@@ -4,7 +4,7 @@ import Link from "next/link";
 
 interface Team { id: string; name: string; color?: string; captainName: string; status: string; }
 interface PbReg { id: string; category: string; player1Name: string; player2Name: string | null; }
-interface MatchData { id: string; stage: string; groupName: string | null; roundNumber: number; matchNumber: number; category: string | null; team1Id: string | null; team2Id: string | null; entry1Id: string | null; entry2Id: string | null; scheduledDate: string | null; venue: string | null; }
+interface MatchData { id: string; stage: string; groupName: string | null; roundNumber: number; matchNumber: number; category: string | null; team1Id: string | null; team2Id: string | null; entry1Id: string | null; entry2Id: string | null; score1: string | null; score2: string | null; winnerId: string | null; status: string; scheduledDate: string | null; venue: string | null; }
 interface Settings { targetCricketTeams: number; cricketGroupCount: number; }
 
 type Sport = "cricket" | "pickleball";
@@ -41,7 +41,7 @@ function genGroupMatches(groups: { name: string; members: (Team | null)[] }[]) {
     let round = 1;
     for (let i = 0; i < g.members.length; i++) {
       for (let j = i + 1; j < g.members.length; j++) {
-        matches.push({ id: `g-${num}`, stage: "GROUP", groupName: g.name, roundNumber: round, matchNumber: num, category: null, team1Id: g.members[i]?.id ?? null, team2Id: g.members[j]?.id ?? null, entry1Id: null, entry2Id: null, scheduledDate: null, venue: null });
+        matches.push({ id: `g-${num}`, stage: "GROUP", groupName: g.name, roundNumber: round, matchNumber: num, category: null, team1Id: g.members[i]?.id ?? null, team2Id: g.members[j]?.id ?? null, entry1Id: null, entry2Id: null, score1: null, score2: null, winnerId: null, status: "SCHEDULED", scheduledDate: null, venue: null });
         num++;
         if (num % Math.max(1, Math.floor(g.members.length / 2)) === 0) round++;
       }
@@ -54,13 +54,13 @@ function genCricketKnockout(groups: { name: string }[], startNum: number) {
   const matches: MatchData[] = [];
   let num = startNum;
   if (groups.length === 4) {
-    matches.push({ id: `ko-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: 1, matchNumber: num, category: null, team1Id: "WINNER_A", team2Id: "WINNER_B", entry1Id: null, entry2Id: null, scheduledDate: null, venue: null });
+    matches.push({ id: `ko-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: 1, matchNumber: num, category: null, team1Id: "WINNER_A", team2Id: "WINNER_B", entry1Id: null, entry2Id: null, score1: null, score2: null, winnerId: null, status: "SCHEDULED", scheduledDate: null, venue: null });
     num++;
-    matches.push({ id: `ko-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: 1, matchNumber: num, category: null, team1Id: "WINNER_C", team2Id: "WINNER_D", entry1Id: null, entry2Id: null, scheduledDate: null, venue: null });
+    matches.push({ id: `ko-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: 1, matchNumber: num, category: null, team1Id: "WINNER_C", team2Id: "WINNER_D", entry1Id: null, entry2Id: null, score1: null, score2: null, winnerId: null, status: "SCHEDULED", scheduledDate: null, venue: null });
     num++;
-    matches.push({ id: `ko-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: 2, matchNumber: num, category: null, team1Id: "WINNER_SF1", team2Id: "WINNER_SF2", entry1Id: null, entry2Id: null, scheduledDate: null, venue: null });
+    matches.push({ id: `ko-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: 2, matchNumber: num, category: null, team1Id: "WINNER_SF1", team2Id: "WINNER_SF2", entry1Id: null, entry2Id: null, score1: null, score2: null, winnerId: null, status: "SCHEDULED", scheduledDate: null, venue: null });
   } else if (groups.length === 2) {
-    matches.push({ id: `ko-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: 1, matchNumber: num, category: null, team1Id: "WINNER_A", team2Id: "WINNER_B", entry1Id: null, entry2Id: null, scheduledDate: null, venue: null });
+    matches.push({ id: `ko-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: 1, matchNumber: num, category: null, team1Id: "WINNER_A", team2Id: "WINNER_B", entry1Id: null, entry2Id: null, score1: null, score2: null, winnerId: null, status: "SCHEDULED", scheduledDate: null, venue: null });
   }
   return matches;
 }
@@ -89,7 +89,7 @@ function genPbBracket(entries: PbReg[], cat: string, startNum: number) {
       if (a && !b) { next.push(a); continue; }
       if (!a && b) { next.push(b); continue; }
       if (!a && !b) { next.push(null); continue; }
-      matches.push({ id: `pb-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: round, matchNumber: num, category: cat, team1Id: null, team2Id: null, entry1Id: a, entry2Id: b, scheduledDate: null, venue: null });
+      matches.push({ id: `pb-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: round, matchNumber: num, category: cat, team1Id: null, team2Id: null, entry1Id: a, entry2Id: b, score1: null, score2: null, winnerId: null, status: "SCHEDULED", scheduledDate: null, venue: null });
       next.push(`W${num}`);
       num++;
     }
@@ -228,21 +228,42 @@ function GroupStage({ groups, matches, teamLabel, teamColor, isTbd }: { groups: 
       <div className="grid gap-5 md:grid-cols-2">
         {groups.map((g, gi) => {
           const gm = matches.filter(m => m.stage === "GROUP" && m.groupName === g);
-          const teamIds = [...new Set(gm.flatMap(m => [m.team1Id, m.team2Id]))];
           const accent = GROUP_COLORS[g || "A"] || "#6366f1";
+          const standings = calcStandings(gm, true);
           return (
             <div key={g} className="rounded-2xl bg-white/[0.03] backdrop-blur border border-white/[0.06] overflow-hidden" style={{ animation: `fadeIn 0.5s ease-out ${gi * 0.1}s both` }}>
               <div className="px-5 py-3 flex items-center gap-3" style={{ borderBottom: `2px solid ${accent}20`, background: `linear-gradient(135deg, ${accent}08, transparent)` }}>
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-black" style={{ background: accent }}>{g}</div>
                 <h3 className="text-sm font-bold text-white">Group {g} <span className="text-[10px] text-slate-500 ml-1">{gm.length} matches</span></h3>
               </div>
-              <div className="px-4 py-3 space-y-1.5 border-b border-white/[0.04]">
-                {teamIds.map((tid, ti) => (
-                  <div key={ti} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg ${isTbd(tid) ? "border border-dashed border-slate-700/60" : "bg-white/[0.03]"}`}>
-                    {!isTbd(tid) && <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ background: teamColor(tid) || accent }}>{teamLabel(tid).charAt(0)}</div>}
-                    <span className={`text-sm font-medium ${isTbd(tid) ? "text-slate-500 animate-pulse" : "text-white"}`}>{isTbd(tid) ? <Link href="/register?sport=cricket" className="hover:text-indigo-400 transition-colors">Your Team?</Link> : teamLabel(tid)}</span>
-                  </div>
-                ))}
+              {/* Standings Table */}
+              <div className="px-4 py-3 border-b border-white/[0.04]">
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="text-slate-500">
+                      <th className="text-left py-1 font-semibold">Team</th>
+                      <th className="text-center w-8 font-semibold">P</th>
+                      <th className="text-center w-8 font-semibold">W</th>
+                      <th className="text-center w-8 font-semibold">L</th>
+                      <th className="text-center w-10 font-semibold">Pts</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {standings.map((s, si) => (
+                      <tr key={s.id} className={si === 0 && s.played > 0 ? "text-emerald-400" : "text-slate-300"}>
+                        <td className="py-1 flex items-center gap-2">
+                          {!isTbd(s.id) && <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: teamColor(s.id) || accent }}>{teamLabel(s.id).charAt(0)}</div>}
+                          <span className="font-medium truncate">{isTbd(s.id) ? "TBD" : teamLabel(s.id)}</span>
+                          {si === 0 && s.won > 0 && <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded font-bold">1st</span>}
+                        </td>
+                        <td className="text-center">{s.played}</td>
+                        <td className="text-center">{s.won}</td>
+                        <td className="text-center">{s.lost}</td>
+                        <td className="text-center font-bold">{s.points}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
               <div className="px-4 py-3 space-y-1.5">
                 {gm.map(m => <MatchCard key={m.id} m={m} l1={teamLabel(m.team1Id)} l2={teamLabel(m.team2Id)} c1={teamColor(m.team1Id)} c2={teamColor(m.team2Id)} t1={isTbd(m.team1Id)} t2={isTbd(m.team2Id)} accent={accent} />)}
@@ -253,6 +274,27 @@ function GroupStage({ groups, matches, teamLabel, teamColor, isTbd }: { groups: 
       </div>
     </div>
   );
+}
+
+function calcStandings(groupMatches: MatchData[], isCricket: boolean) {
+  const map = new Map<string, { id: string; played: number; won: number; lost: number; points: number }>();
+  const getOrCreate = (id: string) => {
+    if (!map.has(id)) map.set(id, { id, played: 0, won: 0, lost: 0, points: 0 });
+    return map.get(id)!;
+  };
+  for (const m of groupMatches) {
+    const p1 = isCricket ? m.team1Id : m.entry1Id;
+    const p2 = isCricket ? m.team2Id : m.entry2Id;
+    if (!p1 || !p2) continue;
+    const s1 = getOrCreate(p1);
+    const s2 = getOrCreate(p2);
+    if (m.winnerId) {
+      s1.played++; s2.played++;
+      if (m.winnerId === p1) { s1.won++; s1.points += 2; s2.lost++; }
+      else if (m.winnerId === p2) { s2.won++; s2.points += 2; s1.lost++; }
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => b.points !== a.points ? b.points - a.points : b.won !== a.won ? b.won - a.won : a.lost - b.lost);
 }
 
 function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: MatchData[]; teamLabel: (id: string | null) => string; teamColor: (id: string | null) => string | undefined; isTbd: (id: string | null) => boolean }) {
@@ -350,24 +392,26 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
               const c2 = teamColor(m.team2Id) || accent;
               const t1 = isTbd(m.team1Id);
               const t2 = isTbd(m.team2Id);
+              const isCompleted = m.status === "COMPLETED";
+              const w1 = m.winnerId && m.winnerId === m.team1Id;
+              const w2 = m.winnerId && m.winnerId === m.team2Id;
 
               return (
                 <div key={m.id} className="absolute" style={{ left: xOffset, top: y, width: COL_W, height: MATCH_H, animation: `fadeIn 0.4s ease-out ${ri * 0.1 + mi * 0.04}s both` }}>
-                  <div className={`h-full rounded-lg overflow-hidden border transition-all duration-200 ${isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.06] to-transparent shadow-[0_0_30px_rgba(245,158,11,0.08)]" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.03]"}`}>
-                    {/* Team 1 */}
-                    <div className={`h-[30px] flex items-center px-2.5 gap-2 ${t1 ? "" : "bg-white/[0.02]"}`}>
+                  <div className={`h-full rounded-lg overflow-hidden border transition-all duration-200 ${isCompleted ? "border-emerald-500/25" : isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.06] to-transparent shadow-[0_0_30px_rgba(245,158,11,0.08)]" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.03]"}`}>
+                    <div className={`h-[30px] flex items-center px-2.5 gap-2 ${w1 ? "bg-emerald-500/[0.06]" : t1 ? "" : "bg-white/[0.02]"}`}>
                       <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: t1 ? "rgba(55,65,81,0.6)" : c1 }}>
                         {t1 ? "?" : l1.charAt(0).toUpperCase()}
                       </div>
-                      <span className={`text-[12px] font-semibold truncate flex-1 ${t1 ? "text-slate-600 italic" : "text-slate-200"}`}>
+                      <span className={`text-[12px] font-semibold truncate flex-1 ${w1 ? "text-emerald-400" : t1 ? "text-slate-600 italic" : "text-slate-200"}`}>
                         {t1 ? "TBD" : l1}
                       </span>
-                      <span className="text-[10px] font-mono text-slate-600 w-4 text-center">-</span>
+                      <span className={`text-[10px] font-mono w-5 text-center ${w1 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score1 ?? "-"}</span>
                     </div>
 
-                    {/* Divider */}
                     <div className="h-[16px] flex items-center px-2.5 border-y border-white/[0.04]" style={{ background: `linear-gradient(90deg, ${accent}08, transparent)` }}>
                       <span className="text-[8px] font-bold text-slate-600 tracking-wider">M{m.matchNumber}</span>
+                      {isCompleted && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />}
                       <div className="flex-1" />
                       {m.scheduledDate && (
                         <span className="text-[8px] text-cyan-500/80 font-medium">
@@ -376,15 +420,14 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
                       )}
                     </div>
 
-                    {/* Team 2 */}
-                    <div className={`h-[30px] flex items-center px-2.5 gap-2 ${t2 ? "" : "bg-white/[0.02]"}`}>
+                    <div className={`h-[30px] flex items-center px-2.5 gap-2 ${w2 ? "bg-emerald-500/[0.06]" : t2 ? "" : "bg-white/[0.02]"}`}>
                       <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: t2 ? "rgba(55,65,81,0.6)" : c2 }}>
                         {t2 ? "?" : l2.charAt(0).toUpperCase()}
                       </div>
-                      <span className={`text-[12px] font-semibold truncate flex-1 ${t2 ? "text-slate-600 italic" : "text-slate-200"}`}>
+                      <span className={`text-[12px] font-semibold truncate flex-1 ${w2 ? "text-emerald-400" : t2 ? "text-slate-600 italic" : "text-slate-200"}`}>
                         {t2 ? "TBD" : l2}
                       </span>
-                      <span className="text-[10px] font-mono text-slate-600 w-4 text-center">-</span>
+                      <span className={`text-[10px] font-mono w-5 text-center ${w2 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score2 ?? "-"}</span>
                     </div>
                   </div>
                 </div>
@@ -408,17 +451,21 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
 }
 
 function MatchCard({ m, l1, l2, c1, c2, t1, t2, accent, isFinal }: { m: MatchData; l1: string; l2: string; c1?: string; c2?: string; t1: boolean; t2: boolean; accent: string; isFinal?: boolean }) {
+  const isCompleted = m.status === "COMPLETED";
+  const w1 = m.winnerId && m.winnerId === (m.team1Id || m.entry1Id);
+  const w2 = m.winnerId && m.winnerId === (m.team2Id || m.entry2Id);
   return (
-    <div className={`rounded-lg overflow-hidden border transition-all duration-200 hover:border-white/[0.15] ${isFinal ? "border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.06)]" : "border-white/[0.08]"}`}>
-      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${t1 ? "" : "bg-white/[0.03]"}`}>
+    <div className={`rounded-lg overflow-hidden border transition-all duration-200 hover:border-white/[0.15] ${isCompleted ? "border-emerald-500/20" : isFinal ? "border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.06)]" : "border-white/[0.08]"}`}>
+      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${w1 ? "bg-emerald-500/[0.06]" : t1 ? "" : "bg-white/[0.03]"}`}>
         <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: t1 ? "rgba(55,65,81,0.6)" : (c1 || accent) }}>
           {t1 ? "?" : l1.charAt(0).toUpperCase()}
         </div>
-        <span className={`text-[12px] font-semibold truncate flex-1 ${t1 ? "text-slate-600 italic" : "text-slate-200"}`}>{l1}</span>
-        <span className="text-[10px] font-mono text-slate-600 w-4 text-center">-</span>
+        <span className={`text-[12px] font-semibold truncate flex-1 ${w1 ? "text-emerald-400" : t1 ? "text-slate-600 italic" : "text-slate-200"}`}>{l1}</span>
+        <span className={`text-[10px] font-mono w-6 text-center ${w1 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score1 ?? "-"}</span>
       </div>
       <div className="h-[16px] flex items-center px-2.5 border-y border-white/[0.04]" style={{ background: `linear-gradient(90deg, ${accent}08, transparent)` }}>
         <span className="text-[8px] font-bold text-slate-600 tracking-wider">M{m.matchNumber}</span>
+        {isCompleted && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />}
         <div className="flex-1" />
         {m.scheduledDate && (
           <span className="text-[8px] text-cyan-500/80 font-medium">
@@ -426,12 +473,12 @@ function MatchCard({ m, l1, l2, c1, c2, t1, t2, accent, isFinal }: { m: MatchDat
           </span>
         )}
       </div>
-      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${t2 ? "" : "bg-white/[0.03]"}`}>
+      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${w2 ? "bg-emerald-500/[0.06]" : t2 ? "" : "bg-white/[0.03]"}`}>
         <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: t2 ? "rgba(55,65,81,0.6)" : (c2 || accent) }}>
           {t2 ? "?" : l2.charAt(0).toUpperCase()}
         </div>
-        <span className={`text-[12px] font-semibold truncate flex-1 ${t2 ? "text-slate-600 italic" : "text-slate-200"}`}>{l2}</span>
-        <span className="text-[10px] font-mono text-slate-600 w-4 text-center">-</span>
+        <span className={`text-[12px] font-semibold truncate flex-1 ${w2 ? "text-emerald-400" : t2 ? "text-slate-600 italic" : "text-slate-200"}`}>{l2}</span>
+        <span className={`text-[10px] font-mono w-6 text-center ${w2 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score2 ?? "-"}</span>
       </div>
     </div>
   );
@@ -555,24 +602,26 @@ function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { mat
                 const tbd1 = isEntryTbd(m.entry1Id);
                 const tbd2 = isEntryTbd(m.entry2Id);
                 const isBye = (m.entry1Id === null && m.entry2Id !== null) || (m.entry2Id === null && m.entry1Id !== null);
+                const isCompleted = m.status === "COMPLETED";
+                const w1 = m.winnerId && m.winnerId === m.entry1Id;
+                const w2 = m.winnerId && m.winnerId === m.entry2Id;
 
                 return (
                   <div key={m.id} className="absolute" style={{ left: xOffset, top: y, width: COL_W, height: MATCH_H, animation: `fadeIn 0.4s ease-out ${ri * 0.1 + mi * 0.04}s both` }}>
-                    <div className={`h-full rounded-lg overflow-hidden border transition-all duration-200 group ${isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.06] to-transparent shadow-[0_0_30px_rgba(245,158,11,0.08)]" : isBye ? "border-white/[0.04] bg-white/[0.01]" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.03]"}`}>
-                      {/* Player 1 row */}
-                      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${tbd1 ? "" : "bg-white/[0.02]"}`}>
+                    <div className={`h-full rounded-lg overflow-hidden border transition-all duration-200 group ${isCompleted ? "border-emerald-500/25" : isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.06] to-transparent shadow-[0_0_30px_rgba(245,158,11,0.08)]" : isBye ? "border-white/[0.04] bg-white/[0.01]" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.03]"}`}>
+                      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${w1 ? "bg-emerald-500/[0.06]" : tbd1 ? "" : "bg-white/[0.02]"}`}>
                         <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: tbd1 ? "rgba(55,65,81,0.6)" : cat.accent }}>
                           {tbd1 ? "?" : l1.charAt(0).toUpperCase()}
                         </div>
-                        <span className={`text-[12px] font-semibold truncate flex-1 ${tbd1 ? "text-slate-600 italic" : "text-slate-200"}`}>
+                        <span className={`text-[12px] font-semibold truncate flex-1 ${w1 ? "text-emerald-400" : tbd1 ? "text-slate-600 italic" : "text-slate-200"}`}>
                           {tbd1 ? "TBD" : l1}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-600 w-4 text-center">-</span>
+                        <span className={`text-[10px] font-mono w-5 text-center ${w1 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score1 ?? "-"}</span>
                       </div>
 
-                      {/* Divider with match info */}
                       <div className="h-[16px] flex items-center px-2.5 border-y border-white/[0.04]" style={{ background: `linear-gradient(90deg, ${cat.accent}08, transparent)` }}>
                         <span className="text-[8px] font-bold text-slate-600 tracking-wider">M{m.matchNumber}</span>
+                        {isCompleted && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />}
                         <div className="flex-1" />
                         {m.scheduledDate && (
                           <span className="text-[8px] text-cyan-500/80 font-medium">
@@ -581,15 +630,14 @@ function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { mat
                         )}
                       </div>
 
-                      {/* Player 2 row */}
-                      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${tbd2 ? "" : "bg-white/[0.02]"}`}>
+                      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${w2 ? "bg-emerald-500/[0.06]" : tbd2 ? "" : "bg-white/[0.02]"}`}>
                         <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: tbd2 ? "rgba(55,65,81,0.6)" : cat.accent }}>
                           {tbd2 ? "?" : l2.charAt(0).toUpperCase()}
                         </div>
-                        <span className={`text-[12px] font-semibold truncate flex-1 ${tbd2 ? "text-slate-600 italic" : "text-slate-200"}`}>
+                        <span className={`text-[12px] font-semibold truncate flex-1 ${w2 ? "text-emerald-400" : tbd2 ? "text-slate-600 italic" : "text-slate-200"}`}>
                           {tbd2 ? "TBD" : l2}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-600 w-4 text-center">-</span>
+                        <span className={`text-[10px] font-mono w-5 text-center ${w2 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score2 ?? "-"}</span>
                       </div>
                     </div>
                   </div>

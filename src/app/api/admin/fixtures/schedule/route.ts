@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendMatchScheduledEmail } from "@/lib/email";
+import { notifyAllAdmins } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,6 +45,12 @@ export async function POST(request: NextRequest) {
         data: { notificationSent: true },
       });
     }
+
+    notifyAllAdmins({
+      title: "Match Scheduled",
+      message: `Match #${updated.matchNumber} (R${updated.roundNumber}) scheduled${updated.venue ? ` at ${updated.venue}` : ""}.`,
+      link: "/admin/fixtures",
+    }).catch(() => {});
 
     return NextResponse.json({ match: updated });
   } catch (err) {

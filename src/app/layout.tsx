@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Providers } from "@/components/layout/Providers";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { PageTransition } from "@/components/layout/PageTransition";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,7 +23,9 @@ export default function RootLayout({
         <div className="page-bg-overlay" />
         <Providers>
           <Suspense><Navbar /></Suspense>
-          <main className="relative z-10 min-h-[calc(100vh-4rem)]">{children}</main>
+          <main className="relative z-10 min-h-[calc(100vh-4rem)]">
+            <PageTransition>{children}</PageTransition>
+          </main>
           <Footer />
         </Providers>
       </body>

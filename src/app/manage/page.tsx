@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -75,10 +76,10 @@ function GenderSelect({
 
   const bgColor =
     currentGender === "FEMALE"
-      ? "bg-pink-50 border-pink-200 text-pink-600"
+      ? "bg-pink-500/10 border-pink-500/30 text-pink-400"
       : currentGender === "OTHER"
-      ? "bg-violet-50 border-violet-200 text-violet-600"
-      : "bg-sky-50 border-sky-200 text-sky-600";
+      ? "bg-violet-500/10 border-violet-500/30 text-violet-400"
+      : "bg-sky-500/10 border-sky-500/30 text-sky-400";
 
   if (!isAdmin) {
     return (
@@ -131,9 +132,9 @@ function RejectModal({
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-brand-100/50">
-        <h3 className="text-lg font-bold text-slate-800 mb-1">Reject: {team.name}</h3>
-        <p className="text-sm text-slate-500 mb-4">
+      <div className="bg-dark-400 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-white/[0.08]">
+        <h3 className="text-lg font-bold text-white mb-1">Reject: {team.name}</h3>
+        <p className="text-sm text-slate-400 mb-4">
           Select players to move back to the pool. The team will return to INCOMPLETE.
         </p>
 
@@ -142,7 +143,7 @@ function RejectModal({
             <label
               key={p.id}
               className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-colors ${
-                selected.has(p.id) ? "bg-red-50 border border-red-200" : "bg-surface-50 hover:bg-brand-50/50"
+                selected.has(p.id) ? "bg-red-500/100/10 border border-red-500/30" : "bg-white/[0.03] hover:bg-white/[0.04]"
               }`}
             >
               <input
@@ -151,8 +152,8 @@ function RejectModal({
                 onChange={() => toggle(p.id)}
                 className="accent-red-500"
               />
-              <span className="text-sm font-medium text-slate-800">{p.fullName}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-md border ${p.gender === "FEMALE" ? "bg-pink-50 text-pink-600 border-pink-200" : "bg-sky-50 text-sky-600 border-sky-200"}`}>
+              <span className="text-sm font-medium text-white">{p.fullName}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md border ${p.gender === "FEMALE" ? "bg-pink-500/10 text-pink-400 border-pink-500/30" : "bg-sky-500/10 text-sky-400 border-sky-500/30"}`}>
                 {p.gender === "FEMALE" ? "F" : "M"}
               </span>
             </label>
@@ -484,7 +485,7 @@ export default function ManagePage() {
   };
 
   const statusBadge = (status: string) => {
-    if (status === "READY") return <Badge variant="success" className="bg-emerald-500 text-white">READY</Badge>;
+    if (status === "READY") return <Badge variant="success" className="bg-emerald-500/100 text-white">READY</Badge>;
     if (status === "COMPLETE") return <Badge variant="info">SUBMITTED</Badge>;
     return <Badge variant="warning">INCOMPLETE</Badge>;
   };
@@ -492,8 +493,8 @@ export default function ManagePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-800">Team Management</h1>
-        <p className="mt-1 text-slate-500">Manage all teams, assign players, approve or reject</p>
+        <h1 className="text-3xl font-bold text-white">Team Management</h1>
+        <p className="mt-1 text-slate-400">Manage all teams, assign players, approve or reject</p>
       </div>
 
       {/* Team selector */}
@@ -509,7 +510,7 @@ export default function ManagePage() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Teams List */}
         <div className="lg:col-span-1 space-y-3">
-          <h2 className="text-lg font-semibold text-slate-800">Teams</h2>
+          <h2 className="text-lg font-semibold text-white">Teams</h2>
           {visibleTeams.map((team) => {
             const mandPlayers = getMandatoryPlayers(team);
             const extraPlayers = getExtraPlayers(team);
@@ -523,12 +524,12 @@ export default function ManagePage() {
                 onClick={() => setSelectedTeamId(team.id)}
                 className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
                   selectedTeamId === team.id
-                    ? "border-brand-400 bg-brand-50 ring-2 ring-brand-200"
-                    : "border-brand-100/50 bg-white hover:border-brand-200"
+                    ? "border-brand-500/50 bg-brand-500/100/10 ring-2 ring-brand-500/30"
+                    : "border-white/[0.08] bg-white/[0.03] hover:border-white/[0.15]"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-800">{team.name}</h3>
+                  <h3 className="font-semibold text-white">{team.name}</h3>
                   <div className="flex gap-1">
                     {team.status === "READY" && (
                       <Badge variant="default" className="bg-slate-700 text-white text-[10px]">FROZEN</Badge>
@@ -538,20 +539,20 @@ export default function ManagePage() {
                 </div>
                 <div className="mt-2 space-y-1">
                   <div className="flex items-center gap-2 text-xs">
-                    <span className={`font-medium ${mandFull ? "text-emerald-600" : "text-red-600"}`}>
+                    <span className={`font-medium ${mandFull ? "text-emerald-400" : "text-red-400"}`}>
                       Mandatory: {mandPlayers.length}/{MANDATORY_COUNT}
                     </span>
                     <span className="text-slate-300">|</span>
-                    <span className={`font-medium ${extraFull ? "text-emerald-600" : "text-amber-500"}`}>
+                    <span className={`font-medium ${extraFull ? "text-emerald-400" : "text-amber-400"}`}>
                       Extra: {extraPlayers.length}/{EXTRA_LIMIT}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-xs flex-wrap">
-                    <span className={hasFemale ? "text-emerald-600" : "text-red-600 font-semibold"}>
+                    <span className={hasFemale ? "text-emerald-400" : "text-red-400 font-semibold"}>
                       {getMandatoryFemaleCount(team)}F {hasFemale ? "ok" : "needed!"}
                     </span>
                     {mandRemaining > 0 && (
-                      <span className="text-red-500">{mandRemaining} mandatory needed</span>
+                      <span className="text-red-400">{mandRemaining} mandatory needed</span>
                     )}
                   </div>
                 </div>
@@ -575,13 +576,13 @@ export default function ManagePage() {
                 {selectedTeam ? `${selectedTeam.name} Roster` : "Select a Team"}
               </CardTitle>
               {selectedTeam?.status === "READY" && (
-                <p className="text-xs text-emerald-600 mt-1 font-medium bg-emerald-50 px-2 py-1 rounded-lg">
+                <p className="text-xs text-emerald-400 mt-1 font-medium bg-emerald-500/10 px-2 py-1 rounded-lg">
                   This team is approved, READY, and frozen for the tournament.
                 </p>
               )}
               {selectedTeam?.status === "COMPLETE" && (
                 <div className="mt-2 space-y-2">
-                  <p className="text-xs text-brand-600 font-normal bg-brand-50 px-2 py-1 rounded-lg">
+                  <p className="text-xs text-brand-400 font-normal bg-brand-500/10 px-2 py-1 rounded-lg">
                     Team submitted for approval. You can still make changes until admin approves.
                   </p>
                   {isAdmin && (
@@ -615,39 +616,39 @@ export default function ManagePage() {
 
                 return (
                   <div className="mt-2 space-y-2">
-                    <div className="bg-slate-50 rounded-lg p-3 space-y-2">
+                    <div className="bg-white/[0.04] rounded-lg p-3 space-y-2">
                       {/* Mandatory count */}
                       <div className="flex items-center justify-between text-xs">
-                        <span className={`font-medium ${mandFull ? "text-emerald-600" : "text-red-600"}`}>
+                        <span className={`font-medium ${mandFull ? "text-emerald-400" : "text-red-400"}`}>
                           Mandatory players
                         </span>
-                        <span className={`font-bold ${mandFull ? "text-emerald-600" : "text-red-600"}`}>
+                        <span className={`font-bold ${mandFull ? "text-emerald-400" : "text-red-400"}`}>
                           {mandPlayers.length}/{MANDATORY_COUNT}
                         </span>
                       </div>
-                      <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="w-full h-2 bg-white/[0.08] rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all ${mandFull ? "bg-emerald-500" : "bg-red-400"}`}
+                          className={`h-full rounded-full transition-all ${mandFull ? "bg-emerald-500/100" : "bg-red-400"}`}
                           style={{ width: `${Math.min(100, (mandPlayers.length / MANDATORY_COUNT) * 100)}%` }}
                         />
                       </div>
 
                       {/* Female count */}
                       <div className="flex items-center justify-between text-xs">
-                        <span className={`font-medium ${hasFemale ? "text-emerald-600" : "text-red-600"}`}>
+                        <span className={`font-medium ${hasFemale ? "text-emerald-400" : "text-red-400"}`}>
                           Female in mandatory
                         </span>
-                        <span className={`font-bold ${hasFemale ? "text-emerald-600" : "text-red-600"}`}>
+                        <span className={`font-bold ${hasFemale ? "text-emerald-400" : "text-red-400"}`}>
                           {getMandatoryFemaleCount(selectedTeam)}/{MIN_FEMALE_REQUIRED} min
                         </span>
                       </div>
 
                       {/* Extra players */}
                       <div className="flex items-center justify-between text-xs">
-                        <span className={`font-medium ${extraFull ? "text-emerald-600" : "text-amber-600"}`}>
+                        <span className={`font-medium ${extraFull ? "text-emerald-400" : "text-amber-400"}`}>
                           Extra players (optional)
                         </span>
-                        <span className={`font-bold ${extraFull ? "text-emerald-600" : "text-amber-500"}`}>
+                        <span className={`font-bold ${extraFull ? "text-emerald-400" : "text-amber-400"}`}>
                           {extraPlayers.length}/{EXTRA_LIMIT}
                         </span>
                       </div>
@@ -658,15 +659,15 @@ export default function ManagePage() {
 
                     {/* Submission criteria in red when not met */}
                     {!submitReady && (
-                      <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 space-y-1">
-                        <p className="text-xs font-semibold text-red-700">Cannot submit — criteria not met:</p>
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 space-y-1">
+                        <p className="text-xs font-semibold text-red-400">Cannot submit — criteria not met:</p>
                         {!mandFull && (
-                          <p className="text-xs text-red-600">
+                          <p className="text-xs text-red-400">
                             Need {getMandatoryRemaining(selectedTeam)} more mandatory player(s)
                           </p>
                         )}
                         {!hasFemale && (
-                          <p className="text-xs text-red-600">
+                          <p className="text-xs text-red-400">
                             Need at least {MIN_FEMALE_REQUIRED} female in mandatory players
                           </p>
                         )}
@@ -675,15 +676,15 @@ export default function ManagePage() {
 
                     {/* Extra warning when submit is ready but extras not filled */}
                     {submitReady && !extraFull && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                        <p className="text-xs text-amber-700 font-medium">
+                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+                        <p className="text-xs text-amber-400 font-medium">
                           Extra player slots not filled ({extraPlayers.length}/{EXTRA_LIMIT}). You can still submit.
                         </p>
                       </div>
                     )}
 
                     {submitReady && extraFull && (
-                      <p className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded-lg">
+                      <p className="text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2 py-1 rounded-lg">
                         All slots filled! Ready to submit.
                       </p>
                     )}
@@ -716,14 +717,14 @@ export default function ManagePage() {
                       {getMandatoryPlayers(selectedTeam).map((player) => (
                         <div
                           key={player.id}
-                          className="flex items-center justify-between p-3 bg-surface-50 rounded-xl"
+                          className="flex items-center justify-between p-3 bg-white/[0.03] rounded-xl"
                         >
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                              <span className="text-[10px] font-bold text-slate-400 bg-white/[0.06] px-1.5 py-0.5 rounded">
                                 {player.positionSlot || "Player"}
                               </span>
-                              <p className="font-medium text-slate-800 text-sm">{player.fullName}</p>
+                              <Link href={`/players/${player.id}`} className="font-medium text-white text-sm hover:text-brand-400 transition-colors">{player.fullName}</Link>
                             </div>
                             {player.email && (
                               <p className="text-[11px] text-slate-400 ml-1 mt-0.5">{player.email}</p>
@@ -761,21 +762,21 @@ export default function ManagePage() {
                       {/* Extra players */}
                       {getExtraPlayers(selectedTeam).length > 0 && (
                         <>
-                          <div className="border-t border-slate-200 my-3" />
-                          <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider px-1">
+                          <div className="border-t border-white/[0.08] my-3" />
+                          <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider px-1">
                             Extra ({getExtraPlayers(selectedTeam).length}/{EXTRA_LIMIT}) — Optional
                           </p>
                           {getExtraPlayers(selectedTeam).map((player) => (
                             <div
                               key={player.id}
-                              className="flex items-center justify-between p-3 bg-emerald-50/50 rounded-xl border border-emerald-100"
+                              className="flex items-center justify-between p-3 bg-emerald-500/100/5 rounded-xl border border-emerald-500/20"
                             >
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">
+                                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded">
                                     {player.positionSlot || "Extra"}
                                   </span>
-                                  <p className="font-medium text-slate-800 text-sm">{player.fullName}</p>
+                                  <Link href={`/players/${player.id}`} className="font-medium text-white text-sm hover:text-brand-400 transition-colors">{player.fullName}</Link>
                                 </div>
                                 {player.email && (
                                   <p className="text-[11px] text-slate-400 ml-1 mt-0.5">{player.email}</p>
@@ -848,10 +849,10 @@ export default function ManagePage() {
                     return (
                       <div
                         key={player.id}
-                        className="flex items-center justify-between p-3 bg-surface-50 rounded-xl"
+                        className="flex items-center justify-between p-3 bg-white/[0.03] rounded-xl"
                       >
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-800 text-sm truncate">{player.fullName}</p>
+                          <Link href={`/players/${player.id}`} className="font-medium text-white text-sm truncate block hover:text-brand-400 transition-colors">{player.fullName}</Link>
                           <div className="flex gap-1 mt-0.5 items-center flex-wrap">
                             <GenderSelect
                               playerId={player.id}
@@ -879,8 +880,8 @@ export default function ManagePage() {
                             disabled={!selectedTeamId || isFrozen(selectedTeam) || !mandOk || actionLoading === player.id}
                             className={`text-[10px] px-2.5 py-1 rounded-lg font-semibold transition-all ${
                               mandOk && selectedTeamId && !isFrozen(selectedTeam)
-                                ? "bg-brand-600 text-white hover:bg-brand-700"
-                                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                                ? "bg-brand-600 text-white hover:bg-brand-500"
+                                : "bg-white/[0.06] text-slate-400 cursor-not-allowed"
                             }`}
                             title={mandHint || "Assign as mandatory player"}
                           >
@@ -891,8 +892,8 @@ export default function ManagePage() {
                             disabled={!selectedTeamId || isFrozen(selectedTeam) || !extraOk || actionLoading === player.id}
                             className={`text-[10px] px-2.5 py-1 rounded-lg font-semibold transition-all border ${
                               extraOk && selectedTeamId && !isFrozen(selectedTeam)
-                                ? "border-emerald-400 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
-                                : "border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed"
+                                ? "border-emerald-500/50 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+                                : "border-white/[0.08] text-slate-400 bg-white/[0.04] cursor-not-allowed"
                             }`}
                             title={extraHint || "Assign as extra player"}
                           >

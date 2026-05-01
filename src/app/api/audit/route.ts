@@ -19,9 +19,31 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "25");
     const skip = (page - 1) * limit;
+    const action = searchParams.get("action");
+    const search = searchParams.get("search");
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+
+    const where: Record<string, unknown> = {};
+    if (action) where.action = action;
+    if (from || to) {
+      where.createdAt = {
+        ...(from ? { gte: new Date(from) } : {}),
+        ...(to ? { lte: new Date(to + "T23:59:59.999Z") } : {}),
+      };
+    }
+    if (search) {
+      where.OR = [
+        { entityType: { contains: search, mode: "insensitive" } },
+        { entityId: { contains: search, mode: "insensitive" } },
+        { actor: { displayName: { contains: search, mode: "insensitive" } } },
+        { actor: { email: { contains: search, mode: "insensitive" } } },
+      ];
+    }
 
     const [logs, total] = await Promise.all([
       prisma.auditLog.findMany({
+        where,
         include: {
           actor: { select: { displayName: true, email: true } },
         },
@@ -29,7 +51,7 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
       }),
-      prisma.auditLog.count(),
+      prisma.auditLog.count({ where }),
     ]);
 
     return jsonResponse({

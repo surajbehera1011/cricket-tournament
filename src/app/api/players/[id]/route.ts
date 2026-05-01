@@ -8,11 +8,59 @@ import { PoolStatus } from "@prisma/client";
 import { createAuditLog } from "@/lib/business/audit";
 import { z } from "zod";
 import { sendIndividualApprovedEmail } from "@/lib/email";
+import { notifyAllAdmins } from "@/lib/notifications";
 
 const updatePlayerSchema = z.object({
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   approve: z.boolean().optional(),
 });
+
+export async function GET(
+  _request: NextRequest,
+  context: { params: { id: string } | Promise<{ id: string }> }
+) {
+  try {
+    const resolvedParams = await Promise.resolve(context.params);
+    const id = resolvedParams.id;
+
+    const player = await prisma.player.findUnique({
+      where: { id },
+      include: {
+        memberships: {
+          include: {
+            team: { select: { id: true, name: true, color: true, status: true } },
+          },
+        },
+      },
+    });
+
+    if (!player) {
+      return NextResponse.json({ error: "Player not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      id: player.id,
+      fullName: player.fullName,
+      email: player.email,
+      gender: player.gender,
+      preferredRole: player.preferredRole,
+      experienceLevel: player.experienceLevel,
+      poolStatus: player.poolStatus,
+      createdAt: player.createdAt,
+      teams: player.memberships.map((m) => ({
+        teamId: m.team.id,
+        teamName: m.team.name,
+        teamColor: m.team.color,
+        teamStatus: m.team.status,
+        membershipType: m.membershipType,
+        positionSlot: m.positionSlot,
+      })),
+    });
+  } catch (error) {
+    console.error("Get player error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -64,6 +112,12 @@ export async function PATCH(
       if (player.email) {
         sendIndividualApprovedEmail(player.fullName, player.email);
       }
+
+      notifyAllAdmins({
+        title: "Individual Player Approved",
+        message: `${player.fullName} approved and moved to the player pool.`,
+        link: "/manage",
+      }).catch(() => {});
     }
 
     const membership = await prisma.teamMembership.findFirst({ where: { playerId: id } });

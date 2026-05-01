@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
+import { useFormAutosave } from "@/lib/useFormAutosave";
 
 const ROLES = ["Batsman", "Bowler", "All-Rounder", "Wicket Keeper"];
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
@@ -11,15 +12,18 @@ interface IndividualFormProps {
   onSuccess: (email: string) => void;
 }
 
+interface IndFormData {
+  fullName: string;
+  email: string;
+  gender: string;
+  preferredRole: string[];
+  experienceLevel: string;
+  comments: string;
+}
+
 export function IndividualForm({ onSuccess }: IndividualFormProps) {
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    gender: "" as string,
-    preferredRole: [] as string[],
-    experienceLevel: "",
-    comments: "",
-  });
+  const initial: IndFormData = { fullName: "", email: "", gender: "", preferredRole: [], experienceLevel: "", comments: "" };
+  const { value: form, setValue: setForm, restored, clear: clearSaved, dismiss } = useFormAutosave<IndFormData>("individual", initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [errorFields, setErrorFields] = useState<Set<string>>(new Set());
@@ -97,6 +101,7 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
         experienceLevel: "",
         comments: "",
       });
+      clearSaved();
       onSuccess(form.email);
     } catch (err) {
       showError(err instanceof Error ? err.message : "Something went wrong");
@@ -107,6 +112,12 @@ export function IndividualForm({ onSuccess }: IndividualFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6" onChange={clearError}>
+      {restored && (
+        <div className="bg-brand-500/10 border border-brand-500/20 text-brand-300 px-4 py-3 rounded-xl text-sm flex items-center justify-between">
+          <span>Draft restored from your previous session.</span>
+          <button type="button" onClick={() => { clearSaved(); setForm(initial); dismiss(); }} className="text-xs font-bold text-brand-400 hover:text-brand-300">Clear Draft</button>
+        </div>
+      )}
       {error && (
         <div
           key={shakeKey}

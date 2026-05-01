@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendPickleballRegistrationConfirmation } from "@/lib/email";
 import { z } from "zod";
+import { notifyAllAdmins } from "@/lib/notifications";
 
 const SINGLES = ["MENS_SINGLES", "WOMENS_SINGLES"];
 
@@ -106,6 +107,12 @@ export async function POST(request: NextRequest) {
       registration.player2Email,
       registration.player2Name,
     );
+
+    notifyAllAdmins({
+      title: "New Pickleball Registration",
+      message: `${registration.player1Name} registered for ${registration.category.replace(/_/g, " ")}${registration.player2Name ? ` with ${registration.player2Name}` : ""}.`,
+      link: "/master",
+    }).catch(() => {});
 
     return NextResponse.json(
       { message: "Pickleball registration submitted! Awaiting admin approval.", id: registration.id },

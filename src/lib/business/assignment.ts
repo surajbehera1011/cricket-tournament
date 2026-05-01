@@ -4,6 +4,7 @@ import { createAuditLog } from "./audit";
 import { recomputeTeamStatus } from "./registration";
 import { sseManager } from "@/lib/sse";
 import { sendPlayerDraftedEmail, sendPlayerRemovedEmail } from "@/lib/email";
+import { notifyAllAdmins } from "@/lib/notifications";
 
 export class AuthorizationError extends Error {
   constructor(message: string) {
@@ -148,6 +149,12 @@ export async function assignPlayerToTeam(
     sendPlayerDraftedEmail(player.fullName, player.email, team.name, slotType);
   }
 
+  notifyAllAdmins({
+    title: "Player Assigned to Team",
+    message: `${player.fullName} assigned to "${team.name}" as ${slotType}.`,
+    link: "/manage",
+  }).catch(() => {});
+
   return result.membership;
 }
 
@@ -213,6 +220,12 @@ export async function removePlayerFromTeam(
   if (membership.player.email) {
     sendPlayerRemovedEmail(membership.player.fullName, membership.player.email, team.name);
   }
+
+  notifyAllAdmins({
+    title: "Player Removed from Team",
+    message: `${membership.player.fullName} removed from "${team.name}" and returned to pool.`,
+    link: "/manage",
+  }).catch(() => {});
 
   return { success: true };
 }

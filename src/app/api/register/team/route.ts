@@ -6,6 +6,7 @@ import { teamRegistrationSchema } from "@/lib/validators";
 import { registerTeam } from "@/lib/business/registration";
 import { prisma } from "@/lib/prisma";
 import { sendTeamRegistrationConfirmation } from "@/lib/email";
+import { notifyAllAdmins } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,6 +57,12 @@ export async function POST(request: NextRequest) {
       parsed.data.captainName,
       result.players.length
     );
+
+    notifyAllAdmins({
+      title: "New Team Registration",
+      message: `Team "${parsed.data.teamName}" with ${result.players.length} players needs review.`,
+      link: "/admin",
+    }).catch(() => {});
 
     return NextResponse.json(
       {

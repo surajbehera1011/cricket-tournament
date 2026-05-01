@@ -9,6 +9,7 @@ import { recomputeTeamStatus } from "@/lib/business/registration";
 import { z } from "zod";
 import { sendTeamApprovedEmail } from "@/lib/email";
 import { autoRegenerateCricketFixture } from "@/lib/fixture-auto-regen";
+import { createNotification, notifyAllAdmins } from "@/lib/notifications";
 
 const approveSchema = z.object({
   teamId: z.string().uuid(),
@@ -73,6 +74,21 @@ export async function POST(request: NextRequest) {
     if (updated?.status === "READY") {
       autoRegenerateCricketFixture();
     }
+
+    if (team.captainUserId) {
+      createNotification({
+        userId: team.captainUserId,
+        title: "Team Approved!",
+        message: `Your team "${team.name}" has been approved and is ${updated?.status === "READY" ? "ready for the tournament" : "now active"}.`,
+        link: "/manage",
+      }).catch(() => {});
+    }
+
+    notifyAllAdmins({
+      title: "Team Approved",
+      message: `Team "${team.name}" approved → ${updated?.status}. By ${session.user.name || "admin"}.`,
+      link: "/manage",
+    }).catch(() => {});
 
     return NextResponse.json({ team: updated });
   } catch (error) {

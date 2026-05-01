@@ -8,6 +8,7 @@ import { PoolStatus } from "@prisma/client";
 import { createAuditLog } from "@/lib/business/audit";
 import { z } from "zod";
 import { sendTeamRejectedEmail, sendRosterRejectedEmail } from "@/lib/email";
+import { notifyAllAdmins } from "@/lib/notifications";
 
 const rejectSchema = z.object({
   teamId: z.string().uuid().optional(),
@@ -77,6 +78,12 @@ export async function POST(request: NextRequest) {
         if (allEmailsPending.length > 0) {
           sendTeamRejectedEmail(allEmailsPending, team.name);
         }
+
+        notifyAllAdmins({
+          title: "Team Rejected",
+          message: `Team "${team.name}" (PENDING) was rejected and deleted.`,
+          link: "/admin",
+        }).catch(() => {});
       } else if (team.status === "COMPLETE" && parsed.data.playerIds?.length) {
         await prisma.$transaction(async (tx) => {
           for (const pid of parsed.data.playerIds!) {
@@ -99,6 +106,12 @@ export async function POST(request: NextRequest) {
         if (allEmailsRoster.length > 0) {
           sendRosterRejectedEmail(allEmailsRoster, team.name, parsed.data.playerIds!.length);
         }
+
+        notifyAllAdmins({
+          title: "Team Roster Rejected",
+          message: `${parsed.data.playerIds!.length} player(s) from "${team.name}" moved back to pool.`,
+          link: "/manage",
+        }).catch(() => {});
       }
 
       return NextResponse.json({ success: true });

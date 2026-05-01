@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
+import { useFormAutosave } from "@/lib/useFormAutosave";
 
 const CATEGORIES = [
   { value: "MENS_SINGLES", label: "Men's Singles", type: "singles", icon: "🏓" },
@@ -15,12 +16,24 @@ interface PickleballFormProps {
   onSuccess: (email: string) => void;
 }
 
+interface PbFormData {
+  category: string;
+  player1Name: string;
+  player1Email: string;
+  player2Name: string;
+  player2Email: string;
+}
+
 export function PickleballForm({ onSuccess }: PickleballFormProps) {
-  const [category, setCategory] = useState("");
-  const [player1Name, setPlayer1Name] = useState("");
-  const [player1Email, setPlayer1Email] = useState("");
-  const [player2Name, setPlayer2Name] = useState("");
-  const [player2Email, setPlayer2Email] = useState("");
+  const { value: saved, setValue: setSaved, restored, clear: clearSaved, dismiss } = useFormAutosave<PbFormData>("pickleball", {
+    category: "", player1Name: "", player1Email: "", player2Name: "", player2Email: "",
+  });
+  const category = saved.category;
+  const player1Name = saved.player1Name;
+  const player1Email = saved.player1Email;
+  const player2Name = saved.player2Name;
+  const player2Email = saved.player2Email;
+  const setField = (field: keyof PbFormData, val: string) => setSaved((p) => ({ ...p, [field]: val }));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [errorFields, setErrorFields] = useState<Set<string>>(new Set());
@@ -96,11 +109,8 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
         throw new Error(data.error || "Registration failed");
       }
 
-      setCategory("");
-      setPlayer1Name("");
-      setPlayer1Email("");
-      setPlayer2Name("");
-      setPlayer2Email("");
+      clearSaved();
+      setSaved({ category: "", player1Name: "", player1Email: "", player2Name: "", player2Email: "" });
       onSuccess(player1Email);
     } catch (err) {
       showError(err instanceof Error ? err.message : "Something went wrong");
@@ -111,6 +121,12 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6" onChange={clearError}>
+      {restored && (
+        <div className="bg-brand-500/10 border border-brand-500/20 text-brand-300 px-4 py-3 rounded-xl text-sm flex items-center justify-between">
+          <span>Draft restored from your previous session.</span>
+          <button type="button" onClick={() => { clearSaved(); setSaved({ category: "", player1Name: "", player1Email: "", player2Name: "", player2Email: "" }); dismiss(); }} className="text-xs font-bold text-brand-400 hover:text-brand-300">Clear Draft</button>
+        </div>
+      )}
       {error && (
         <div
           key={shakeKey}
@@ -137,10 +153,10 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
               key={cat.value}
               type="button"
               onClick={() => {
-                setCategory(cat.value);
+                setField("category", cat.value);
                 if (cat.type === "singles") {
-                  setPlayer2Name("");
-                  setPlayer2Email("");
+                  setField("player2Name", "");
+                  setField("player2Email", "");
                 }
               }}
               className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all text-left ${
@@ -175,7 +191,7 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
                   type="text"
                   required
                   value={player1Name}
-                  onChange={(e) => setPlayer1Name(e.target.value)}
+                  onChange={(e) => setField("player1Name", e.target.value)}
                   className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100"
                   placeholder="Full name"
                 />
@@ -186,7 +202,7 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
                   type="email"
                   required
                   value={player1Email}
-                  onChange={(e) => setPlayer1Email(e.target.value)}
+                  onChange={(e) => setField("player1Email", e.target.value)}
                   className={`w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-dark-500 text-slate-100 ${isFieldError("p1-email") ? "field-error" : "border-white/10"}`}
                   placeholder="name@aligntech.com"
                 />
@@ -205,7 +221,7 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
                     type="text"
                     required
                     value={player2Name}
-                    onChange={(e) => setPlayer2Name(e.target.value)}
+                    onChange={(e) => setField("player2Name", e.target.value)}
                     className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-violet-400 focus:border-transparent bg-dark-500 text-slate-100"
                     placeholder="Partner full name"
                   />
@@ -216,7 +232,7 @@ export function PickleballForm({ onSuccess }: PickleballFormProps) {
                     type="email"
                     required
                     value={player2Email}
-                    onChange={(e) => setPlayer2Email(e.target.value)}
+                    onChange={(e) => setField("player2Email", e.target.value)}
                     className={`w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-violet-400 focus:border-transparent bg-dark-500 text-slate-100 ${isFieldError("p2-email") ? "field-error" : "border-white/10"}`}
                     placeholder="partner@aligntech.com"
                   />

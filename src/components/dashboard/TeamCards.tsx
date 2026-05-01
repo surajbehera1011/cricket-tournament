@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 
 interface Player {
   id: string;
@@ -63,7 +65,13 @@ function PlayerProfile({ player, onClose }: { player: Player; onClose: () => voi
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={onClose}>
-      <div className="dark-card rounded-2xl shadow-2xl max-w-xs w-full p-6" onClick={(e) => e.stopPropagation()}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="dark-card rounded-2xl shadow-2xl max-w-xs w-full p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="text-center">
           <div className="w-16 h-16 rounded-full bg-brand-500/15 text-brand-400 flex items-center justify-center text-2xl font-bold mx-auto mb-3">
             {player.fullName.charAt(0).toUpperCase()}
@@ -91,10 +99,13 @@ function PlayerProfile({ player, onClose }: { player: Player; onClose: () => voi
             </span>
           </div>
         </div>
-        <button onClick={onClose} className="mt-4 w-full py-2 text-sm font-medium text-slate-500 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors">
+        <Link href={`/players/${player.id}`} className="mt-3 block text-center text-xs text-brand-400 hover:text-brand-300 font-medium">
+          View Full Profile &rarr;
+        </Link>
+        <button onClick={onClose} className="mt-2 w-full py-2 text-sm font-medium text-slate-500 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors">
           Close
         </button>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -108,15 +119,18 @@ function TeamModal({ team, onClose }: { team: Team; onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
-      {profilePlayer && <PlayerProfile player={profilePlayer} onClose={() => setProfilePlayer(null)} />}
-      <div
+      <AnimatePresence>{profilePlayer && <PlayerProfile player={profilePlayer} onClose={() => setProfilePlayer(null)} />}</AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 30 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
         className="dark-card rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Colored top strip */}
         <div
           className={`h-1.5 ${
             team.color ? "" :
@@ -127,7 +141,6 @@ function TeamModal({ team, onClose }: { team: Team; onClose: () => void }) {
           style={team.color ? { background: team.color } : undefined}
         />
 
-        {/* Header */}
         <div className="p-6 pb-4">
           <div className="flex items-start justify-between">
             <div>
@@ -151,7 +164,6 @@ function TeamModal({ team, onClose }: { team: Team; onClose: () => void }) {
             <StatusBadge status={team.status} />
           </div>
 
-          {/* Progress bar */}
           <div className="mt-4">
             <div className="flex justify-between text-sm mb-1.5">
               <span className="font-semibold text-slate-300">{team.memberCount} / {team.teamSize} players</span>
@@ -169,7 +181,6 @@ function TeamModal({ team, onClose }: { team: Team; onClose: () => void }) {
             </div>
           </div>
 
-          {/* Stats row */}
           <div className="grid grid-cols-3 gap-3 mt-4">
             <div className="bg-sky-500/10 rounded-xl p-3 text-center border border-sky-500/15">
               <p className="text-xl font-extrabold text-sky-400">{maleCount}</p>
@@ -186,7 +197,6 @@ function TeamModal({ team, onClose }: { team: Team; onClose: () => void }) {
           </div>
         </div>
 
-        {/* Player List */}
         <div className="border-t border-white/[0.04] overflow-y-auto max-h-[40vh] p-6 pt-4">
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
             Squad ({team.players.length})
@@ -232,96 +242,141 @@ function TeamModal({ team, onClose }: { team: Team; onClose: () => void }) {
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
 
-export function TeamCards({ teams, tvMode }: TeamCardsProps) {
+function TeamCard({ team }: { team: Team }) {
+  const [expanded, setExpanded] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const hoverTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const maleCount = team.players.filter((p) => p.gender === "MALE").length;
+  const femaleCount = team.players.filter((p) => p.gender === "FEMALE").length;
+  const pct = Math.round((team.memberCount / team.teamSize) * 100);
+  const previewPlayers = team.players.slice(0, 5);
+  const remaining = team.players.length - previewPlayers.length;
+
+  const borderColor =
+    team.status === "READY" ? "border-pitch-500/20 hover:border-pitch-500/40" :
+    team.status === "COMPLETE" ? "border-brand-500/20 hover:border-brand-500/40" :
+    "border-white/[0.06] hover:border-white/[0.12]";
+
+  const barColor =
+    team.status === "READY" ? "bg-gradient-to-r from-pitch-400 to-pitch-500" :
+    team.status === "COMPLETE" ? "bg-gradient-to-r from-brand-400 to-brand-500" :
+    "bg-gradient-to-r from-amber-400 to-amber-500";
+
+  const handleMouseEnter = () => {
+    hoverTimeout.current = setTimeout(() => setExpanded(true), 300);
+  };
+  const handleMouseLeave = () => {
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    setExpanded(false);
+  };
 
   return (
     <>
-      {selectedTeam && (
-        <TeamModal team={selectedTeam} onClose={() => setSelectedTeam(null)} />
-      )}
+      <AnimatePresence>{selectedTeam && <TeamModal team={selectedTeam} onClose={() => setSelectedTeam(null)} />}</AnimatePresence>
+      <motion.div
+        layout
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClick={() => setSelectedTeam(team)}
+        className={`text-left bg-dark-400/60 backdrop-blur-sm border-2 rounded-2xl p-5 hover:shadow-lg hover:shadow-black/20 transition-shadow cursor-pointer group ${borderColor}`}
+      >
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2">
+            {team.color && (
+              <span className="w-3 h-3 rounded-full flex-shrink-0 border border-white/10 shadow-sm" style={{ background: team.color }} />
+            )}
+            <h3 className="text-lg font-extrabold text-white group-hover:text-pitch-400 transition-colors leading-tight">
+              {team.name}
+            </h3>
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {teams.map((team) => {
-          const maleCount = team.players.filter((p) => p.gender === "MALE").length;
-          const femaleCount = team.players.filter((p) => p.gender === "FEMALE").length;
-          const pct = Math.round((team.memberCount / team.teamSize) * 100);
+        <div className="mb-3">
+          <StatusBadge status={team.status} />
+        </div>
 
-          const borderColor =
-            team.status === "READY" ? "border-pitch-500/20 hover:border-pitch-500/40" :
-            team.status === "COMPLETE" ? "border-brand-500/20 hover:border-brand-500/40" :
-            "border-white/[0.06] hover:border-white/[0.12]";
+        {(team.captainName || team.captain) && (
+          <p className="text-xs text-slate-500 mb-3 flex items-center gap-1">
+            <span>👤</span> {team.captainName || team.captain?.displayName}
+          </p>
+        )}
 
-          const barColor =
-            team.status === "READY" ? "bg-gradient-to-r from-pitch-400 to-pitch-500" :
-            team.status === "COMPLETE" ? "bg-gradient-to-r from-brand-400 to-brand-500" :
-            "bg-gradient-to-r from-amber-400 to-amber-500";
+        <div className="mb-3">
+          <div className="flex justify-between text-xs text-slate-500 mb-1">
+            <span className="font-semibold text-slate-300">{team.memberCount}/{team.teamSize}</span>
+            <span>{pct}%</span>
+          </div>
+          <div className="w-full h-2.5 bg-white/[0.04] rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+              style={{ width: `${Math.min(100, pct)}%` }}
+            />
+          </div>
+        </div>
 
-          return (
-            <button
-              key={team.id}
-              onClick={() => setSelectedTeam(team)}
-              className={`text-left bg-dark-400/60 backdrop-blur-sm border-2 rounded-2xl p-5 hover:shadow-lg hover:shadow-black/20 transition-all duration-200 group hover:-translate-y-1 ${borderColor}`}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 font-semibold border border-sky-500/15">
+              {maleCount}M
+            </span>
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-pink-500/10 text-pink-400 font-semibold border border-pink-500/15">
+              {femaleCount}F
+            </span>
+          </div>
+          {team.slotsRemaining > 0 && (
+            <span className="text-[11px] text-amber-400 font-semibold">{team.slotsRemaining} open</span>
+          )}
+        </div>
+
+        {/* Expandable roster preview */}
+        <AnimatePresence>
+          {expanded && previewPlayers.length > 0 && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="overflow-hidden"
             >
-              {/* Team name + status */}
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  {team.color && (
-                    <span className="w-3 h-3 rounded-full flex-shrink-0 border border-white/10 shadow-sm" style={{ background: team.color }} />
-                  )}
-                  <h3 className="text-lg font-extrabold text-white group-hover:text-pitch-400 transition-colors leading-tight">
-                    {team.name}
-                  </h3>
-                </div>
-              </div>
-
-              <div className="mb-3">
-                <StatusBadge status={team.status} />
-              </div>
-
-              {/* Captain */}
-              {(team.captainName || team.captain) && (
-                <p className="text-xs text-slate-500 mb-3 flex items-center gap-1">
-                  <span>👤</span> {team.captainName || team.captain?.displayName}
-                </p>
-              )}
-
-              {/* Player count bar */}
-              <div className="mb-3">
-                <div className="flex justify-between text-xs text-slate-500 mb-1">
-                  <span className="font-semibold text-slate-300">{team.memberCount}/{team.teamSize}</span>
-                  <span>{pct}%</span>
-                </div>
-                <div className="w-full h-2.5 bg-white/[0.04] rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${barColor}`}
-                    style={{ width: `${Math.min(100, pct)}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Gender composition + slots */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 font-semibold border border-sky-500/15">
-                    {maleCount}M
-                  </span>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-pink-500/10 text-pink-400 font-semibold border border-pink-500/15">
-                    {femaleCount}F
-                  </span>
-                </div>
-                {team.slotsRemaining > 0 && (
-                  <span className="text-[11px] text-amber-400 font-semibold">{team.slotsRemaining} open</span>
+              <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-1">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Roster Preview</p>
+                {previewPlayers.map((p, idx) => (
+                  <div key={p.id} className="flex items-center gap-2 py-1">
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${
+                      idx === 0 ? "bg-pitch-500 text-white" : "bg-white/[0.06] text-slate-500"
+                    }`}>
+                      {idx === 0 ? "C" : idx + 1}
+                    </span>
+                    <span className="text-xs text-slate-300 font-medium truncate">{p.fullName}</span>
+                    <GenderBadge gender={p.gender} />
+                  </div>
+                ))}
+                {remaining > 0 && (
+                  <p className="text-[10px] text-slate-500 pl-7">+{remaining} more</p>
                 )}
+                <p className="text-[10px] text-brand-400 font-medium pt-1">Click for full details &rarr;</p>
               </div>
-            </button>
-          );
-        })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </>
+  );
+}
+
+export function TeamCards({ teams }: TeamCardsProps) {
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {teams.map((team) => (
+          <TeamCard key={team.id} team={team} />
+        ))}
       </div>
 
       {teams.length === 0 && (

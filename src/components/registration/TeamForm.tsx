@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
+import { useFormAutosave } from "@/lib/useFormAutosave";
 
 interface PlayerEntry {
   name: string;
@@ -11,6 +12,17 @@ interface PlayerEntry {
 
 interface TeamFormProps {
   onSuccess: (email: string) => void;
+}
+
+interface TeamFormData {
+  teamName: string;
+  teamColor: string;
+  captainName: string;
+  captainGender: string;
+  captainEmail: string;
+  comments: string;
+  players: PlayerEntry[];
+  extraPlayers: PlayerEntry[];
 }
 
 const MIN_PLAYERS_TO_REGISTER = 4;
@@ -30,21 +42,33 @@ const TEAM_COLORS = [
   { value: "#6b7280", label: "Gray" },
 ];
 
+const INITIAL_TEAM: TeamFormData = {
+  teamName: "", teamColor: "", captainName: "", captainGender: "", captainEmail: "", comments: "",
+  players: [{ name: "", gender: "", email: "" }, { name: "", gender: "", email: "" }, { name: "", gender: "", email: "" }],
+  extraPlayers: [],
+};
+
 export function TeamForm({ onSuccess }: TeamFormProps) {
-  const [teamName, setTeamName] = useState("");
-  const [teamColor, setTeamColor] = useState("");
-  const [captainName, setCaptainName] = useState("");
-  const [captainGender, setCaptainGender] = useState("");
-  const [captainEmail, setCaptainEmail] = useState("");
-  const [comments, setComments] = useState("");
-
-  const [players, setPlayers] = useState<PlayerEntry[]>([
-    { name: "", gender: "", email: "" },
-    { name: "", gender: "", email: "" },
-    { name: "", gender: "", email: "" },
-  ]);
-
-  const [extraPlayers, setExtraPlayers] = useState<PlayerEntry[]>([]);
+  const { value: saved, setValue: setSaved, restored, clear: clearSaved, dismiss } = useFormAutosave<TeamFormData>("team", INITIAL_TEAM);
+  const teamName = saved.teamName;
+  const teamColor = saved.teamColor;
+  const captainName = saved.captainName;
+  const captainGender = saved.captainGender;
+  const captainEmail = saved.captainEmail;
+  const comments = saved.comments;
+  const players = saved.players;
+  const extraPlayers = saved.extraPlayers;
+  const setField = (field: keyof TeamFormData, val: string | PlayerEntry[]) => setSaved((p) => ({ ...p, [field]: val }));
+  const setTeamName = (v: string) => setField("teamName", v);
+  const setTeamColor = (v: string) => setField("teamColor", v);
+  const setCaptainName = (v: string) => setField("captainName", v);
+  const setCaptainGender = (v: string) => setField("captainGender", v);
+  const setCaptainEmail = (v: string) => setField("captainEmail", v);
+  const setComments = (v: string) => setField("comments", v);
+  const setPlayers = (fn: PlayerEntry[] | ((prev: PlayerEntry[]) => PlayerEntry[])) =>
+    setSaved((p) => ({ ...p, players: typeof fn === "function" ? fn(p.players) : fn }));
+  const setExtraPlayers = (fn: PlayerEntry[] | ((prev: PlayerEntry[]) => PlayerEntry[])) =>
+    setSaved((p) => ({ ...p, extraPlayers: typeof fn === "function" ? fn(p.extraPlayers) : fn }));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [errorFields, setErrorFields] = useState<Set<string>>(new Set());
@@ -255,6 +279,7 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
         { name: "", gender: "", email: "" },
       ]);
       setExtraPlayers([]);
+      clearSaved();
       onSuccess(captainEmail);
     } catch (err) {
       showError(err instanceof Error ? err.message : "Something went wrong");
@@ -268,6 +293,12 @@ export function TeamForm({ onSuccess }: TeamFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6" onChange={clearError}>
+      {restored && (
+        <div className="bg-brand-500/10 border border-brand-500/20 text-brand-300 px-4 py-3 rounded-xl text-sm flex items-center justify-between">
+          <span>Draft restored from your previous session.</span>
+          <button type="button" onClick={() => { clearSaved(); setSaved(INITIAL_TEAM); dismiss(); }} className="text-xs font-bold text-brand-400 hover:text-brand-300">Clear Draft</button>
+        </div>
+      )}
       {error && (
         <div
           key={shakeKey}

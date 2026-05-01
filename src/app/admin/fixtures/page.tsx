@@ -25,6 +25,9 @@ interface MatchData {
   team2Id: string | null;
   entry1Id: string | null;
   entry2Id: string | null;
+  score1: string | null;
+  score2: string | null;
+  winnerId: string | null;
   scheduledDate: string | null;
   venue: string | null;
   status: string;
@@ -309,6 +312,38 @@ export default function AdminFixturesPage() {
     }
   };
 
+  const recordScore = async (matchId: string, score1: string, score2: string, winnerId: string) => {
+    try {
+      const res = await fetch("/api/admin/fixtures/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId, score1, score2, winnerId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Score entry failed");
+      toast("Score recorded & bracket updated", "success");
+      fetchFixture();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Score entry failed", "error");
+    }
+  };
+
+  const toggleLive = async (matchId: string, goLive: boolean) => {
+    try {
+      const res = await fetch("/api/admin/fixtures/live", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId, live: goLive }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      toast(goLive ? "Match is now LIVE" : "Match taken off live", "success");
+      fetchFixture();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed", "error");
+    }
+  };
+
   if (session?.user?.role !== "ADMIN") {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
@@ -469,6 +504,8 @@ export default function AdminFixturesPage() {
                             isTBD={isTBD}
                             isFrozen={fixture.status === "FROZEN"}
                             onSchedule={scheduleMatch}
+                            onRecordScore={recordScore}
+                            onToggleLive={toggleLive}
                           />
                         ))}
                       </div>
@@ -492,6 +529,8 @@ export default function AdminFixturesPage() {
                 isTBD={isTBD}
                 isFrozen={fixture.status === "FROZEN"}
                 onSchedule={scheduleMatch}
+                onRecordScore={recordScore}
+                onToggleLive={toggleLive}
                 accent="#f59e0b"
               />
             </div>
@@ -516,6 +555,8 @@ export default function AdminFixturesPage() {
                     isTBD={isTBD}
                     isFrozen={fixture.status === "FROZEN"}
                     onSchedule={scheduleMatch}
+                    onRecordScore={recordScore}
+                    onToggleLive={toggleLive}
                     accent="#10b981"
                   />
                 </div>
@@ -550,6 +591,8 @@ function GroupMatchCard({
   isTBD,
   isFrozen,
   onSchedule,
+  onRecordScore,
+  onToggleLive,
 }: {
   match: MatchData;
   sport: Sport;
@@ -559,35 +602,83 @@ function GroupMatchCard({
   isTBD: (id: string | null) => boolean;
   isFrozen: boolean;
   onSchedule: (id: string, date: string, venue: string, notify: boolean) => void;
+  onRecordScore: (matchId: string, score1: string, score2: string, winnerId: string) => void;
+  onToggleLive: (matchId: string, goLive: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [scoring, setScoring] = useState(false);
+  const [s1, setS1] = useState(match.score1 ?? "");
+  const [s2, setS2] = useState(match.score2 ?? "");
   const [date, setDate] = useState(match.scheduledDate ? new Date(match.scheduledDate).toISOString().slice(0, 16) : "");
   const [venue, setVenue] = useState(match.venue ?? "");
 
+  const p1 = slotId(match, "1");
+  const p2 = slotId(match, "2");
+  const isCompleted = match.status === "COMPLETED";
+  const isLive = match.status === "LIVE";
+  const canScore = isFrozen && p1 && p2 && !isTBD(p1) && !isTBD(p2);
+
   return (
-    <div className="rounded-lg overflow-hidden border border-white/[0.06] hover:border-white/[0.12] transition-all">
+    <div className={`rounded-lg overflow-hidden border transition-all ${isCompleted ? "border-emerald-500/30 bg-emerald-500/[0.03]" : isLive ? "border-red-500/30 bg-red-500/[0.03]" : "border-white/[0.06] hover:border-white/[0.12]"}`}>
       <div className="flex items-center">
         <DroppableMatchCard match={match} slot="1">
           <DraggableSlot id={`${match.id}__1`} label={slotLabel(match, "1")} color={slotColor(match, "1")} isTBD={isTBD(slotId(match, "1"))} />
         </DroppableMatchCard>
-        <div className="h-[30px] w-[30px] flex items-center justify-center border-x border-white/[0.04] bg-white/[0.01]">
-          <span className="text-[8px] font-black text-slate-600">VS</span>
-        </div>
+        {isCompleted && match.score1 ? (
+          <div className="h-[30px] w-[50px] flex items-center justify-center border-x border-white/[0.04] bg-white/[0.02]">
+            <span className="text-[10px] font-black text-emerald-400">{match.score1} - {match.score2}</span>
+          </div>
+        ) : (
+          <div className="h-[30px] w-[30px] flex items-center justify-center border-x border-white/[0.04] bg-white/[0.01]">
+            <span className="text-[8px] font-black text-slate-600">VS</span>
+          </div>
+        )}
         <DroppableMatchCard match={match} slot="2">
           <DraggableSlot id={`${match.id}__2`} label={slotLabel(match, "2")} color={slotColor(match, "2")} isTBD={isTBD(slotId(match, "2"))} />
         </DroppableMatchCard>
-        <div className="h-[30px] px-2 flex items-center bg-white/[0.01] border-l border-white/[0.04]">
+        <div className="h-[30px] px-2 flex items-center bg-white/[0.01] border-l border-white/[0.04] gap-1">
           <span className="text-[8px] font-bold text-slate-600">M{match.matchNumber}</span>
+          {isLive && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
+          {isCompleted && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
         </div>
       </div>
       {isFrozen && (
         <div className="px-2.5 py-1.5 border-t border-white/[0.04] bg-white/[0.01]">
-          {!editing && !match.scheduledDate ? (
-            <button onClick={() => setEditing(true)} className="text-[10px] text-blue-400 hover:text-blue-300 font-medium">+ Set date & venue</button>
+          {scoring ? (
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <input type="text" value={s1} onChange={(e) => setS1(e.target.value)} placeholder="Score 1" className="px-1.5 py-0.5 bg-dark-500 border border-white/10 rounded text-white text-[10px] w-16 text-center" />
+              <span className="text-[10px] text-slate-500">vs</span>
+              <input type="text" value={s2} onChange={(e) => setS2(e.target.value)} placeholder="Score 2" className="px-1.5 py-0.5 bg-dark-500 border border-white/10 rounded text-white text-[10px] w-16 text-center" />
+              <button onClick={() => { if (p1) { onRecordScore(match.id, s1, s2, p1); setScoring(false); } }} className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-[10px] font-bold" title={`${slotLabel(match, "1")} wins`}>
+                {slotLabel(match, "1").slice(0, 6)} W
+              </button>
+              <button onClick={() => { if (p2) { onRecordScore(match.id, s1, s2, p2); setScoring(false); } }} className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[10px] font-bold" title={`${slotLabel(match, "2")} wins`}>
+                {slotLabel(match, "2").slice(0, 6)} W
+              </button>
+              <button onClick={() => setScoring(false)} className="px-1.5 py-0.5 text-slate-500 text-[10px]">Cancel</button>
+            </div>
+          ) : !editing && !match.scheduledDate ? (
+            <div className="flex items-center gap-2">
+              <button onClick={() => setEditing(true)} className="text-[10px] text-blue-400 hover:text-blue-300 font-medium">+ Schedule</button>
+              {canScore && !isCompleted && <button onClick={() => setScoring(true)} className="text-[10px] text-emerald-400 hover:text-emerald-300 font-medium">+ Score</button>}
+              {canScore && !isCompleted && !isLive && <button onClick={() => onToggleLive(match.id, true)} className="text-[10px] text-red-400 hover:text-red-300 font-medium">Go Live</button>}
+              {isLive && <button onClick={() => onToggleLive(match.id, false)} className="text-[10px] text-amber-400 hover:text-amber-300 font-medium">End Live</button>}
+              {isCompleted && match.winnerId && (
+                <span className="text-[10px] text-emerald-400 font-medium">Winner: {match.winnerId === p1 ? slotLabel(match, "1") : slotLabel(match, "2")}</span>
+              )}
+            </div>
           ) : !editing && match.scheduledDate ? (
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-cyan-400 font-medium">{new Date(match.scheduledDate).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}{match.venue && <span className="text-slate-500 ml-1">· {match.venue}</span>}</span>
-              <button onClick={() => setEditing(true)} className="text-[10px] text-slate-500 hover:text-white">Edit</button>
+              <div className="flex gap-1.5">
+                {canScore && !isCompleted && <button onClick={() => setScoring(true)} className="text-[10px] text-emerald-400 hover:text-emerald-300 font-medium">Score</button>}
+                {canScore && !isCompleted && !isLive && <button onClick={() => onToggleLive(match.id, true)} className="text-[10px] text-red-400 hover:text-red-300 font-medium">Live</button>}
+                {isLive && <button onClick={() => onToggleLive(match.id, false)} className="text-[10px] text-amber-400 hover:text-amber-300 font-medium">End</button>}
+                {isCompleted && match.winnerId && (
+                  <span className="text-[10px] text-emerald-400 font-medium">W: {match.winnerId === p1 ? slotLabel(match, "1") : slotLabel(match, "2")}</span>
+                )}
+                <button onClick={() => setEditing(true)} className="text-[10px] text-slate-500 hover:text-white">Edit</button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-wrap gap-1.5 items-center">
@@ -614,6 +705,8 @@ function BracketView({
   isTBD,
   isFrozen,
   onSchedule,
+  onRecordScore,
+  onToggleLive,
   accent,
 }: {
   matches: MatchData[];
@@ -624,6 +717,8 @@ function BracketView({
   isTBD: (id: string | null) => boolean;
   isFrozen: boolean;
   onSchedule: (id: string, date: string, venue: string, notify: boolean) => void;
+  onRecordScore: (matchId: string, score1: string, score2: string, winnerId: string) => void;
+  onToggleLive: (matchId: string, goLive: boolean) => void;
   accent: string;
 }) {
   const rounds = [...new Set(matches.map(m => m.roundNumber))].sort((a, b) => a - b);
@@ -707,7 +802,7 @@ function BracketView({
             const y = getMatchY(ri, mi);
             return (
               <div key={m.id} className="absolute" style={{ left: xOffset, top: y, width: colW, height: MATCH_H }}>
-                <BracketMatchCard match={m} sport={sport} slotLabel={slotLabel} slotColor={slotColor} slotId={slotId} isTBD={isTBD} isFrozen={isFrozen} onSchedule={onSchedule} accent={accent} isFinal={isFinalRound} />
+                <BracketMatchCard match={m} sport={sport} slotLabel={slotLabel} slotColor={slotColor} slotId={slotId} isTBD={isTBD} isFrozen={isFrozen} onSchedule={onSchedule} onRecordScore={onRecordScore} onToggleLive={onToggleLive} accent={accent} isFinal={isFinalRound} />
               </div>
             );
           });
@@ -736,6 +831,8 @@ function BracketMatchCard({
   isTBD,
   isFrozen,
   onSchedule,
+  onRecordScore,
+  onToggleLive,
   accent,
   isFinal,
 }: {
@@ -747,15 +844,26 @@ function BracketMatchCard({
   isTBD: (id: string | null) => boolean;
   isFrozen: boolean;
   onSchedule: (id: string, date: string, venue: string, notify: boolean) => void;
+  onRecordScore: (matchId: string, score1: string, score2: string, winnerId: string) => void;
+  onToggleLive: (matchId: string, goLive: boolean) => void;
   accent: string;
   isFinal: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  const [scoring, setScoring] = useState(false);
+  const [s1, setS1] = useState(match.score1 ?? "");
+  const [s2, setS2] = useState(match.score2 ?? "");
   const [date, setDate] = useState(match.scheduledDate ? new Date(match.scheduledDate).toISOString().slice(0, 16) : "");
   const [venue, setVenue] = useState(match.venue ?? "");
 
+  const p1 = slotId(match, "1");
+  const p2 = slotId(match, "2");
+  const isCompleted = match.status === "COMPLETED";
+  const isLive = match.status === "LIVE";
+  const canScore = isFrozen && p1 && p2 && !isTBD(p1) && !isTBD(p2);
+
   return (
-    <div className={`h-full rounded-lg overflow-hidden border transition-all ${isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.06] to-transparent shadow-[0_0_20px_rgba(245,158,11,0.06)]" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15]"}`}>
+    <div className={`h-full rounded-lg overflow-hidden border transition-all ${isCompleted ? "border-emerald-500/30 bg-emerald-500/[0.03]" : isLive ? "border-red-500/30 bg-red-500/[0.03]" : isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.06] to-transparent shadow-[0_0_20px_rgba(245,158,11,0.06)]" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15]"}`}>
       {/* Slot 1 */}
       <DroppableMatchCard match={match} slot="1">
         <DraggableSlot id={`${match.id}__1`} label={slotLabel(match, "1")} color={slotColor(match, "1")} isTBD={isTBD(slotId(match, "1"))} />
@@ -763,14 +871,27 @@ function BracketMatchCard({
       {/* Divider */}
       <div className="h-[16px] flex items-center px-2.5 border-y border-white/[0.04]" style={{ background: `linear-gradient(90deg, ${accent}08, transparent)` }}>
         <span className="text-[8px] font-bold text-slate-600 tracking-wider">M{match.matchNumber}</span>
+        {isLive && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse ml-1" />}
+        {isCompleted && match.score1 && (
+          <span className="text-[8px] font-bold text-emerald-400 ml-1">{match.score1}-{match.score2}</span>
+        )}
         <div className="flex-1" />
         {match.scheduledDate && !editing && (
           <span className="text-[8px] text-cyan-500/80 font-medium">{new Date(match.scheduledDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
         )}
-        {isFrozen && !match.scheduledDate && !editing && (
-          <button onClick={() => setEditing(true)} className="text-[8px] text-blue-400 hover:text-blue-300">+schedule</button>
+        {isFrozen && !editing && !scoring && canScore && !isCompleted && (
+          <button onClick={() => setScoring(true)} className="text-[8px] text-emerald-400 hover:text-emerald-300 ml-1">+score</button>
         )}
-        {isFrozen && match.scheduledDate && !editing && (
+        {isFrozen && canScore && !isCompleted && !isLive && !scoring && !editing && (
+          <button onClick={() => onToggleLive(match.id, true)} className="text-[8px] text-red-400 hover:text-red-300 ml-1">live</button>
+        )}
+        {isLive && !scoring && !editing && (
+          <button onClick={() => onToggleLive(match.id, false)} className="text-[8px] text-amber-400 hover:text-amber-300 ml-1">end</button>
+        )}
+        {isFrozen && !match.scheduledDate && !editing && !scoring && (
+          <button onClick={() => setEditing(true)} className="text-[8px] text-blue-400 hover:text-blue-300 ml-1">+sched</button>
+        )}
+        {isFrozen && match.scheduledDate && !editing && !scoring && (
           <button onClick={() => setEditing(true)} className="text-[8px] text-slate-600 hover:text-white ml-1">✎</button>
         )}
       </div>
@@ -778,6 +899,17 @@ function BracketMatchCard({
       <DroppableMatchCard match={match} slot="2">
         <DraggableSlot id={`${match.id}__2`} label={slotLabel(match, "2")} color={slotColor(match, "2")} isTBD={isTBD(slotId(match, "2"))} />
       </DroppableMatchCard>
+      {/* Score entry */}
+      {scoring && (
+        <div className="p-2 border-t border-white/[0.04] bg-white/[0.01] flex flex-wrap gap-1 items-center">
+          <input type="text" value={s1} onChange={(e) => setS1(e.target.value)} placeholder="S1" className="px-1 py-0.5 bg-dark-500 border border-white/10 rounded text-white text-[9px] w-12 text-center" />
+          <span className="text-[9px] text-slate-500">-</span>
+          <input type="text" value={s2} onChange={(e) => setS2(e.target.value)} placeholder="S2" className="px-1 py-0.5 bg-dark-500 border border-white/10 rounded text-white text-[9px] w-12 text-center" />
+          <button onClick={() => { if (p1) { onRecordScore(match.id, s1, s2, p1); setScoring(false); } }} className="px-1 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-[9px] font-bold" title={`${slotLabel(match, "1")} wins`}>1W</button>
+          <button onClick={() => { if (p2) { onRecordScore(match.id, s1, s2, p2); setScoring(false); } }} className="px-1 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[9px] font-bold" title={`${slotLabel(match, "2")} wins`}>2W</button>
+          <button onClick={() => setScoring(false)} className="px-1 py-0.5 text-slate-500 text-[9px]">✕</button>
+        </div>
+      )}
       {/* Schedule editor */}
       {editing && (
         <div className="p-2 border-t border-white/[0.04] bg-white/[0.01] flex flex-wrap gap-1 items-center">

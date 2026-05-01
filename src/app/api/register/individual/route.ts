@@ -6,6 +6,7 @@ import { individualRegistrationSchema } from "@/lib/validators";
 import { registerIndividual } from "@/lib/business/registration";
 import { prisma } from "@/lib/prisma";
 import { sendIndividualRegistrationConfirmation } from "@/lib/email";
+import { notifyAllAdmins } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,6 +43,12 @@ export async function POST(request: NextRequest) {
     const result = await registerIndividual(parsed.data);
 
     sendIndividualRegistrationConfirmation(parsed.data.email, parsed.data.fullName);
+
+    notifyAllAdmins({
+      title: "New Individual Registration",
+      message: `${parsed.data.fullName} registered as an individual player.`,
+      link: "/admin",
+    }).catch(() => {});
 
     return NextResponse.json(
       {

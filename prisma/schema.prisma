@@ -58,6 +58,7 @@ enum AuditAction {
   REJECT_INDIVIDUAL
   CREATE_CAPTAIN
   UPDATE_CAPTAIN
+  RECORD_SCORE
 }
 
 enum Gender {
@@ -97,6 +98,7 @@ enum FixtureStage {
 
 enum MatchStatus {
   SCHEDULED
+  LIVE
   COMPLETED
 }
 
@@ -268,6 +270,9 @@ model Match {
   team2Id          String?
   entry1Id         String?
   entry2Id         String?
+  score1           String?
+  score2           String?
+  winnerId         String?
   scheduledDate    DateTime?
   venue            String?
   status           MatchStatus  @default(SCHEDULED)
@@ -276,4 +281,17 @@ model Match {
   updatedAt        DateTime     @updatedAt
 
   @@map("matches")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@map("notifications")
 }

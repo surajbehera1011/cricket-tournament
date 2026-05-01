@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { CricketDashboard } from "@/components/dashboard/CricketDashboard";
 import { PickleballDashboard } from "@/components/dashboard/PickleballDashboard";
+import { LiveScoresWidget } from "@/components/dashboard/LiveScoresWidget";
 import { GuidedTour } from "@/components/ui/GuidedTour";
 import { cn } from "@/lib/utils";
 import { Suspense } from "react";
@@ -112,6 +113,9 @@ function DashboardContent() {
       {/* Sport-specific dashboard */}
       {sport === "cricket" && <CricketDashboard tvMode={tvMode} />}
       {sport === "pickleball" && <PickleballDashboard />}
+
+      {/* Persistent live scores widget */}
+      <LiveScoresWidget />
     </div>
   );
 }

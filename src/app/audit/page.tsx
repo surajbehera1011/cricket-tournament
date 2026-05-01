@@ -25,6 +25,13 @@ interface Pagination {
   totalPages: number;
 }
 
+const ALL_ACTIONS = [
+  "CREATE_TEAM", "REGISTER_TEAM", "REGISTER_INDIVIDUAL", "ASSIGN_PLAYER",
+  "REMOVE_PLAYER", "MARK_COMPLETE", "MARK_INCOMPLETE", "UPDATE_SETTINGS",
+  "APPROVE_TEAM", "REJECT_TEAM", "APPROVE_INDIVIDUAL", "REJECT_INDIVIDUAL",
+  "CREATE_CAPTAIN", "UPDATE_CAPTAIN", "RECORD_SCORE",
+];
+
 const actionColors: Record<string, "success" | "warning" | "danger" | "info" | "default"> = {
   CREATE_TEAM: "success",
   REGISTER_TEAM: "success",
@@ -33,6 +40,14 @@ const actionColors: Record<string, "success" | "warning" | "danger" | "info" | "
   REMOVE_PLAYER: "warning",
   MARK_COMPLETE: "success",
   MARK_INCOMPLETE: "danger",
+  APPROVE_TEAM: "success",
+  REJECT_TEAM: "danger",
+  APPROVE_INDIVIDUAL: "success",
+  REJECT_INDIVIDUAL: "danger",
+  UPDATE_SETTINGS: "warning",
+  CREATE_CAPTAIN: "info",
+  UPDATE_CAPTAIN: "info",
+  RECORD_SCORE: "success",
 };
 
 export default function AuditPage() {
@@ -42,10 +57,25 @@ export default function AuditPage() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const [filterAction, setFilterAction] = useState("");
+  const [filterSearch, setFilterSearch] = useState("");
+  const [filterFrom, setFilterFrom] = useState("");
+  const [filterTo, setFilterTo] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const buildQuery = (page: number) => {
+    const params = new URLSearchParams({ page: String(page), limit: "25" });
+    if (filterAction) params.set("action", filterAction);
+    if (filterSearch.trim()) params.set("search", filterSearch.trim());
+    if (filterFrom) params.set("from", filterFrom);
+    if (filterTo) params.set("to", filterTo);
+    return params.toString();
+  };
+
   const fetchLogs = async (page: number) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/audit?page=${page}&limit=25`);
+      const res = await fetch(`/api/audit?${buildQuery(page)}`);
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setLogs(data.logs);
@@ -59,7 +89,19 @@ export default function AuditPage() {
 
   useEffect(() => {
     fetchLogs(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const applyFilters = () => fetchLogs(1);
+  const clearFilters = () => {
+    setFilterAction("");
+    setFilterSearch("");
+    setFilterFrom("");
+    setFilterTo("");
+    setTimeout(() => fetchLogs(1), 0);
+  };
+
+  const hasActiveFilters = filterAction || filterSearch.trim() || filterFrom || filterTo;
 
   if (session?.user?.role !== "ADMIN") {
     return (
@@ -81,9 +123,88 @@ export default function AuditPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <CardTitle>Activity ({pagination.total} entries)</CardTitle>
+            <div className="flex items-center gap-2">
+              {hasActiveFilters && (
+                <button onClick={clearFilters} className="text-xs text-slate-400 hover:text-white transition-colors">
+                  Clear filters
+                </button>
+              )}
+              <button
+                onClick={() => setShowFilters((v) => !v)}
+                className={`text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                  showFilters || hasActiveFilters
+                    ? "bg-brand-500/20 text-brand-400"
+                    : "bg-white/[0.06] text-slate-400 hover:text-white"
+                }`}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                  Filters
+                  {hasActiveFilters && (
+                    <span className="w-2 h-2 rounded-full bg-brand-400" />
+                  )}
+                </span>
+              </button>
+            </div>
           </div>
+
+          {showFilters && (
+            <div className="mt-4 p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Search</label>
+                  <input
+                    type="text"
+                    value={filterSearch}
+                    onChange={(e) => setFilterSearch(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && applyFilters()}
+                    placeholder="Actor, entity..."
+                    className="w-full px-3 py-2 text-sm bg-dark-500 border border-white/[0.08] rounded-lg text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Action Type</label>
+                  <select
+                    value={filterAction}
+                    onChange={(e) => setFilterAction(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-dark-500 border border-white/[0.08] rounded-lg text-slate-200 focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                  >
+                    <option value="">All actions</option>
+                    {ALL_ACTIONS.map((a) => (
+                      <option key={a} value={a}>{a.replace(/_/g, " ")}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">From Date</label>
+                  <input
+                    type="date"
+                    value={filterFrom}
+                    onChange={(e) => setFilterFrom(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-dark-500 border border-white/[0.08] rounded-lg text-slate-200 focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">To Date</label>
+                  <input
+                    type="date"
+                    value={filterTo}
+                    onChange={(e) => setFilterTo(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-dark-500 border border-white/[0.08] rounded-lg text-slate-200 focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button variant="primary" size="sm" onClick={applyFilters}>
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -91,7 +212,16 @@ export default function AuditPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
             </div>
           ) : logs.length === 0 ? (
-            <p className="text-slate-400 text-center py-12">No audit entries yet</p>
+            <div className="text-center py-12">
+              <p className="text-slate-400">
+                {hasActiveFilters ? "No entries match your filters" : "No audit entries yet"}
+              </p>
+              {hasActiveFilters && (
+                <button onClick={clearFilters} className="mt-2 text-sm text-brand-400 hover:text-brand-300">
+                  Clear filters
+                </button>
+              )}
+            </div>
           ) : (
             <>
               <div className="overflow-x-auto">

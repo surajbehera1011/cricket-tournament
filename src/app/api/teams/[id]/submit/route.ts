@@ -8,6 +8,7 @@ import { getSettings } from "@/lib/business/registration";
 import { createAuditLog } from "@/lib/business/audit";
 import { MANDATORY_PLAYER_COUNT, MANDATORY_FEMALE_COUNT, EXTRA_PLAYER_LIMIT } from "@/lib/validators";
 import { sendTeamSubmittedEmail } from "@/lib/email";
+import { notifyAllAdmins } from "@/lib/notifications";
 
 export async function POST(
   request: NextRequest,
@@ -100,6 +101,12 @@ export async function POST(
     if (allEmails.length > 0) {
       sendTeamSubmittedEmail(allEmails, team.name, memberCount, femaleCount);
     }
+
+    notifyAllAdmins({
+      title: "Team Submitted for Approval",
+      message: `Team "${team.name}" (${memberCount} players, ${femaleCount} female) submitted for review.`,
+      link: "/manage",
+    }).catch(() => {});
 
     return NextResponse.json({ team: updated });
   } catch (error) {

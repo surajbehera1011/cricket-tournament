@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "./NotificationBell";
 
 const primaryLinks = [
   { href: "/", label: "Dashboard" },
@@ -27,6 +28,7 @@ export function Navbar() {
   const [registrationOpen, setRegistrationOpen] = useState(true);
   const [scrolled, setScrolled] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const currentSport = searchParams.get("sport") || "pickleball";
@@ -151,6 +153,23 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileOpen((v) => !v)}
+              className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-white transition-colors"
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+
             {registrationOpen && (
               <div className="flex items-center gap-1.5">
                 <Link
@@ -176,6 +195,7 @@ export function Navbar() {
             )}
             {status === "authenticated" && session.user && (
               <>
+                <NotificationBell />
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-medium text-white">{session.user.name}</p>
                   <p className="text-[10px] text-slate-400">{session.user.role}</p>
@@ -200,25 +220,45 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile nav */}
-      <div className="md:hidden border-t border-white/[0.04]">
-        <div className="flex overflow-x-auto gap-1 px-4 py-2">
-          {allVisibleLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
-                pathname === link.href
-                  ? "bg-white/10 text-white"
-                  : "text-slate-400 hover:bg-white/[0.06]"
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="md:hidden border-t border-white/[0.04] bg-dark-600/98 backdrop-blur-xl">
+          <div className="px-4 py-3 space-y-1">
+            {allVisibleLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "block px-4 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                  pathname === link.href
+                    ? "bg-white/10 text-white"
+                    : "text-slate-400 hover:bg-white/[0.06] hover:text-white"
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+            {registrationOpen && (
+              <Link
+                href={registerHref}
+                onClick={() => setMobileOpen(false)}
+                className="block px-4 py-2.5 rounded-xl text-sm font-bold bg-pitch-500/20 text-pitch-400 hover:bg-pitch-500/30 transition-colors"
+              >
+                Register Now
+              </Link>
+            )}
+            {status === "authenticated" && (
+              <div className="pt-2 border-t border-white/[0.06] mt-2">
+                <div className="px-4 py-2">
+                  <p className="text-sm font-medium text-white">{session?.user?.name}</p>
+                  <p className="text-[11px] text-slate-500">{session?.user?.role}</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </nav>
   );
 }

@@ -9,6 +9,7 @@ import { createAuditLog } from "@/lib/business/audit";
 import { jsonResponse } from "@/lib/api-utils";
 import { z } from "zod";
 import { sendCaptainCredentialsEmail } from "@/lib/email";
+import { notifyAllAdmins } from "@/lib/notifications";
 
 const ALLOWED_DOMAIN = "@aligntech.com";
 
@@ -145,6 +146,12 @@ export async function POST(request: NextRequest) {
       parsed.data.password,
       teamName
     );
+
+    notifyAllAdmins({
+      title: "Captain Account Created",
+      message: `Captain "${captain.displayName}" created${teamName ? ` for team "${teamName}"` : ""}.`,
+      link: "/admin",
+    }).catch(() => {});
 
     return NextResponse.json(
       { id: captain.id, email: captain.email, displayName: captain.displayName },
