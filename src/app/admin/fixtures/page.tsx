@@ -86,20 +86,20 @@ function DraggableSlot({
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`h-[30px] flex items-center gap-2 px-2.5 cursor-grab active:cursor-grabbing transition-all ${
+      className={`h-[22px] flex items-center gap-1.5 px-2 cursor-grab active:cursor-grabbing transition-all ${
         isDragging ? "opacity-40 scale-95" : ""
       } ${isTBD ? "text-slate-600" : "bg-white/[0.02] text-slate-200"}`}
     >
       <div
-        className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0"
-        style={{ background: isTBD ? "rgba(55,65,81,0.6)" : (color || "#6366f1") }}
+        className="w-4 h-4 rounded flex items-center justify-center text-[7px] font-bold text-white flex-shrink-0"
+        style={{ background: isTBD ? "rgba(55,65,81,0.5)" : (color || "#6366f1") }}
       >
         {isTBD ? "?" : label.charAt(0).toUpperCase()}
       </div>
-      <span className={`text-[12px] font-semibold truncate flex-1 ${isTBD ? "italic" : ""}`}>
+      <span className={`text-[11px] font-semibold truncate flex-1 ${isTBD ? "italic" : ""}`}>
         {isTBD ? "TBD" : label}
       </span>
-      <span className="text-[10px] font-mono text-slate-600 w-4 text-center">-</span>
+      <span className="text-[9px] font-mono text-slate-600 w-3 text-center">-</span>
     </div>
   );
 }
@@ -625,21 +625,21 @@ function GroupMatchCard({
           <DraggableSlot id={`${match.id}__1`} label={slotLabel(match, "1")} color={slotColor(match, "1")} isTBD={isTBD(slotId(match, "1"))} />
         </DroppableMatchCard>
         {isCompleted && match.score1 ? (
-          <div className="h-[30px] w-[50px] flex items-center justify-center border-x border-white/[0.04] bg-white/[0.02]">
-            <span className="text-[10px] font-black text-emerald-400">{match.score1} - {match.score2}</span>
+          <div className="h-[22px] w-[44px] flex items-center justify-center border-x border-white/[0.04] bg-white/[0.02]">
+            <span className="text-[9px] font-black text-emerald-400">{match.score1}-{match.score2}</span>
           </div>
         ) : (
-          <div className="h-[30px] w-[30px] flex items-center justify-center border-x border-white/[0.04] bg-white/[0.01]">
-            <span className="text-[8px] font-black text-slate-600">VS</span>
+          <div className="h-[22px] w-[24px] flex items-center justify-center border-x border-white/[0.04] bg-white/[0.01]">
+            <span className="text-[7px] font-black text-slate-600">VS</span>
           </div>
         )}
         <DroppableMatchCard match={match} slot="2">
           <DraggableSlot id={`${match.id}__2`} label={slotLabel(match, "2")} color={slotColor(match, "2")} isTBD={isTBD(slotId(match, "2"))} />
         </DroppableMatchCard>
-        <div className="h-[30px] px-2 flex items-center bg-white/[0.01] border-l border-white/[0.04] gap-1">
-          <span className="text-[8px] font-bold text-slate-600">M{match.matchNumber}</span>
-          {isLive && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
-          {isCompleted && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+        <div className="h-[22px] px-1.5 flex items-center bg-white/[0.01] border-l border-white/[0.04] gap-1">
+          <span className="text-[7px] font-bold text-slate-600">M{match.matchNumber}</span>
+          {isLive && <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />}
+          {isCompleted && <span className="w-1 h-1 rounded-full bg-emerald-400" />}
         </div>
       </div>
       {isFrozen && (
@@ -725,21 +725,23 @@ function BracketView({
   const totalRounds = rounds.length;
   const roundMatches: MatchData[][] = rounds.map(r => matches.filter(m => m.roundNumber === r));
 
-  const MATCH_H = 76;
-  const GAP = 14;
+  const MATCH_H = 56;
+  const GAP = 8;
   const CELL = MATCH_H + GAP;
 
   const r0Count = roundMatches[0]?.length || 0;
   const totalH = Math.max(r0Count * CELL - GAP, MATCH_H);
 
   const maxRoundCount = Math.max(...roundMatches.map(rm => rm.length));
-  const colW = Math.max(160, Math.min(210, Math.floor(900 / totalRounds)));
-  const connW = Math.max(24, Math.min(40, Math.floor(colW * 0.2)));
+  const colW = Math.max(150, Math.min(180, Math.floor(900 / totalRounds)));
+  const connW = Math.max(20, Math.min(32, Math.floor(colW * 0.18)));
+  const totalW = totalRounds * (colW + connW) + 60;
 
   const getMatchY = (ri: number, mi: number): number => {
     if (ri === 0) return mi * CELL;
-    const c1 = getMatchY(ri - 1, mi * 2);
-    const c2 = getMatchY(ri - 1, mi * 2 + 1);
+    const prevCount = roundMatches[ri - 1]?.length || 0;
+    const c1 = mi * 2 < prevCount ? getMatchY(ri - 1, mi * 2) : mi * CELL;
+    const c2 = mi * 2 + 1 < prevCount ? getMatchY(ri - 1, mi * 2 + 1) : c1 + CELL;
     return (c1 + c2) / 2;
   };
 
@@ -752,9 +754,10 @@ function BracketView({
   };
 
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] border border-white/[0.06] p-4 md:p-6">
+    <div className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] border border-white/[0.06] p-4 md:p-6 overflow-x-auto">
+      <div style={{ minWidth: totalW }}>
       {/* Round headers */}
-      <div className="flex mb-4">
+      <div className="flex mb-3">
         {rounds.map((_, ri) => {
           const isFinal = ri === totalRounds - 1;
           return (
@@ -817,6 +820,7 @@ function BracketView({
           </div>
         )}
       </div>
+      </div>
     </div>
   );
 }
@@ -869,30 +873,30 @@ function BracketMatchCard({
         <DraggableSlot id={`${match.id}__1`} label={slotLabel(match, "1")} color={slotColor(match, "1")} isTBD={isTBD(slotId(match, "1"))} />
       </DroppableMatchCard>
       {/* Divider */}
-      <div className="h-[16px] flex items-center px-2.5 border-y border-white/[0.04]" style={{ background: `linear-gradient(90deg, ${accent}08, transparent)` }}>
-        <span className="text-[8px] font-bold text-slate-600 tracking-wider">M{match.matchNumber}</span>
-        {isLive && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse ml-1" />}
+      <div className="h-[12px] flex items-center px-2 border-y border-white/[0.04]" style={{ background: `linear-gradient(90deg, ${accent}06, transparent)` }}>
+        <span className="text-[7px] font-bold text-slate-600 tracking-wider">M{match.matchNumber}</span>
+        {isLive && <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse ml-1" />}
         {isCompleted && match.score1 && (
-          <span className="text-[8px] font-bold text-emerald-400 ml-1">{match.score1}-{match.score2}</span>
+          <span className="text-[7px] font-bold text-emerald-400 ml-1">{match.score1}-{match.score2}</span>
         )}
         <div className="flex-1" />
         {match.scheduledDate && !editing && (
-          <span className="text-[8px] text-cyan-500/80 font-medium">{new Date(match.scheduledDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+          <span className="text-[7px] text-cyan-500/70 font-medium">{new Date(match.scheduledDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
         )}
         {isFrozen && !editing && !scoring && canScore && !isCompleted && (
-          <button onClick={() => setScoring(true)} className="text-[8px] text-emerald-400 hover:text-emerald-300 ml-1">+score</button>
+          <button onClick={() => setScoring(true)} className="text-[7px] text-emerald-400 hover:text-emerald-300 ml-1">+sc</button>
         )}
         {isFrozen && canScore && !isCompleted && !isLive && !scoring && !editing && (
-          <button onClick={() => onToggleLive(match.id, true)} className="text-[8px] text-red-400 hover:text-red-300 ml-1">live</button>
+          <button onClick={() => onToggleLive(match.id, true)} className="text-[7px] text-red-400 hover:text-red-300 ml-0.5">▶</button>
         )}
         {isLive && !scoring && !editing && (
-          <button onClick={() => onToggleLive(match.id, false)} className="text-[8px] text-amber-400 hover:text-amber-300 ml-1">end</button>
+          <button onClick={() => onToggleLive(match.id, false)} className="text-[7px] text-amber-400 hover:text-amber-300 ml-0.5">■</button>
         )}
         {isFrozen && !match.scheduledDate && !editing && !scoring && (
-          <button onClick={() => setEditing(true)} className="text-[8px] text-blue-400 hover:text-blue-300 ml-1">+sched</button>
+          <button onClick={() => setEditing(true)} className="text-[7px] text-blue-400 hover:text-blue-300 ml-0.5">+t</button>
         )}
         {isFrozen && match.scheduledDate && !editing && !scoring && (
-          <button onClick={() => setEditing(true)} className="text-[8px] text-slate-600 hover:text-white ml-1">✎</button>
+          <button onClick={() => setEditing(true)} className="text-[7px] text-slate-600 hover:text-white ml-0.5">✎</button>
         )}
       </div>
       {/* Slot 2 */}
