@@ -119,8 +119,7 @@ export default function SchedulePage() {
       const list = tData.teams ?? tData;
       if (Array.isArray(list)) setTeams(list.filter((t: Team) => t.status === "READY"));
       const pbList = pData.registrations ?? (Array.isArray(pData) ? pData : []);
-      const pbPending = pData.pendingRegistrations ?? [];
-      setPbRegs([...pbList, ...pbPending]);
+      setPbRegs(pbList);
       setSettings({ targetCricketTeams: sData.targetCricketTeams ?? 12, cricketGroupCount: sData.cricketGroupCount ?? 4 });
       if (fcData.frozen && fcData.fixture) setFrozenCricket(fcData.fixture.matches);
       else setFrozenCricket(null);
@@ -335,7 +334,8 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
         <h2 className="text-2xl font-black text-white tracking-tight">Knockout Stage</h2>
       </div>
 
-      <div className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] backdrop-blur border border-white/[0.06] p-5 md:p-8">
+      <div className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] backdrop-blur border border-white/[0.06] p-5 md:p-8 overflow-x-auto">
+        <div style={{ minWidth: totalRounds * (COL_W + CONN_W) + 80 }}>
         {/* Round headers */}
         <div className="flex mb-4">
           {rounds.map((_, ri) => {
@@ -445,6 +445,7 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
             </div>
           )}
         </div>
+        </div>
       </div>
     </div>
   );
@@ -546,7 +547,8 @@ function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { mat
           <p className="text-slate-500 text-sm">Be the first to enter! <Link href="/register?sport=pickleball" className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors">Register to play</Link></p>
         </div>
       ) : (
-        <div className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] backdrop-blur border border-white/[0.06] p-5 md:p-8">
+        <div className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] backdrop-blur border border-white/[0.06] p-5 md:p-8 overflow-x-auto">
+          <div style={{ minWidth: totalRounds * (COL_W + CONN_W) + 80 }}>
           {/* Round headers */}
           <div className="flex mb-4">
             {rounds.map((_, ri) => {
@@ -654,6 +656,7 @@ function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { mat
                 <span className="text-[10px] font-bold text-amber-400/60 uppercase tracking-wider">Winner</span>
               </div>
             )}
+          </div>
           </div>
         </div>
       )}
