@@ -385,24 +385,40 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
           {/* SVG connectors */}
           <svg className="absolute inset-0 pointer-events-none" width="100%" height="100%" style={{ overflow: "visible" }}>
             {roundMatches.map((rm, ri) => {
-              if (ri === totalRounds - 1) return null;
-              const x1 = ri * (COL_W + CONN_W) + COL_W;
-              const x2 = x1 + CONN_W;
+              if (ri === 0) return null;
+              const prevCount = roundMatches[ri - 1]?.length || 0;
+              const x1 = (ri - 1) * (COL_W + CONN_W) + COL_W;
+              const x2 = ri * (COL_W + CONN_W);
               const xMid = x1 + CONN_W / 2;
 
               return rm.map((_, mi) => {
-                if (mi % 2 !== 0) return null;
-                const topY = getMatchY(ri, mi) + MATCH_H / 2;
-                const botY = getMatchY(ri, mi + 1) + MATCH_H / 2;
-                const midY = (topY + botY) / 2;
+                const f1 = mi * 2;
+                const f2 = mi * 2 + 1;
+                const has1 = f1 < prevCount;
+                const has2 = f2 < prevCount;
+                if (!has1 && !has2) return null;
+                const thisY = getMatchY(ri, mi) + MATCH_H / 2;
 
+                if (has1 && has2) {
+                  const topY = getMatchY(ri - 1, f1) + MATCH_H / 2;
+                  const botY = getMatchY(ri - 1, f2) + MATCH_H / 2;
+                  return (
+                    <g key={`${ri}-${mi}`}>
+                      <line x1={x1} y1={topY} x2={xMid} y2={topY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                      <line x1={x1} y1={botY} x2={xMid} y2={botY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                      <line x1={xMid} y1={topY} x2={xMid} y2={botY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                      <line x1={xMid} y1={thisY} x2={x2} y2={thisY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                      <circle cx={xMid} cy={thisY} r="2.5" fill={accent} fillOpacity="0.4" />
+                    </g>
+                  );
+                }
+                const feederY = getMatchY(ri - 1, has1 ? f1 : f2) + MATCH_H / 2;
                 return (
                   <g key={`${ri}-${mi}`}>
-                    <line x1={x1} y1={topY} x2={xMid} y2={topY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
-                    <line x1={x1} y1={botY} x2={xMid} y2={botY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
-                    <line x1={xMid} y1={topY} x2={xMid} y2={botY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
-                    <line x1={xMid} y1={midY} x2={x2} y2={midY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
-                    <circle cx={xMid} cy={midY} r="2.5" fill={accent} fillOpacity="0.4" />
+                    <line x1={x1} y1={feederY} x2={xMid} y2={feederY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                    <line x1={xMid} y1={feederY} x2={xMid} y2={thisY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                    <line x1={xMid} y1={thisY} x2={x2} y2={thisY} stroke={accent} strokeWidth="1.5" strokeOpacity="0.3" />
+                    <circle cx={xMid} cy={thisY} r="2.5" fill={accent} fillOpacity="0.4" />
                   </g>
                 );
               });
@@ -772,27 +788,40 @@ function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { mat
               {/* SVG connectors */}
               <svg className="absolute inset-0 pointer-events-none" width="100%" height="100%" style={{ overflow: "visible" }}>
                 {roundMatches.map((rm, ri) => {
-                  if (ri === totalRounds - 1) return null;
-                  const x1 = ri * (COL_W + CONN_W) + COL_W;
+                  if (ri === 0) return null;
+                  const prevCount = roundMatches[ri - 1]?.length || 0;
+                  const x1 = (ri - 1) * (COL_W + CONN_W) + COL_W;
+                  const x2 = ri * (COL_W + CONN_W);
                   const xMid = x1 + CONN_W / 2;
 
                   return rm.map((_, mi) => {
-                    if (mi % 2 !== 0) return null;
-                    const nextRmLen = roundMatches[ri + 1]?.length || 0;
-                    if (mi / 2 >= nextRmLen) return null;
-                    const topY = getMatchY(ri, mi) + MATCH_H / 2;
-                    const botIdx = mi + 1;
-                    if (botIdx >= rm.length) return null;
-                    const botY = getMatchY(ri, botIdx) + MATCH_H / 2;
-                    const midY = (topY + botY) / 2;
+                    const f1 = mi * 2;
+                    const f2 = mi * 2 + 1;
+                    const has1 = f1 < prevCount;
+                    const has2 = f2 < prevCount;
+                    if (!has1 && !has2) return null;
+                    const thisY = getMatchY(ri, mi) + MATCH_H / 2;
 
+                    if (has1 && has2) {
+                      const topY = getMatchY(ri - 1, f1) + MATCH_H / 2;
+                      const botY = getMatchY(ri - 1, f2) + MATCH_H / 2;
+                      return (
+                        <g key={`${ri}-${mi}`}>
+                          <line x1={x1} y1={topY} x2={xMid} y2={topY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
+                          <line x1={x1} y1={botY} x2={xMid} y2={botY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
+                          <line x1={xMid} y1={topY} x2={xMid} y2={botY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
+                          <line x1={xMid} y1={thisY} x2={x2} y2={thisY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
+                          <circle cx={xMid} cy={thisY} r="2" fill={cat.accent} fillOpacity="0.4" />
+                        </g>
+                      );
+                    }
+                    const feederY = getMatchY(ri - 1, has1 ? f1 : f2) + MATCH_H / 2;
                     return (
                       <g key={`${ri}-${mi}`}>
-                        <line x1={x1} y1={topY} x2={xMid} y2={topY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
-                        <line x1={x1} y1={botY} x2={xMid} y2={botY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
-                        <line x1={xMid} y1={topY} x2={xMid} y2={botY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
-                        <line x1={xMid} y1={midY} x2={x1 + CONN_W} y2={midY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
-                        <circle cx={xMid} cy={midY} r="2" fill={cat.accent} fillOpacity="0.4" />
+                        <line x1={x1} y1={feederY} x2={xMid} y2={feederY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
+                        <line x1={xMid} y1={feederY} x2={xMid} y2={thisY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
+                        <line x1={xMid} y1={thisY} x2={x2} y2={thisY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
+                        <circle cx={xMid} cy={thisY} r="2" fill={cat.accent} fillOpacity="0.4" />
                       </g>
                     );
                   });
