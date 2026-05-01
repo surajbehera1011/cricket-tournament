@@ -302,10 +302,10 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
   const totalRounds = rounds.length;
   const roundMatches: MatchData[][] = rounds.map(r => matches.filter(m => m.roundNumber === r));
 
-  const MATCH_H = 76;
-  const GAP = 12;
-  const COL_W = 210;
-  const CONN_W = 40;
+  const MATCH_H = 56;
+  const GAP = 8;
+  const COL_W = 180;
+  const CONN_W = 32;
   const CELL = MATCH_H + GAP;
   const accent = "#f59e0b";
 
@@ -334,15 +334,15 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
         <h2 className="text-2xl font-black text-white tracking-tight">Knockout Stage</h2>
       </div>
 
-      <div className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] backdrop-blur border border-white/[0.06] p-5 md:p-8 overflow-x-auto">
+      <div className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] backdrop-blur border border-white/[0.06] p-4 md:p-6 overflow-x-auto">
         <div style={{ minWidth: totalRounds * (COL_W + CONN_W) + 80 }}>
         {/* Round headers */}
-        <div className="flex mb-4">
+        <div className="flex mb-3">
           {rounds.map((_, ri) => {
             const isFinal = ri === totalRounds - 1;
             return (
               <div key={ri} style={{ width: COL_W + (ri < totalRounds - 1 ? CONN_W : 0), flexShrink: 0 }} className="text-center">
-                <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border ${isFinal ? "bg-amber-500/10 text-amber-400 border-amber-500/25" : "bg-white/[0.03] text-slate-500 border-white/[0.06]"}`}>
+                <span className={`inline-block text-[9px] font-bold uppercase tracking-[0.15em] px-3 py-1 rounded-full border ${isFinal ? "bg-amber-500/10 text-amber-400 border-amber-500/25" : "bg-white/[0.03] text-slate-500 border-white/[0.06]"}`}>
                   {getRoundLabel(ri)}
                 </span>
               </div>
@@ -397,37 +397,33 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
               const w2 = m.winnerId && m.winnerId === m.team2Id;
 
               return (
-                <div key={m.id} className="absolute" style={{ left: xOffset, top: y, width: COL_W, height: MATCH_H, animation: `fadeIn 0.4s ease-out ${ri * 0.1 + mi * 0.04}s both` }}>
-                  <div className={`h-full rounded-lg overflow-hidden border transition-all duration-200 ${isCompleted ? "border-emerald-500/25" : isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.06] to-transparent shadow-[0_0_30px_rgba(245,158,11,0.08)]" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.03]"}`}>
-                    <div className={`h-[30px] flex items-center px-2.5 gap-2 ${w1 ? "bg-emerald-500/[0.06]" : t1 ? "" : "bg-white/[0.02]"}`}>
-                      <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: t1 ? "rgba(55,65,81,0.6)" : c1 }}>
+                <div key={m.id} className="absolute" style={{ left: xOffset, top: y, width: COL_W, height: MATCH_H, animation: `fadeIn 0.3s ease-out ${ri * 0.08 + mi * 0.03}s both` }}>
+                  <div className={`h-full rounded-lg overflow-hidden border transition-all ${isCompleted ? "border-emerald-500/25" : isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.04] to-transparent" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15]"}`}>
+                    <div className={`h-[22px] flex items-center px-2 gap-1.5 ${w1 ? "bg-emerald-500/[0.06]" : ""}`}>
+                      <div className="w-4 h-4 rounded flex items-center justify-center text-[7px] font-bold text-white flex-shrink-0" style={{ background: t1 ? "rgba(55,65,81,0.5)" : c1 }}>
                         {t1 ? "?" : l1.charAt(0).toUpperCase()}
                       </div>
-                      <span className={`text-[12px] font-semibold truncate flex-1 ${w1 ? "text-emerald-400" : t1 ? "text-slate-600 italic" : "text-slate-200"}`}>
+                      <span className={`text-[11px] font-semibold truncate flex-1 ${w1 ? "text-emerald-400" : t1 ? "text-slate-600 italic" : "text-slate-200"}`}>
                         {t1 ? "TBD" : l1}
                       </span>
-                      <span className={`text-[10px] font-mono w-5 text-center ${w1 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score1 ?? "-"}</span>
+                      <span className={`text-[9px] font-mono w-4 text-center ${w1 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score1 ?? "-"}</span>
                     </div>
 
-                    <div className="h-[16px] flex items-center px-2.5 border-y border-white/[0.04]" style={{ background: `linear-gradient(90deg, ${accent}08, transparent)` }}>
-                      <span className="text-[8px] font-bold text-slate-600 tracking-wider">M{m.matchNumber}</span>
-                      {isCompleted && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                    <div className="h-[12px] flex items-center px-2 border-y border-white/[0.04]" style={{ background: `linear-gradient(90deg, ${accent}06, transparent)` }}>
+                      <span className="text-[7px] font-bold text-slate-600 tracking-wider">M{m.matchNumber}</span>
+                      {isCompleted && <span className="w-1 h-1 rounded-full bg-emerald-400 ml-1" />}
                       <div className="flex-1" />
-                      {m.scheduledDate && (
-                        <span className="text-[8px] text-cyan-500/80 font-medium">
-                          {new Date(m.scheduledDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                        </span>
-                      )}
+                      {m.scheduledDate && <span className="text-[7px] text-cyan-500/70 font-medium">{new Date(m.scheduledDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>}
                     </div>
 
-                    <div className={`h-[30px] flex items-center px-2.5 gap-2 ${w2 ? "bg-emerald-500/[0.06]" : t2 ? "" : "bg-white/[0.02]"}`}>
-                      <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: t2 ? "rgba(55,65,81,0.6)" : c2 }}>
+                    <div className={`h-[22px] flex items-center px-2 gap-1.5 ${w2 ? "bg-emerald-500/[0.06]" : ""}`}>
+                      <div className="w-4 h-4 rounded flex items-center justify-center text-[7px] font-bold text-white flex-shrink-0" style={{ background: t2 ? "rgba(55,65,81,0.5)" : c2 }}>
                         {t2 ? "?" : l2.charAt(0).toUpperCase()}
                       </div>
-                      <span className={`text-[12px] font-semibold truncate flex-1 ${w2 ? "text-emerald-400" : t2 ? "text-slate-600 italic" : "text-slate-200"}`}>
+                      <span className={`text-[11px] font-semibold truncate flex-1 ${w2 ? "text-emerald-400" : t2 ? "text-slate-600 italic" : "text-slate-200"}`}>
                         {t2 ? "TBD" : l2}
                       </span>
-                      <span className={`text-[10px] font-mono w-5 text-center ${w2 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score2 ?? "-"}</span>
+                      <span className={`text-[9px] font-mono w-4 text-center ${w2 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score2 ?? "-"}</span>
                     </div>
                   </div>
                 </div>
@@ -437,11 +433,10 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
 
           {/* Champion trophy */}
           {totalRounds > 0 && roundMatches[totalRounds - 1]?.length === 1 && (
-            <div className="absolute flex items-center gap-2" style={{ left: (totalRounds - 1) * (COL_W + CONN_W) + COL_W + 16, top: getMatchY(totalRounds - 1, 0) + MATCH_H / 2 - 16, width: 80, height: 32 }}>
-              <div className="w-8 h-8 rounded-full bg-amber-500/15 flex items-center justify-center border border-amber-500/20">
-                <span className="text-sm">🏆</span>
+            <div className="absolute flex items-center gap-2" style={{ left: (totalRounds - 1) * (COL_W + CONN_W) + COL_W + 12, top: getMatchY(totalRounds - 1, 0) + MATCH_H / 2 - 14 }}>
+              <div className="w-7 h-7 rounded-full bg-amber-500/15 flex items-center justify-center border border-amber-500/20">
+                <span className="text-xs">🏆</span>
               </div>
-              <span className="text-[10px] font-bold text-amber-400/60 uppercase tracking-wider">Winner</span>
             </div>
           )}
         </div>
@@ -500,23 +495,25 @@ function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { mat
     return `Round ${ri + 1}`;
   };
 
-  const MATCH_H = 76;
-  const GAP = 12;
-  const COL_W = 210;
-  const CONN_W = 40;
+  const MATCH_H = 56;
+  const GAP = 8;
+  const COL_W = 180;
+  const CONN_W = 32;
   const CELL = MATCH_H + GAP;
 
   const roundMatches: MatchData[][] = rounds.map(r => matches.filter(m => m.roundNumber === r));
 
   const getMatchY = (ri: number, mi: number): number => {
     if (ri === 0) return mi * CELL;
-    const child1Y = getMatchY(ri - 1, mi * 2);
-    const child2Y = getMatchY(ri - 1, mi * 2 + 1);
-    return (child1Y + child2Y) / 2;
+    const prevCount = roundMatches[ri - 1]?.length || 0;
+    const c1 = mi * 2 < prevCount ? getMatchY(ri - 1, mi * 2) : mi * CELL;
+    const c2 = mi * 2 + 1 < prevCount ? getMatchY(ri - 1, mi * 2 + 1) : c1 + CELL;
+    return (c1 + c2) / 2;
   };
 
   const r0Count = roundMatches[0]?.length || 0;
-  const totalH = r0Count * CELL - GAP;
+  const totalH = Math.max(r0Count * CELL - GAP, MATCH_H);
+  const totalW = totalRounds * (COL_W + CONN_W) + 80;
 
   return (
     <div>
@@ -547,116 +544,116 @@ function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { mat
           <p className="text-slate-500 text-sm">Be the first to enter! <Link href="/register?sport=pickleball" className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors">Register to play</Link></p>
         </div>
       ) : (
-        <div className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] backdrop-blur border border-white/[0.06] p-5 md:p-8 overflow-x-auto">
-          <div style={{ minWidth: totalRounds * (COL_W + CONN_W) + 80 }}>
-          {/* Round headers */}
-          <div className="flex mb-4">
-            {rounds.map((_, ri) => {
-              const isFinal = ri === totalRounds - 1;
-              return (
-                <div key={ri} style={{ width: COL_W + (ri < totalRounds - 1 ? CONN_W : 0), flexShrink: 0 }} className="text-center">
-                  <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border ${isFinal ? "bg-amber-500/10 text-amber-400 border-amber-500/25" : "bg-white/[0.03] text-slate-500 border-white/[0.06]"}`}>
-                    {getRoundLabel(ri)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+        <div className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] backdrop-blur border border-white/[0.06] p-4 md:p-6 overflow-x-auto">
+          <div style={{ minWidth: totalW }}>
+            {/* Round headers */}
+            <div className="flex mb-3">
+              {rounds.map((_, ri) => {
+                const isFinal = ri === totalRounds - 1;
+                return (
+                  <div key={ri} style={{ width: COL_W + (ri < totalRounds - 1 ? CONN_W : 0), flexShrink: 0 }} className="text-center">
+                    <span className={`inline-block text-[9px] font-bold uppercase tracking-[0.15em] px-3 py-1 rounded-full border ${isFinal ? "bg-amber-500/10 text-amber-400 border-amber-500/25" : "bg-white/[0.03] text-slate-500 border-white/[0.06]"}`}>
+                      {getRoundLabel(ri)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
 
-          {/* Bracket canvas */}
-          <div className="relative" style={{ height: Math.max(totalH, MATCH_H) }}>
-            {/* SVG connectors layer */}
-            <svg className="absolute inset-0 pointer-events-none" width="100%" height="100%" style={{ overflow: "visible" }}>
+            {/* Bracket canvas */}
+            <div className="relative" style={{ height: totalH }}>
+              {/* SVG connectors */}
+              <svg className="absolute inset-0 pointer-events-none" width="100%" height="100%" style={{ overflow: "visible" }}>
+                {roundMatches.map((rm, ri) => {
+                  if (ri === totalRounds - 1) return null;
+                  const x1 = ri * (COL_W + CONN_W) + COL_W;
+                  const xMid = x1 + CONN_W / 2;
+
+                  return rm.map((_, mi) => {
+                    if (mi % 2 !== 0) return null;
+                    const nextRmLen = roundMatches[ri + 1]?.length || 0;
+                    if (mi / 2 >= nextRmLen) return null;
+                    const topY = getMatchY(ri, mi) + MATCH_H / 2;
+                    const botIdx = mi + 1;
+                    if (botIdx >= rm.length) return null;
+                    const botY = getMatchY(ri, botIdx) + MATCH_H / 2;
+                    const midY = (topY + botY) / 2;
+
+                    return (
+                      <g key={`${ri}-${mi}`}>
+                        <line x1={x1} y1={topY} x2={xMid} y2={topY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
+                        <line x1={x1} y1={botY} x2={xMid} y2={botY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
+                        <line x1={xMid} y1={topY} x2={xMid} y2={botY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
+                        <line x1={xMid} y1={midY} x2={x1 + CONN_W} y2={midY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.25" />
+                        <circle cx={xMid} cy={midY} r="2" fill={cat.accent} fillOpacity="0.4" />
+                      </g>
+                    );
+                  });
+                })}
+              </svg>
+
+              {/* Match cards */}
               {roundMatches.map((rm, ri) => {
-                if (ri === totalRounds - 1) return null;
-                const x1 = ri * (COL_W + CONN_W) + COL_W;
-                const x2 = x1 + CONN_W;
-                const xMid = x1 + CONN_W / 2;
+                const isFinal = ri === totalRounds - 1;
+                const xOffset = ri * (COL_W + CONN_W);
 
-                return rm.map((_, mi) => {
-                  if (mi % 2 !== 0) return null;
-                  const topY = getMatchY(ri, mi) + MATCH_H / 2;
-                  const botY = getMatchY(ri, mi + 1) + MATCH_H / 2;
-                  const midY = (topY + botY) / 2;
+                return rm.map((m, mi) => {
+                  const y = getMatchY(ri, mi);
+                  const l1 = entryLabel(m.entry1Id);
+                  const l2 = entryLabel(m.entry2Id);
+                  const tbd1 = isEntryTbd(m.entry1Id);
+                  const tbd2 = isEntryTbd(m.entry2Id);
+                  const isCompleted = m.status === "COMPLETED";
+                  const isLive = m.status === "LIVE";
+                  const w1 = m.winnerId && m.winnerId === m.entry1Id;
+                  const w2 = m.winnerId && m.winnerId === m.entry2Id;
 
                   return (
-                    <g key={`${ri}-${mi}`}>
-                      <line x1={x1} y1={topY} x2={xMid} y2={topY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.3" />
-                      <line x1={x1} y1={botY} x2={xMid} y2={botY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.3" />
-                      <line x1={xMid} y1={topY} x2={xMid} y2={botY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.3" />
-                      <line x1={xMid} y1={midY} x2={x2} y2={midY} stroke={cat.accent} strokeWidth="1.5" strokeOpacity="0.3" />
-                      <circle cx={xMid} cy={midY} r="2.5" fill={cat.accent} fillOpacity="0.4" />
-                    </g>
+                    <div key={m.id} className="absolute" style={{ left: xOffset, top: y, width: COL_W, height: MATCH_H, animation: `fadeIn 0.3s ease-out ${ri * 0.08 + mi * 0.03}s both` }}>
+                      <div className={`h-full rounded-lg overflow-hidden border transition-all ${isCompleted ? "border-emerald-500/25" : isLive ? "border-red-500/30 bg-red-500/[0.03]" : isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.04] to-transparent" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15]"}`}>
+                        {/* Player 1 */}
+                        <div className={`h-[22px] flex items-center px-2 gap-1.5 ${w1 ? "bg-emerald-500/[0.06]" : ""}`}>
+                          <div className="w-4 h-4 rounded flex items-center justify-center text-[7px] font-bold text-white flex-shrink-0" style={{ background: tbd1 ? "rgba(55,65,81,0.5)" : cat.accent }}>
+                            {tbd1 ? "?" : l1.charAt(0).toUpperCase()}
+                          </div>
+                          <span className={`text-[11px] font-semibold truncate flex-1 ${w1 ? "text-emerald-400" : tbd1 ? "text-slate-600 italic" : "text-slate-200"}`}>
+                            {tbd1 ? "TBD" : l1}
+                          </span>
+                          <span className={`text-[9px] font-mono w-4 text-center ${w1 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score1 ?? "-"}</span>
+                        </div>
+                        {/* Divider */}
+                        <div className="h-[12px] flex items-center px-2 border-y border-white/[0.04]" style={{ background: `linear-gradient(90deg, ${cat.accent}06, transparent)` }}>
+                          <span className="text-[7px] font-bold text-slate-600 tracking-wider">M{m.matchNumber}</span>
+                          {isLive && <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse ml-1" />}
+                          {isCompleted && <span className="w-1 h-1 rounded-full bg-emerald-400 ml-1" />}
+                          <div className="flex-1" />
+                          {m.scheduledDate && <span className="text-[7px] text-cyan-500/70 font-medium">{new Date(m.scheduledDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>}
+                        </div>
+                        {/* Player 2 */}
+                        <div className={`h-[22px] flex items-center px-2 gap-1.5 ${w2 ? "bg-emerald-500/[0.06]" : ""}`}>
+                          <div className="w-4 h-4 rounded flex items-center justify-center text-[7px] font-bold text-white flex-shrink-0" style={{ background: tbd2 ? "rgba(55,65,81,0.5)" : cat.accent }}>
+                            {tbd2 ? "?" : l2.charAt(0).toUpperCase()}
+                          </div>
+                          <span className={`text-[11px] font-semibold truncate flex-1 ${w2 ? "text-emerald-400" : tbd2 ? "text-slate-600 italic" : "text-slate-200"}`}>
+                            {tbd2 ? "TBD" : l2}
+                          </span>
+                          <span className={`text-[9px] font-mono w-4 text-center ${w2 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score2 ?? "-"}</span>
+                        </div>
+                      </div>
+                    </div>
                   );
                 });
               })}
-            </svg>
 
-            {/* Match cards layer */}
-            {roundMatches.map((rm, ri) => {
-              const isFinal = ri === totalRounds - 1;
-              const xOffset = ri * (COL_W + CONN_W);
-
-              return rm.map((m, mi) => {
-                const y = getMatchY(ri, mi);
-                const l1 = entryLabel(m.entry1Id);
-                const l2 = entryLabel(m.entry2Id);
-                const tbd1 = isEntryTbd(m.entry1Id);
-                const tbd2 = isEntryTbd(m.entry2Id);
-                const isBye = (m.entry1Id === null && m.entry2Id !== null) || (m.entry2Id === null && m.entry1Id !== null);
-                const isCompleted = m.status === "COMPLETED";
-                const w1 = m.winnerId && m.winnerId === m.entry1Id;
-                const w2 = m.winnerId && m.winnerId === m.entry2Id;
-
-                return (
-                  <div key={m.id} className="absolute" style={{ left: xOffset, top: y, width: COL_W, height: MATCH_H, animation: `fadeIn 0.4s ease-out ${ri * 0.1 + mi * 0.04}s both` }}>
-                    <div className={`h-full rounded-lg overflow-hidden border transition-all duration-200 group ${isCompleted ? "border-emerald-500/25" : isFinal ? "border-amber-500/40 bg-gradient-to-b from-amber-500/[0.06] to-transparent shadow-[0_0_30px_rgba(245,158,11,0.08)]" : isBye ? "border-white/[0.04] bg-white/[0.01]" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.03]"}`}>
-                      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${w1 ? "bg-emerald-500/[0.06]" : tbd1 ? "" : "bg-white/[0.02]"}`}>
-                        <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: tbd1 ? "rgba(55,65,81,0.6)" : cat.accent }}>
-                          {tbd1 ? "?" : l1.charAt(0).toUpperCase()}
-                        </div>
-                        <span className={`text-[12px] font-semibold truncate flex-1 ${w1 ? "text-emerald-400" : tbd1 ? "text-slate-600 italic" : "text-slate-200"}`}>
-                          {tbd1 ? "TBD" : l1}
-                        </span>
-                        <span className={`text-[10px] font-mono w-5 text-center ${w1 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score1 ?? "-"}</span>
-                      </div>
-
-                      <div className="h-[16px] flex items-center px-2.5 border-y border-white/[0.04]" style={{ background: `linear-gradient(90deg, ${cat.accent}08, transparent)` }}>
-                        <span className="text-[8px] font-bold text-slate-600 tracking-wider">M{m.matchNumber}</span>
-                        {isCompleted && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />}
-                        <div className="flex-1" />
-                        {m.scheduledDate && (
-                          <span className="text-[8px] text-cyan-500/80 font-medium">
-                            {new Date(m.scheduledDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className={`h-[30px] flex items-center px-2.5 gap-2 ${w2 ? "bg-emerald-500/[0.06]" : tbd2 ? "" : "bg-white/[0.02]"}`}>
-                        <div className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ background: tbd2 ? "rgba(55,65,81,0.6)" : cat.accent }}>
-                          {tbd2 ? "?" : l2.charAt(0).toUpperCase()}
-                        </div>
-                        <span className={`text-[12px] font-semibold truncate flex-1 ${w2 ? "text-emerald-400" : tbd2 ? "text-slate-600 italic" : "text-slate-200"}`}>
-                          {tbd2 ? "TBD" : l2}
-                        </span>
-                        <span className={`text-[10px] font-mono w-5 text-center ${w2 ? "text-emerald-400 font-bold" : "text-slate-600"}`}>{m.score2 ?? "-"}</span>
-                      </div>
-                    </div>
+              {/* Champion trophy */}
+              {totalRounds > 0 && roundMatches[totalRounds - 1]?.length === 1 && (
+                <div className="absolute flex items-center gap-2" style={{ left: (totalRounds - 1) * (COL_W + CONN_W) + COL_W + 12, top: getMatchY(totalRounds - 1, 0) + MATCH_H / 2 - 14 }}>
+                  <div className="w-7 h-7 rounded-full bg-amber-500/15 flex items-center justify-center border border-amber-500/20">
+                    <span className="text-xs">🏆</span>
                   </div>
-                );
-              });
-            })}
-
-            {/* Champion trophy for final */}
-            {totalRounds > 0 && roundMatches[totalRounds - 1]?.length === 1 && (
-              <div className="absolute flex items-center gap-2" style={{ left: (totalRounds - 1) * (COL_W + CONN_W) + COL_W + 16, top: getMatchY(totalRounds - 1, 0) + MATCH_H / 2 - 16, width: 80, height: 32 }}>
-                <div className="w-8 h-8 rounded-full bg-amber-500/15 flex items-center justify-center border border-amber-500/20">
-                  <span className="text-sm">🏆</span>
                 </div>
-                <span className="text-[10px] font-bold text-amber-400/60 uppercase tracking-wider">Winner</span>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
           </div>
         </div>
       )}
