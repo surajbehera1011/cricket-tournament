@@ -521,7 +521,9 @@ function PrintButton({ targetRef, title, subtitle }: { targetRef: React.RefObjec
     const content = targetRef.current.outerHTML;
 
     const darkStyles = `
-      body { background: #0f172a !important; color: #e2e8f0; }
+      html, body { background: #0f172a !important; color: #e2e8f0; }
+      html { height: 100%; }
+      body { min-height: 100%; }
       .print-header { border-bottom-color: rgba(255,255,255,0.1); }
       .print-header h1 { color: #ffffff; }
       .print-header p { color: #94a3b8; }
@@ -545,7 +547,7 @@ function PrintButton({ targetRef, title, subtitle }: { targetRef: React.RefObjec
       th { color: #64748b !important; }
       h2, h3 { color: #ffffff !important; }
       svg line { stroke-opacity: 0.3 !important; }
-      @media print { body { background: #0f172a !important; } }
+      @media print { html, body { background: #0f172a !important; } }
     `;
 
     const lightStyles = `
@@ -581,12 +583,12 @@ function PrintButton({ targetRef, title, subtitle }: { targetRef: React.RefObjec
       [style*="background: rgba(55,65,81"] { background: #cbd5e1 !important; }
       .h-3.rounded-full { background: #e2e8f0 !important; }
       .h-3.rounded-full > div { background: linear-gradient(to right, #3b82f6, #6366f1, #a855f7) !important; }
-      @media print { body { background: #ffffff !important; } }
+      @media print { html, body { background: #ffffff !important; } }
     `;
 
     const pageBreakStyles = `
       @media print {
-        @page { margin: 12mm 10mm; }
+        @page { margin: 0; }
         .grid { display: block !important; }
         .grid > div { break-inside: avoid; page-break-inside: avoid; margin-bottom: 16px; }
         [class*="rounded-2xl"] { break-inside: avoid; page-break-inside: avoid; }
@@ -599,12 +601,13 @@ function PrintButton({ targetRef, title, subtitle }: { targetRef: React.RefObjec
 <html><head><meta charset="utf-8"/><title>${title}</title>
 <style>${allCss}</style>
 <style>
-  body { padding: 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  html { height: 100%; }
+  body { margin: 0; padding: 12mm 10mm; min-height: 100%; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   .print-header { text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid; }
   .print-header h1 { font-size: 22px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
   .print-header p { font-size: 12px; }
   .no-print { display: none !important; }
-  @media print { body { padding: 16px; } .no-print { display: none !important; } }
+  @media print { body { padding: 10mm; } .no-print { display: none !important; } }
   ${pageBreakStyles}
   ${theme === "dark" ? darkStyles : lightStyles}
 </style>
