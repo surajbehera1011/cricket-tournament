@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { StatsCards } from "@/components/dashboard/StatsCards";
+import { StatsCards, STAT_META } from "@/components/dashboard/StatsCards";
 import { TeamCards } from "@/components/dashboard/TeamCards";
 import { PoolTable } from "@/components/dashboard/PoolTable";
 import { Countdown } from "@/components/dashboard/Countdown";
@@ -49,6 +49,7 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
   const [pendingPool, setPendingPool] = useState<PoolPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [openStat, setOpenStat] = useState<string | null>(null);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [regCloseDate, setRegCloseDate] = useState<string | null>(null);
   const [venue, setVenue] = useState("");
@@ -126,6 +127,15 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
   const completeTeams = teams.filter((t) => t.status === "COMPLETE").length;
   const incompleteTeams = teams.filter((t) => t.status === "INCOMPLETE").length;
 
+  const statTeams = openStat && openStat !== "pool"
+    ? openStat === "total" ? teams
+      : openStat === "ready" ? teams.filter((t) => t.status === "READY")
+      : openStat === "submitted" ? teams.filter((t) => t.status === "COMPLETE")
+      : teams.filter((t) => t.status === "INCOMPLETE")
+    : [];
+
+  const statMeta = openStat ? STAT_META[openStat] : null;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
@@ -142,6 +152,95 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
 
   return (
     <div>
+      {/* Stat Modal */}
+      {openStat && statMeta && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setOpenStat(null)}>
+          <div className="dark-card rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className={`h-1.5 ${statMeta.accent}`} />
+            <div className="p-6 pb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-2xl font-extrabold text-white">{statMeta.label}</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">
+                    {openStat === "pool"
+                      ? `${pool.length} player${pool.length !== 1 ? "s" : ""}`
+                      : `${statTeams.length} team${statTeams.length !== 1 ? "s" : ""}`}
+                  </p>
+                </div>
+                <button onClick={() => setOpenStat(null)} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/[0.06] text-slate-500 hover:text-white transition-colors text-xl">&times;</button>
+              </div>
+            </div>
+            <div className="border-t border-white/[0.04] overflow-y-auto max-h-[60vh] p-6 pt-4 space-y-3">
+              {openStat === "pool" ? (
+                pool.length === 0 ? (
+                  <p className="text-slate-500 text-center py-8">No players in pool</p>
+                ) : (
+                  pool.map((p, idx) => (
+                    <div key={p.id} className={`rounded-xl ${statMeta.bg} p-3.5 border ${statMeta.border}`}>
+                      <div className="flex items-center gap-3">
+                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${statMeta.bg} ${statMeta.color} border ${statMeta.border}`}>
+                          {idx + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-white">{p.fullName}</p>
+                          <p className="text-[11px] text-slate-500">{p.preferredRole || "No role specified"}</p>
+                        </div>
+                        {p.gender && (
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${p.gender === "FEMALE" ? "bg-pink-500/10 text-pink-400 border-pink-500/20" : "bg-sky-500/10 text-sky-400 border-sky-500/20"}`}>
+                            {p.gender === "FEMALE" ? "F" : "M"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )
+              ) : statTeams.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">No teams in this category</p>
+              ) : (
+                statTeams.map((team) => (
+                  <div key={team.id} className={`rounded-xl ${statMeta.bg} border ${statMeta.border} overflow-hidden`}>
+                    <div className="px-4 py-3 flex items-center gap-3">
+                      {team.color && (
+                        <span className="w-3 h-3 rounded-full flex-shrink-0 border border-white/10" style={{ background: team.color }} />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-white">{team.name}</p>
+                        {team.captainName && (
+                          <p className="text-[11px] text-slate-500">Captain: {team.captainName}</p>
+                        )}
+                      </div>
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${statMeta.bg} ${statMeta.color} border ${statMeta.border}`}>
+                        {team.memberCount} players
+                      </span>
+                    </div>
+                    {team.players.length > 0 && (
+                      <div className="border-t border-white/[0.04] px-4 py-2 space-y-1">
+                        {team.players.map((p, idx) => (
+                          <div key={p.id} className="flex items-center gap-2 py-1">
+                            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${idx === 0 ? "bg-pitch-500 text-white" : "bg-white/[0.06] text-slate-500"}`}>
+                              {idx === 0 ? "C" : idx + 1}
+                            </span>
+                            <span className="text-xs text-slate-300 font-medium truncate flex-1">{p.fullName}</span>
+                            {p.preferredRole && (
+                              <span className="text-[10px] text-slate-500">{p.preferredRole}</span>
+                            )}
+                            {p.gender && (
+                              <span className={`text-[9px] font-semibold px-1 py-0.5 rounded ${p.gender === "FEMALE" ? "bg-pink-500/10 text-pink-400" : "bg-sky-500/10 text-sky-400"}`}>
+                                {p.gender === "FEMALE" ? "F" : "M"}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Countdown */}
       {startDate && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4 flex justify-center">
@@ -213,6 +312,7 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
           incompleteTeams={incompleteTeams}
           poolCount={pool.length}
           tvMode={tvMode}
+          onStatClick={setOpenStat}
         />
       </div>
 

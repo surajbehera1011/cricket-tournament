@@ -2,6 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 
+export const STAT_META: Record<string, { label: string; icon: string; accent: string; color: string; bg: string; border: string }> = {
+  total: { label: "All Teams", icon: "🏏", accent: "bg-white", color: "text-white", bg: "bg-white/5", border: "border-white/10" },
+  ready: { label: "Ready Teams", icon: "✅", accent: "bg-pitch-500", color: "text-pitch-400", bg: "bg-pitch-500/10", border: "border-pitch-500/20" },
+  submitted: { label: "Submitted Teams", icon: "📋", accent: "bg-brand-500", color: "text-brand-400", bg: "bg-brand-500/10", border: "border-brand-500/20" },
+  in_progress: { label: "In Progress Teams", icon: "⏳", accent: "bg-amber-500", color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+  pool: { label: "Player Pool", icon: "👤", accent: "bg-violet-500", color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },
+};
+
 function useCountUp(target: number, duration = 800) {
   const [value, setValue] = useState(0);
   const prevTarget = useRef(0);
@@ -34,9 +42,10 @@ interface StatsCardsProps {
   incompleteTeams: number;
   poolCount: number;
   tvMode?: boolean;
+  onStatClick?: (stat: string) => void;
 }
 
-export function StatsCards({ totalTeams, readyTeams, completeTeams, incompleteTeams, poolCount, tvMode }: StatsCardsProps) {
+export function StatsCards({ totalTeams, readyTeams, completeTeams, incompleteTeams, poolCount, tvMode, onStatClick }: StatsCardsProps) {
   const textSize = tvMode ? "text-tv-3xl" : "text-3xl";
   const labelSize = tvMode ? "text-tv-base" : "text-xs";
 
@@ -47,17 +56,21 @@ export function StatsCards({ totalTeams, readyTeams, completeTeams, incompleteTe
   const animPool = useCountUp(poolCount);
 
   const stats = [
-    { label: "Total Teams", value: animTotal, icon: "🏏", accent: "bg-white", textColor: "text-white", glow: "" },
-    { label: "Ready", value: animReady, icon: "✅", accent: "bg-pitch-500", textColor: "text-pitch-400", glow: "shadow-pitch-500/10" },
-    { label: "Submitted", value: animComplete, icon: "📋", accent: "bg-brand-500", textColor: "text-brand-400", glow: "shadow-brand-500/10" },
-    { label: "In Progress", value: animIncomplete, icon: "⏳", accent: "bg-amber-500", textColor: "text-amber-400", glow: "shadow-amber-500/10" },
-    { label: "In Pool", value: animPool, icon: "👤", accent: "bg-violet-500", textColor: "text-violet-400", glow: "shadow-violet-500/10" },
+    { key: "total", label: "Total Teams", value: animTotal, icon: "🏏", accent: "bg-white", textColor: "text-white", glow: "" },
+    { key: "ready", label: "Ready", value: animReady, icon: "✅", accent: "bg-pitch-500", textColor: "text-pitch-400", glow: "shadow-pitch-500/10" },
+    { key: "submitted", label: "Submitted", value: animComplete, icon: "📋", accent: "bg-brand-500", textColor: "text-brand-400", glow: "shadow-brand-500/10" },
+    { key: "in_progress", label: "In Progress", value: animIncomplete, icon: "⏳", accent: "bg-amber-500", textColor: "text-amber-400", glow: "shadow-amber-500/10" },
+    { key: "pool", label: "In Pool", value: animPool, icon: "👤", accent: "bg-violet-500", textColor: "text-violet-400", glow: "shadow-violet-500/10" },
   ];
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
       {stats.map((stat) => (
-        <div key={stat.label} className={`stat-card ${stat.glow}`}>
+        <button
+          key={stat.key}
+          onClick={() => onStatClick?.(stat.key)}
+          className={`stat-card ${stat.glow} ${onStatClick ? "cursor-pointer" : ""} text-left`}
+        >
           <div className={`absolute top-0 left-0 right-0 h-1 ${stat.accent} rounded-t-2xl opacity-80`} />
           <div className="p-5 text-center">
             <span className="text-2xl mb-2 block">{stat.icon}</span>
@@ -66,7 +79,7 @@ export function StatsCards({ totalTeams, readyTeams, completeTeams, incompleteTe
               {stat.label}
             </p>
           </div>
-        </div>
+        </button>
       ))}
     </div>
   );

@@ -92,7 +92,18 @@ export function NotificationBell() {
                 <a
                   key={n.id}
                   href={n.link || "#"}
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    if (!n.read) {
+                      fetch("/api/notifications", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ ids: [n.id] }),
+                      }).catch(() => {});
+                      setNotifications((prev) => prev.map((x) => x.id === n.id ? { ...x, read: true } : x));
+                      setUnreadCount((c) => Math.max(0, c - 1));
+                    }
+                    setOpen(false);
+                  }}
                   className={`block px-4 py-3 hover:bg-white/[0.03] transition-colors ${!n.read ? "bg-brand-500/5" : ""}`}
                 >
                   <div className="flex items-start gap-2">
