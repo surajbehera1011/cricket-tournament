@@ -69,47 +69,41 @@ async function recalcByeAdvancements(fixtureId: string, isCricket: boolean, cate
     const p1 = isCricket ? m.team1Id : m.entry1Id;
     const p2 = isCricket ? m.team2Id : m.entry2Id;
     const isBye = (p1 && !p2) || (!p1 && p2);
-    const hasBoth = p1 && p2;
 
     if (isBye) {
-      const present = p1 || p2;
-      if (m.winnerId !== present || m.status !== "COMPLETED") {
+      const newWinner = p1 || p2;
+      const oldWinner = m.winnerId;
+
+      if (oldWinner !== newWinner) {
         await prisma.match.update({
           where: { id: m.id },
-          data: { winnerId: present, status: "COMPLETED" },
+          data: { winnerId: newWinner, status: "COMPLETED" },
         });
-      }
 
-      const winnerRef = `WINNER_M${m.matchNumber}`;
-      const downstream = categoryMatches.find((dm) => {
-        if (isCricket) return dm.team1Id === winnerRef || dm.team2Id === winnerRef;
-        return dm.entry1Id === winnerRef || dm.entry2Id === winnerRef;
-      });
-
-      if (downstream) {
-        const updateData: Record<string, string> = {};
-        if (isCricket) {
-          if (downstream.team1Id === winnerRef) updateData.team1Id = present!;
-          if (downstream.team2Id === winnerRef) updateData.team2Id = present!;
-        } else {
-          if (downstream.entry1Id === winnerRef) updateData.entry1Id = present!;
-          if (downstream.entry2Id === winnerRef) updateData.entry2Id = present!;
-        }
-        if (Object.keys(updateData).length > 0) {
-          await prisma.match.update({
-            where: { id: downstream.id },
-            data: updateData,
-          });
-          const dmIdx = categoryMatches.findIndex((x) => x.id === downstream.id);
-          if (dmIdx >= 0) {
-            Object.assign(categoryMatches[dmIdx], updateData);
+        if (oldWinner) {
+          const winnerRef = `WINNER_M${m.matchNumber}`;
+          for (const dm of categoryMatches) {
+            if (dm.id === m.id) continue;
+            const updateData: Record<string, string> = {};
+            if (isCricket) {
+              if (dm.team1Id === oldWinner || dm.team1Id === winnerRef) updateData.team1Id = newWinner!;
+              if (dm.team2Id === oldWinner || dm.team2Id === winnerRef) updateData.team2Id = newWinner!;
+            } else {
+              if (dm.entry1Id === oldWinner || dm.entry1Id === winnerRef) updateData.entry1Id = newWinner!;
+              if (dm.entry2Id === oldWinner || dm.entry2Id === winnerRef) updateData.entry2Id = newWinner!;
+            }
+            if (Object.keys(updateData).length > 0) {
+              await prisma.match.update({
+                where: { id: dm.id },
+                data: updateData,
+              });
+              const dmIdx = categoryMatches.findIndex((x) => x.id === dm.id);
+              if (dmIdx >= 0) Object.assign(categoryMatches[dmIdx], updateData);
+            }
           }
         }
       }
-    } else if (hasBoth && m.status === "COMPLETED" && m.winnerId) {
-      // Already completed with both players — leave as is
     } else if (!p1 && !p2) {
-      // Both empty — reset if was previously a bye
       if (m.winnerId || m.status === "COMPLETED") {
         await prisma.match.update({
           where: { id: m.id },
