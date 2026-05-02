@@ -83,7 +83,7 @@ async function recalcByeAdvancements(fixtureId: string, isCricket: boolean, cate
         if (oldWinner) {
           const winnerRef = `WINNER_M${m.matchNumber}`;
           for (const dm of categoryMatches) {
-            if (dm.id === m.id) continue;
+            if (dm.id === m.id || dm.roundNumber <= m.roundNumber) continue;
             const updateData: Record<string, string> = {};
             if (isCricket) {
               if (dm.team1Id === oldWinner || dm.team1Id === winnerRef) updateData.team1Id = newWinner!;
