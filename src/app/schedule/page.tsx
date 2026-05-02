@@ -124,9 +124,9 @@ export default function SchedulePage() {
       const pbList = pData.registrations ?? (Array.isArray(pData) ? pData : []);
       setPbRegs(pbList);
       setSettings({ targetCricketTeams: sData.targetCricketTeams ?? 12, cricketGroupCount: sData.cricketGroupCount ?? 4 });
-      if (fcData.frozen && fcData.fixture) setFrozenCricket(fcData.fixture.matches);
+      if (fcData.fixture?.matches?.length) setFrozenCricket(fcData.fixture.matches);
       else setFrozenCricket(null);
-      if (fpData.frozen && fpData.fixture) setFrozenPb(fpData.fixture.matches);
+      if (fpData.fixture?.matches?.length) setFrozenPb(fpData.fixture.matches);
       else setFrozenPb(null);
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }, []);
