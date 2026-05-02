@@ -58,7 +58,14 @@ export async function GET() {
       (m.entry1Id && m.entry2Id) || (m.team1Id && m.team2Id);
 
     const filteredLive = liveMatches.filter(isCatFrozen);
-    const filteredRecent = completedMatches.filter((m) => isCatFrozen(m) && isNotBye(m)).slice(0, 3);
+
+    const recentByCategory = new Map<string, typeof completedMatches[0]>();
+    for (const m of completedMatches.filter((m) => isCatFrozen(m) && isNotBye(m))) {
+      const key = `${m.sport}_${m.category || "NONE"}`;
+      if (!recentByCategory.has(key)) recentByCategory.set(key, m);
+    }
+    const filteredRecent = Array.from(recentByCategory.values());
+
     const filteredUpcoming = upcomingMatches.filter(isCatFrozen).slice(0, 3);
 
     const allFiltered = [...filteredLive, ...filteredRecent, ...filteredUpcoming];
@@ -110,6 +117,10 @@ export async function GET() {
         winnerId: m.winnerId,
         scheduledDate: m.scheduledDate,
         venue: m.venue,
+        team1Id: m.team1Id,
+        team2Id: m.team2Id,
+        entry1Id: m.entry1Id,
+        entry2Id: m.entry2Id,
         team1: m.team1Id ? (teamMap[m.team1Id] || { name: m.team1Id, color: null }) : null,
         team2: m.team2Id ? (teamMap[m.team2Id] || { name: m.team2Id, color: null }) : null,
         entry1: m.entry1Id ? (entryMap[m.entry1Id] || m.entry1Id) : null,

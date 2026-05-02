@@ -22,22 +22,32 @@ interface LiveMatch {
   winnerId: string | null;
   scheduledDate: string | null;
   venue: string | null;
+  team1Id: string | null;
+  team2Id: string | null;
+  entry1Id: string | null;
+  entry2Id: string | null;
   team1: MatchTeam | null;
   team2: MatchTeam | null;
   entry1: string | null;
   entry2: string | null;
 }
 
-function MatchMiniCard({ match }: { match: LiveMatch }) {
+function MatchMiniCard({ match, variant }: { match: LiveMatch; variant: "live" | "recent" }) {
   const name1 = match.team1?.name || match.entry1 || "TBD";
   const name2 = match.team2?.name || match.entry2 || "TBD";
   const color1 = match.team1?.color;
   const color2 = match.team2?.color;
 
-  const sportIcon = match.sport === "CRICKET" ? "🏏" : "🏓";
+  const sportIcon = match.sport === "CRICKET" ? "\u{1F3CF}" : "\u{1F3D3}";
   const stageLabel = match.stage === "GROUP"
     ? `${match.groupName || "Group"}`
     : `R${match.roundNumber}`;
+
+  const isRecent = variant === "recent";
+  const p1Id = match.team1Id || match.entry1Id;
+  const p2Id = match.team2Id || match.entry2Id;
+  const isP1Winner = isRecent && match.winnerId === p1Id;
+  const isP2Winner = isRecent && match.winnerId === p2Id;
 
   return (
     <motion.div
@@ -45,7 +55,7 @@ function MatchMiniCard({ match }: { match: LiveMatch }) {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="rounded-xl p-3 border bg-red-500/5 border-red-500/20"
+      className={`rounded-xl p-3 border ${isRecent ? "bg-emerald-500/5 border-emerald-500/20" : "bg-red-500/5 border-red-500/20"}`}
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
@@ -59,10 +69,14 @@ function MatchMiniCard({ match }: { match: LiveMatch }) {
             </span>
           )}
         </div>
-        <span className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-          <span className="text-[10px] font-bold text-red-400 uppercase">Live</span>
-        </span>
+        {isRecent ? (
+          <span className="text-[10px] font-bold text-emerald-400 uppercase">Completed</span>
+        ) : (
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-[10px] font-bold text-red-400 uppercase">Live</span>
+          </span>
+        )}
       </div>
 
       <div className="space-y-1.5">
@@ -71,7 +85,7 @@ function MatchMiniCard({ match }: { match: LiveMatch }) {
             {color1 && (
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color1 }} />
             )}
-            <span className="text-xs font-semibold truncate text-slate-300">{name1}</span>
+            <span className={`text-xs font-semibold truncate ${isRecent && isP1Winner ? "text-emerald-400" : "text-slate-300"}`}>{name1}</span>
           </div>
           <span className={`text-sm font-bold tabular-nums ${match.score1 ? "text-white" : "text-slate-600"}`}>
             {match.score1 || "-"}
@@ -83,7 +97,7 @@ function MatchMiniCard({ match }: { match: LiveMatch }) {
             {color2 && (
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color2 }} />
             )}
-            <span className="text-xs font-semibold truncate text-slate-300">{name2}</span>
+            <span className={`text-xs font-semibold truncate ${isRecent && isP2Winner ? "text-emerald-400" : "text-slate-300"}`}>{name2}</span>
           </div>
           <span className={`text-sm font-bold tabular-nums ${match.score2 ? "text-white" : "text-slate-600"}`}>
             {match.score2 || "-"}
@@ -92,7 +106,7 @@ function MatchMiniCard({ match }: { match: LiveMatch }) {
       </div>
 
       {match.venue && (
-        <p className="text-[10px] text-slate-600 mt-1.5 truncate">📍 {match.venue}</p>
+        <p className="text-[10px] text-slate-600 mt-1.5 truncate">{match.venue}</p>
       )}
     </motion.div>
   );
@@ -100,14 +114,21 @@ function MatchMiniCard({ match }: { match: LiveMatch }) {
 
 export function LiveScoresWidget() {
   const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
+  const [recentMatches, setRecentMatches] = useState<LiveMatch[]>([]);
   const [collapsed, setCollapsed] = useState(false);
+  const [tab, setTab] = useState<"live" | "recent">("live");
 
   const fetchData = useCallback(async () => {
     try {
       const res = await fetch("/api/matches/live");
       if (res.ok) {
         const json = await res.json();
-        setLiveMatches(json.live || []);
+        const live = json.live || [];
+        const recent = json.recent || [];
+        setLiveMatches(live);
+        setRecentMatches(recent);
+        if (live.length === 0 && recent.length > 0) setTab("recent");
+        else if (live.length > 0) setTab("live");
       }
     } catch { /* ignore */ }
   }, []);
@@ -118,7 +139,14 @@ export function LiveScoresWidget() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  if (liveMatches.length === 0) return null;
+  const hasLive = liveMatches.length > 0;
+  const hasRecent = recentMatches.length > 0;
+
+  if (!hasLive && !hasRecent) return null;
+
+  const activeMatches = tab === "live" ? liveMatches : recentMatches;
+  const liveCount = liveMatches.length;
+  const recentCount = recentMatches.length;
 
   return (
     <motion.div
@@ -131,10 +159,10 @@ export function LiveScoresWidget() {
         className="flex items-center justify-between px-4 py-2.5 bg-dark-400/95 backdrop-blur-xl border border-white/[0.08] rounded-t-xl hover:bg-dark-400 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <span className="text-sm font-bold text-white">Live Scores</span>
+          {hasLive && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
+          <span className="text-sm font-bold text-white">Scoreboard</span>
           <span className="text-[10px] text-slate-500 font-medium">
-            {liveMatches.length} {liveMatches.length === 1 ? "match" : "matches"}
+            {hasLive ? `${liveCount} live` : ""}{hasLive && hasRecent ? " / " : ""}{hasRecent ? `${recentCount} recent` : ""}
           </span>
         </div>
         <svg
@@ -157,10 +185,26 @@ export function LiveScoresWidget() {
             transition={{ duration: 0.2 }}
             className="overflow-hidden bg-dark-500/95 backdrop-blur-xl border border-t-0 border-white/[0.08] rounded-b-xl"
           >
+            {(hasLive && hasRecent) && (
+              <div className="flex border-b border-white/[0.06]">
+                <button
+                  onClick={() => setTab("live")}
+                  className={`flex-1 text-[11px] font-bold py-1.5 transition-colors ${tab === "live" ? "text-red-400 border-b-2 border-red-400" : "text-slate-500 hover:text-slate-400"}`}
+                >
+                  Live ({liveCount})
+                </button>
+                <button
+                  onClick={() => setTab("recent")}
+                  className={`flex-1 text-[11px] font-bold py-1.5 transition-colors ${tab === "recent" ? "text-emerald-400 border-b-2 border-emerald-400" : "text-slate-500 hover:text-slate-400"}`}
+                >
+                  Recent ({recentCount})
+                </button>
+              </div>
+            )}
             <div className="p-2 space-y-2 overflow-y-auto max-h-[50vh]">
               <AnimatePresence mode="popLayout">
-                {liveMatches.map((m) => (
-                  <MatchMiniCard key={m.id} match={m} />
+                {activeMatches.map((m) => (
+                  <MatchMiniCard key={m.id} match={m} variant={tab} />
                 ))}
               </AnimatePresence>
             </div>

@@ -338,6 +338,22 @@ export default function AdminFixturesPage() {
     }
   };
 
+  const updateLiveScore = async (matchId: string, score1: string, score2: string) => {
+    try {
+      const res = await fetch("/api/admin/fixtures/live-score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId, score1, score2 }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      toast("Live score updated", "success");
+      fetchFixture();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed", "error");
+    }
+  };
+
   const toggleLive = async (matchId: string, goLive: boolean) => {
     try {
       const res = await fetch("/api/admin/fixtures/live", {
@@ -540,6 +556,7 @@ export default function AdminFixturesPage() {
                             isFrozen={fixture.status === "FROZEN"}
                             onSchedule={scheduleMatch}
                             onRecordScore={recordScore}
+                            onUpdateLiveScore={updateLiveScore}
                             onToggleLive={toggleLive}
                           />
                         ))}
@@ -565,6 +582,7 @@ export default function AdminFixturesPage() {
                 isFrozen={fixture.status === "FROZEN"}
                 onSchedule={scheduleMatch}
                 onRecordScore={recordScore}
+                onUpdateLiveScore={updateLiveScore}
                 onToggleLive={toggleLive}
                 accent="#f59e0b"
               />
@@ -597,6 +615,7 @@ export default function AdminFixturesPage() {
                     isFrozen={catFrozen}
                     onSchedule={scheduleMatch}
                     onRecordScore={recordScore}
+                    onUpdateLiveScore={updateLiveScore}
                     onToggleLive={toggleLive}
                     accent="#10b981"
                   />
@@ -633,6 +652,7 @@ function GroupMatchCard({
   isFrozen,
   onSchedule,
   onRecordScore,
+  onUpdateLiveScore,
   onToggleLive,
 }: {
   match: MatchData;
@@ -644,6 +664,7 @@ function GroupMatchCard({
   isFrozen: boolean;
   onSchedule: (id: string, date: string, venue: string, notify: boolean) => void;
   onRecordScore: (matchId: string, score1: string, score2: string, winnerId: string) => void;
+  onUpdateLiveScore: (matchId: string, score1: string, score2: string) => void;
   onToggleLive: (matchId: string, goLive: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -690,6 +711,7 @@ function GroupMatchCard({
               <input type="text" value={s1} onChange={(e) => setS1(e.target.value)} placeholder="Score 1" className="px-1.5 py-0.5 bg-dark-500 border border-white/10 rounded text-white text-[10px] w-16 text-center" />
               <span className="text-[10px] text-slate-500">vs</span>
               <input type="text" value={s2} onChange={(e) => setS2(e.target.value)} placeholder="Score 2" className="px-1.5 py-0.5 bg-dark-500 border border-white/10 rounded text-white text-[10px] w-16 text-center" />
+              {isLive && <button onClick={() => { onUpdateLiveScore(match.id, s1, s2); }} className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px] font-bold" title="Save scores without declaring winner">Save</button>}
               <button onClick={() => { if (p1) { onRecordScore(match.id, s1, s2, p1); setScoring(false); } }} className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-[10px] font-bold" title={`${slotLabel(match, "1")} wins`}>
                 {slotLabel(match, "1").slice(0, 6)} W
               </button>
@@ -747,6 +769,7 @@ function BracketView({
   isFrozen,
   onSchedule,
   onRecordScore,
+  onUpdateLiveScore,
   onToggleLive,
   accent,
 }: {
@@ -759,6 +782,7 @@ function BracketView({
   isFrozen: boolean;
   onSchedule: (id: string, date: string, venue: string, notify: boolean) => void;
   onRecordScore: (matchId: string, score1: string, score2: string, winnerId: string) => void;
+  onUpdateLiveScore: (matchId: string, score1: string, score2: string) => void;
   onToggleLive: (matchId: string, goLive: boolean) => void;
   accent: string;
 }) {
@@ -846,7 +870,7 @@ function BracketView({
             const y = getMatchY(ri, mi);
             return (
               <div key={m.id} className="absolute" style={{ left: xOffset, top: y, width: colW, minHeight: MATCH_H }}>
-                <BracketMatchCard match={m} sport={sport} slotLabel={slotLabel} slotColor={slotColor} slotId={slotId} isTBD={isTBD} isFrozen={isFrozen} onSchedule={onSchedule} onRecordScore={onRecordScore} onToggleLive={onToggleLive} accent={accent} isFinal={isFinalRound} />
+                <BracketMatchCard match={m} sport={sport} slotLabel={slotLabel} slotColor={slotColor} slotId={slotId} isTBD={isTBD} isFrozen={isFrozen} onSchedule={onSchedule} onRecordScore={onRecordScore} onUpdateLiveScore={onUpdateLiveScore} onToggleLive={onToggleLive} accent={accent} isFinal={isFinalRound} />
               </div>
             );
           });
@@ -877,6 +901,7 @@ function BracketMatchCard({
   isFrozen,
   onSchedule,
   onRecordScore,
+  onUpdateLiveScore,
   onToggleLive,
   accent,
   isFinal,
@@ -890,6 +915,7 @@ function BracketMatchCard({
   isFrozen: boolean;
   onSchedule: (id: string, date: string, venue: string, notify: boolean) => void;
   onRecordScore: (matchId: string, score1: string, score2: string, winnerId: string) => void;
+  onUpdateLiveScore: (matchId: string, score1: string, score2: string) => void;
   onToggleLive: (matchId: string, goLive: boolean) => void;
   accent: string;
   isFinal: boolean;
@@ -951,6 +977,7 @@ function BracketMatchCard({
           <input type="text" value={s1} onChange={(e) => setS1(e.target.value)} placeholder="S1" className="px-1 py-0.5 bg-dark-500 border border-white/10 rounded text-white text-[9px] w-12 text-center" />
           <span className="text-[9px] text-slate-500">-</span>
           <input type="text" value={s2} onChange={(e) => setS2(e.target.value)} placeholder="S2" className="px-1 py-0.5 bg-dark-500 border border-white/10 rounded text-white text-[9px] w-12 text-center" />
+          {isLive && <button onClick={() => { onUpdateLiveScore(match.id, s1, s2); }} className="px-1 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[9px] font-bold" title="Save scores without declaring winner">Save</button>}
           <button onClick={() => { if (p1) { onRecordScore(match.id, s1, s2, p1); setScoring(false); } }} className="px-1 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-[9px] font-bold" title={`${slotLabel(match, "1")} wins`}>1W</button>
           <button onClick={() => { if (p2) { onRecordScore(match.id, s1, s2, p2); setScoring(false); } }} className="px-1 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[9px] font-bold" title={`${slotLabel(match, "2")} wins`}>2W</button>
           <button onClick={() => setScoring(false)} className="px-1 py-0.5 text-slate-500 text-[9px]">✕</button>
