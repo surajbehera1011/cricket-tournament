@@ -65,50 +65,88 @@ async function recalcByeAdvancements(fixtureId: string, isCricket: boolean, cate
     ? allMatches.filter((m) => m.category === category)
     : allMatches.filter((m) => m.stage === "KNOCKOUT");
 
+  const byRound = new Map<number, typeof categoryMatches>();
   for (const m of categoryMatches) {
-    const p1 = isCricket ? m.team1Id : m.entry1Id;
-    const p2 = isCricket ? m.team2Id : m.entry2Id;
-    const isBye = (p1 && !p2) || (!p1 && p2);
+    if (!byRound.has(m.roundNumber)) byRound.set(m.roundNumber, []);
+    byRound.get(m.roundNumber)!.push(m);
+  }
+  for (const arr of byRound.values()) {
+    arr.sort((a, b) => a.matchNumber - b.matchNumber);
+  }
 
-    if (isBye) {
-      const newWinner = p1 || p2;
-      const oldWinner = m.winnerId;
+  const rounds = [...byRound.keys()].sort((a, b) => a - b);
 
-      if (oldWinner !== newWinner) {
-        await prisma.match.update({
-          where: { id: m.id },
-          data: { winnerId: newWinner, status: "COMPLETED" },
-        });
+  for (let ri = 0; ri < rounds.length; ri++) {
+    const roundMatches = byRound.get(rounds[ri])!;
+    const nextRoundMatches = ri + 1 < rounds.length ? byRound.get(rounds[ri + 1])! : null;
 
-        if (oldWinner) {
-          const winnerRef = `WINNER_M${m.matchNumber}`;
-          for (const dm of categoryMatches) {
-            if (dm.id === m.id || dm.roundNumber <= m.roundNumber) continue;
-            const updateData: Record<string, string> = {};
-            if (isCricket) {
-              if (dm.team1Id === oldWinner || dm.team1Id === winnerRef) updateData.team1Id = newWinner!;
-              if (dm.team2Id === oldWinner || dm.team2Id === winnerRef) updateData.team2Id = newWinner!;
-            } else {
-              if (dm.entry1Id === oldWinner || dm.entry1Id === winnerRef) updateData.entry1Id = newWinner!;
-              if (dm.entry2Id === oldWinner || dm.entry2Id === winnerRef) updateData.entry2Id = newWinner!;
-            }
-            if (Object.keys(updateData).length > 0) {
+    for (let pos = 0; pos < roundMatches.length; pos++) {
+      const m = roundMatches[pos];
+      const p1 = isCricket ? m.team1Id : m.entry1Id;
+      const p2 = isCricket ? m.team2Id : m.entry2Id;
+      const isBye = (p1 && !p2) || (!p1 && p2);
+      const hasBoth = p1 && p2;
+
+      if (isBye) {
+        const winner = p1 || p2;
+        if (m.winnerId !== winner || m.status !== "COMPLETED") {
+          await prisma.match.update({
+            where: { id: m.id },
+            data: { winnerId: winner, status: "COMPLETED" },
+          });
+          m.winnerId = winner;
+          m.status = "COMPLETED";
+        }
+
+        if (nextRoundMatches) {
+          const nextIdx = Math.floor(pos / 2);
+          if (nextIdx < nextRoundMatches.length) {
+            const nextMatch = nextRoundMatches[nextIdx];
+            const slot = pos % 2 === 0 ? "1" : "2";
+            const field = isCricket
+              ? (slot === "1" ? "team1Id" : "team2Id")
+              : (slot === "1" ? "entry1Id" : "entry2Id");
+            const current = (nextMatch as Record<string, unknown>)[field] as string | null;
+            if (current !== winner) {
               await prisma.match.update({
-                where: { id: dm.id },
-                data: updateData,
+                where: { id: nextMatch.id },
+                data: { [field]: winner },
               });
-              const dmIdx = categoryMatches.findIndex((x) => x.id === dm.id);
-              if (dmIdx >= 0) Object.assign(categoryMatches[dmIdx], updateData);
+              (nextMatch as Record<string, unknown>)[field] = winner;
             }
           }
         }
-      }
-    } else if (!p1 && !p2) {
-      if (m.winnerId || m.status === "COMPLETED") {
-        await prisma.match.update({
-          where: { id: m.id },
-          data: { winnerId: null, status: "SCHEDULED" },
-        });
+      } else if (hasBoth) {
+        if (m.winnerId && m.status === "COMPLETED") {
+          // Real match already played — leave as is
+        } else if (m.status === "COMPLETED" && !m.winnerId) {
+          await prisma.match.update({
+            where: { id: m.id },
+            data: { winnerId: null, status: "SCHEDULED" },
+          });
+          m.status = "SCHEDULED";
+          m.winnerId = null;
+        }
+
+        if (nextRoundMatches) {
+          const nextIdx = Math.floor(pos / 2);
+          if (nextIdx < nextRoundMatches.length) {
+            const nextMatch = nextRoundMatches[nextIdx];
+            const slot = pos % 2 === 0 ? "1" : "2";
+            const field = isCricket
+              ? (slot === "1" ? "team1Id" : "team2Id")
+              : (slot === "1" ? "entry1Id" : "entry2Id");
+            const current = (nextMatch as Record<string, unknown>)[field] as string | null;
+            const expected = `WINNER_M${m.matchNumber}`;
+            if (current !== expected && !(m.winnerId && current === m.winnerId)) {
+              await prisma.match.update({
+                where: { id: nextMatch.id },
+                data: { [field]: expected },
+              });
+              (nextMatch as Record<string, unknown>)[field] = expected;
+            }
+          }
+        }
       }
     }
   }
