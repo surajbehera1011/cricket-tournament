@@ -86,7 +86,7 @@ function StatusContent() {
       <div className="hero-section">
         <div className="hero-bg-image" />
         <div className="hero-overlay" />
-        <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24 text-center">
+        <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-14 text-center">
           <span className="text-5xl mb-4 block">📋</span>
           <h1 className="font-display text-4xl sm:text-5xl tracking-wider text-gradient-hero">
             CHECK YOUR STATUS

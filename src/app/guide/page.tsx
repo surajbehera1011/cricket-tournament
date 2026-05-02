@@ -78,7 +78,7 @@ export default function GuidePage() {
       <div className="hero-section">
         <div className="hero-bg-image" />
         <div className="hero-overlay" />
-        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-28 text-center">
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20 text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-1.5 mb-6 border border-white/10 animate-bounce-slow">
             <span className="text-sm">📖</span>
             <span className="text-sm text-white/90 font-medium">Everything you need to know</span>

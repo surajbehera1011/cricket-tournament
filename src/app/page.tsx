@@ -63,7 +63,7 @@ function DashboardContent() {
       <div className="hero-section">
         <div className="hero-bg-image" />
         <div className="hero-overlay" />
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 pb-24">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-14">
           <div className="text-center">
             <h1 className={`font-display tracking-wider text-gradient-hero ${tvMode ? "text-tv-3xl" : "text-5xl sm:text-6xl lg:text-7xl"}`}>
               ALIGN SPORTS LEAGUE
@@ -90,7 +90,7 @@ function DashboardContent() {
       </div>
 
       {/* Sport Selector */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20 mb-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-7 relative z-20 mb-6">
         <div className="flex justify-center">
           <div className="inline-flex gap-1 bg-dark-400/80 backdrop-blur-xl p-1.5 rounded-2xl border border-white/[0.06] shadow-xl shadow-black/20">
             {SPORTS.map((s) => (
