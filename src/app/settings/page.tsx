@@ -27,13 +27,23 @@ interface Settings {
   cricketGroupCount: number;
 }
 
+function toLocalDatetimeStr(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  const h = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${y}-${mo}-${da}T${h}:${mi}`;
+}
+
 function DateInput({ label, hint, value, onChange }: { label: string; hint: string; value: string | null; onChange: (v: string | null) => void }) {
   return (
     <div>
       <label className="block text-sm font-medium text-slate-300 mb-1">{label}</label>
       <input
         type="datetime-local"
-        value={value ? new Date(value).toISOString().slice(0, 16) : ""}
+        value={value ? toLocalDatetimeStr(value) : ""}
         onChange={(e) => onChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
         className="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-100"
       />

@@ -3,6 +3,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/components/ui/Toast";
+
+function toLocalDatetimeStr(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  const h = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${y}-${mo}-${da}T${h}:${mi}`;
+}
 import {
   DndContext,
   DragOverlay,
@@ -297,7 +307,7 @@ export default function AdminFixturesPage() {
       const res = await fetch("/api/admin/fixtures/schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId, scheduledDate: date || undefined, venue: venue || undefined, sendNotification: notify }),
+        body: JSON.stringify({ matchId, scheduledDate: date ? new Date(date).toISOString() : undefined, venue: venue || undefined, sendNotification: notify }),
       });
       if (!res.ok) throw new Error("Schedule failed");
       toast(notify ? "Scheduled & notified" : "Scheduled", "success");
@@ -312,7 +322,7 @@ export default function AdminFixturesPage() {
       const res = await fetch("/api/admin/fixtures/bulk-schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchIds, scheduledDate: bulkDate || undefined, venue: bulkVenue || undefined, sendNotification: notify }),
+        body: JSON.stringify({ matchIds, scheduledDate: bulkDate ? new Date(bulkDate).toISOString() : undefined, venue: bulkVenue || undefined, sendNotification: notify }),
       });
       if (!res.ok) throw new Error("Bulk schedule failed");
       toast("Bulk schedule applied", "success");
@@ -671,7 +681,7 @@ function GroupMatchCard({
   const [scoring, setScoring] = useState(false);
   const [s1, setS1] = useState(match.score1 ?? "");
   const [s2, setS2] = useState(match.score2 ?? "");
-  const [date, setDate] = useState(match.scheduledDate ? new Date(match.scheduledDate).toISOString().slice(0, 16) : "");
+  const [date, setDate] = useState(match.scheduledDate ? toLocalDatetimeStr(match.scheduledDate) : "");
   const [venue, setVenue] = useState(match.venue ?? "");
 
   const p1 = slotId(match, "1");
@@ -924,7 +934,7 @@ function BracketMatchCard({
   const [scoring, setScoring] = useState(false);
   const [s1, setS1] = useState(match.score1 ?? "");
   const [s2, setS2] = useState(match.score2 ?? "");
-  const [date, setDate] = useState(match.scheduledDate ? new Date(match.scheduledDate).toISOString().slice(0, 16) : "");
+  const [date, setDate] = useState(match.scheduledDate ? toLocalDatetimeStr(match.scheduledDate) : "");
   const [venue, setVenue] = useState(match.venue ?? "");
 
   const p1 = slotId(match, "1");
