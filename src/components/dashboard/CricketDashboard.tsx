@@ -144,23 +144,6 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
     return <CricketDashboardSkeleton />;
   }
 
-  if (teams.length === 0 && pool.length === 0 && pendingTeams.length === 0 && pendingPool.length === 0) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center">
-          <span className="text-5xl mb-4 block">🏏</span>
-          <p className="text-slate-400 font-medium text-lg">No cricket registrations yet</p>
-          <p className="text-slate-500 text-sm mt-1 mb-6">Teams and players will appear here once approved by admin</p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <a href="/status" className="text-sm text-pitch-400 hover:text-pitch-300 font-medium">Registered? Check your status &rarr;</a>
-            <span className="text-slate-600">|</span>
-            <a href="/register?sport=cricket" className="text-sm text-pitch-400 hover:text-pitch-300 font-medium">Register now &rarr;</a>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
       {/* Stat Modal */}
