@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Countdown } from "@/components/dashboard/Countdown";
+import { useToast } from "@/components/ui/Toast";
+import { PickleballDashboardSkeleton } from "@/components/ui/Skeleton";
 
 interface PickleballReg {
   id: string;
@@ -91,6 +93,7 @@ function CategoryModal({ cat, entries, onClose }: {
 }
 
 export function PickleballDashboard() {
+  const { toast } = useToast();
   const [registrations, setRegistrations] = useState<PickleballReg[]>([]);
   const [pendingRegistrations, setPendingRegistrations] = useState<PickleballReg[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,6 +125,7 @@ export function PickleballDashboard() {
       setVenueMapUrl(settings?.pickleballVenueMapUrl || "");
     } catch (err) {
       console.error("Failed to fetch pickleball data:", err);
+      toast("Failed to load pickleball data. Please try refreshing.", "error");
     } finally {
       setLoading(false);
     }
@@ -160,17 +164,7 @@ export function PickleballDashboard() {
   const openCatData = openCat ? grouped.find((g) => g.key === openCat) : null;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="text-center">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-white/10 border-t-emerald-500 mx-auto" />
-            <span className="absolute inset-0 flex items-center justify-center text-2xl">🏓</span>
-          </div>
-          <p className="mt-4 text-slate-500 font-medium">Loading pickleball data...</p>
-        </div>
-      </div>
-    );
+    return <PickleballDashboardSkeleton />;
   }
 
   return (

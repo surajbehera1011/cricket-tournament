@@ -6,6 +6,8 @@ import { TeamCards } from "@/components/dashboard/TeamCards";
 import { PoolTable } from "@/components/dashboard/PoolTable";
 import { Countdown } from "@/components/dashboard/Countdown";
 import { useSSE } from "@/lib/useSSE";
+import { useToast } from "@/components/ui/Toast";
+import { CricketDashboardSkeleton } from "@/components/ui/Skeleton";
 
 interface Team {
   id: string;
@@ -43,6 +45,7 @@ interface CricketDashboardProps {
 }
 
 export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
+  const { toast } = useToast();
   const [teams, setTeams] = useState<Team[]>([]);
   const [pendingTeams, setPendingTeams] = useState<Team[]>([]);
   const [pool, setPool] = useState<PoolPlayer[]>([]);
@@ -84,6 +87,7 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
       setVenueMapUrl(settingsData?.cricketVenueMapUrl || "");
     } catch (err) {
       console.error("Failed to fetch cricket data:", err);
+      toast("Failed to load cricket data. Please try refreshing.", "error");
     } finally {
       setLoading(false);
     }
@@ -137,14 +141,21 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
   const statMeta = openStat ? STAT_META[openStat] : null;
 
   if (loading) {
+    return <CricketDashboardSkeleton />;
+  }
+
+  if (teams.length === 0 && pool.length === 0 && pendingTeams.length === 0 && pendingPool.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[40vh]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-white/10 border-t-pitch-500 mx-auto" />
-            <span className="absolute inset-0 flex items-center justify-center text-2xl">🏏</span>
+          <span className="text-5xl mb-4 block">🏏</span>
+          <p className="text-slate-400 font-medium text-lg">No cricket registrations yet</p>
+          <p className="text-slate-500 text-sm mt-1 mb-6">Teams and players will appear here once approved by admin</p>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <a href="/status" className="text-sm text-pitch-400 hover:text-pitch-300 font-medium">Registered? Check your status &rarr;</a>
+            <span className="text-slate-600">|</span>
+            <a href="/register?sport=cricket" className="text-sm text-pitch-400 hover:text-pitch-300 font-medium">Register now &rarr;</a>
           </div>
-          <p className="mt-4 text-slate-500 font-medium">Loading cricket data...</p>
         </div>
       </div>
     );

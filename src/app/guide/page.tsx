@@ -57,6 +57,7 @@ function StatusPill({ label, color, dot }: { label: string; color: string; dot: 
 
 export default function GuidePage() {
   const [activeTeamState, setActiveTeamState] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   const teamStates = [
     { status: "Pending Approval", icon: "⏳", color: "bg-amber-500/10 border-amber-500/20 text-amber-400", dot: "bg-amber-400 animate-pulse", desc: "You just registered. Admin will review your team." },
@@ -66,11 +67,15 @@ export default function GuidePage() {
   ];
 
   useEffect(() => {
+    if (isPaused) return;
     const timer = setInterval(() => {
       setActiveTeamState((prev) => (prev + 1) % teamStates.length);
     }, 3000);
     return () => clearInterval(timer);
-  }, [teamStates.length]);
+  }, [teamStates.length, isPaused]);
+
+  const goToPrev = () => setActiveTeamState((prev) => (prev - 1 + teamStates.length) % teamStates.length);
+  const goToNext = () => setActiveTeamState((prev) => (prev + 1) % teamStates.length);
 
   return (
     <div className="min-h-screen">
@@ -173,20 +178,46 @@ export default function GuidePage() {
 
         {/* Team States - Animated */}
         <Section>
-          <div className="dark-card rounded-2xl p-6 sm:p-8">
+          <div
+            className="dark-card rounded-2xl p-6 sm:p-8"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+          >
             <h2 className="text-xl font-extrabold text-white mb-1 text-center">Team Lifecycle</h2>
             <p className="text-sm text-slate-500 text-center mb-6">Every team progresses through these stages</p>
 
-            <div className="flex items-center justify-center gap-2 mb-6 flex-wrap">
-              {teamStates.map((s, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveTeamState(i)}
-                  className={`transition-all duration-300 ${i === activeTeamState ? "scale-110" : "scale-100 opacity-60 hover:opacity-80"}`}
-                >
-                  <StatusPill label={s.status} color={s.color} dot={s.dot} />
-                </button>
-              ))}
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <button
+                onClick={goToPrev}
+                className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] flex items-center justify-center text-slate-400 hover:text-white transition-all flex-shrink-0"
+                aria-label="Previous state"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                {teamStates.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveTeamState(i)}
+                    className={`transition-all duration-300 ${i === activeTeamState ? "scale-110" : "scale-100 opacity-60 hover:opacity-80"}`}
+                  >
+                    <StatusPill label={s.status} color={s.color} dot={s.dot} />
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={goToNext}
+                className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] flex items-center justify-center text-slate-400 hover:text-white transition-all flex-shrink-0"
+                aria-label="Next state"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
 
             {/* Animated state detail */}

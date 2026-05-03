@@ -9,6 +9,17 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Align Sports League | Cricket & Pickleball Tournament",
   description: "Align Sports League - Register teams, manage players, and track tournaments live.",
+  openGraph: {
+    title: "Align Sports League | Cricket & Pickleball Tournament",
+    description: "Register teams, manage players, and track the Align Sports League cricket and pickleball tournaments live.",
+    type: "website",
+    siteName: "Align Sports League",
+  },
+  twitter: {
+    card: "summary",
+    title: "Align Sports League | Cricket & Pickleball Tournament",
+    description: "Register teams, manage players, and track the Align Sports League cricket and pickleball tournaments live.",
+  },
 };
 
 export default function RootLayout({

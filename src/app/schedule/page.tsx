@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useToast } from "@/components/ui/Toast";
+import { ScheduleSkeleton } from "@/components/ui/Skeleton";
 
 interface Team { id: string; name: string; color?: string; captainName: string; status: string; }
 interface PbReg { id: string; category: string; player1Name: string; player2Name: string | null; }
@@ -102,6 +104,7 @@ function genPbBracket(entries: PbReg[], cat: string, startNum: number) {
 }
 
 export default function SchedulePage() {
+  const { toast } = useToast();
   const [sport, setSport] = useState<Sport>("pickleball");
   const [teams, setTeams] = useState<Team[]>([]);
   const [pbRegs, setPbRegs] = useState<PbReg[]>([]);
@@ -128,7 +131,7 @@ export default function SchedulePage() {
       else setFrozenCricket(null);
       if (fpData.fixture?.matches?.length) setFrozenPb(fpData.fixture.matches);
       else setFrozenPb(null);
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+    } catch (e) { console.error(e); toast("Failed to load schedule data. Please try refreshing.", "error"); } finally { setLoading(false); }
   }, []);
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -159,7 +162,7 @@ export default function SchedulePage() {
   const isEntryTbd = (id: string | null) => !id || id.startsWith("W") || !pbRegs.find(r => r.id === id);
   const pct = Math.min(100, Math.round((readyTeams.length / settings.targetCricketTeams) * 100));
 
-  if (loading) return (<div className="flex items-center justify-center min-h-[60vh]"><div className="animate-spin rounded-full h-12 w-12 border-4 border-white/10 border-t-indigo-500" /></div>);
+  if (loading) return <ScheduleSkeleton />;
 
   return (
     <div className="min-h-screen">

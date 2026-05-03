@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useToast } from "@/components/ui/Toast";
 
 interface StatusResult {
   sport: string;
@@ -55,6 +56,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function StatusContent() {
+  const { toast } = useToast();
   const searchParams = useSearchParams();
   const emailParam = searchParams.get("email") || "";
 
@@ -75,6 +77,7 @@ function StatusContent() {
       setResults(data.results || []);
     } catch {
       setResults([]);
+      toast("Failed to check status. Please try again.", "error");
     } finally {
       setLoading(false);
     }
