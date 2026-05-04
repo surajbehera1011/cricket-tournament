@@ -9,6 +9,7 @@ import { createAuditLog } from "@/lib/business/audit";
 import { z } from "zod";
 import { sendIndividualApprovedEmail } from "@/lib/email";
 import { notifyAllAdmins } from "@/lib/notifications";
+import { decryptEmail } from "@/lib/crypto";
 
 const updatePlayerSchema = z.object({
   gender: z.enum(["MALE", "FEMALE"]).optional(),
@@ -41,7 +42,7 @@ export async function GET(
     return NextResponse.json({
       id: player.id,
       fullName: player.fullName,
-      email: player.email,
+      email: decryptEmail(player.email),
       gender: player.gender,
       preferredRole: player.preferredRole,
       experienceLevel: player.experienceLevel,
@@ -110,7 +111,7 @@ export async function PATCH(
       }
 
       if (player.email) {
-        sendIndividualApprovedEmail(player.fullName, player.email);
+        sendIndividualApprovedEmail(player.fullName, decryptEmail(player.email)!);
       }
 
       notifyAllAdmins({

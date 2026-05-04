@@ -1,6 +1,7 @@
 import { ClientSecretCredential } from "@azure/identity";
 import { Client as GraphClient } from "@microsoft/microsoft-graph-client";
 import { TokenCredentialAuthenticationProvider } from "@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials";
+import { decryptEmail } from "@/lib/crypto";
 
 const AZURE_MAIL_TENANT_ID = process.env.AZURE_MAIL_TENANT_ID;
 const AZURE_MAIL_CLIENT_ID = process.env.AZURE_MAIL_CLIENT_ID;
@@ -620,12 +621,14 @@ export async function sendMatchScheduledEmail(match: MatchForEmail) {
 
     if (team1) {
       for (const m of team1.memberships) {
-        if (m.player.email) emails.push(m.player.email);
+        const dec = decryptEmail(m.player.email);
+        if (dec) emails.push(dec);
       }
     }
     if (team2) {
       for (const m of team2.memberships) {
-        if (m.player.email) emails.push(m.player.email);
+        const dec = decryptEmail(m.player.email);
+        if (dec) emails.push(dec);
       }
     }
 
@@ -661,12 +664,16 @@ export async function sendMatchScheduledEmail(match: MatchForEmail) {
     const entry2Name = entry2 ? (entry2.player2Name ? `${entry2.player1Name} & ${entry2.player2Name}` : entry2.player1Name) : "TBD";
 
     if (entry1) {
-      emails.push(entry1.player1Email);
-      if (entry1.player2Email) emails.push(entry1.player2Email);
+      const e1p1 = decryptEmail(entry1.player1Email);
+      if (e1p1) emails.push(e1p1);
+      const e1p2 = decryptEmail(entry1.player2Email);
+      if (e1p2) emails.push(e1p2);
     }
     if (entry2) {
-      emails.push(entry2.player1Email);
-      if (entry2.player2Email) emails.push(entry2.player2Email);
+      const e2p1 = decryptEmail(entry2.player1Email);
+      if (e2p1) emails.push(e2p1);
+      const e2p2 = decryptEmail(entry2.player2Email);
+      if (e2p2) emails.push(e2p2);
     }
 
     if (emails.length === 0) return;

@@ -5,6 +5,7 @@ import { recomputeTeamStatus } from "./registration";
 import { sseManager } from "@/lib/sse";
 import { sendPlayerDraftedEmail, sendPlayerRemovedEmail } from "@/lib/email";
 import { notifyAllAdmins } from "@/lib/notifications";
+import { decryptEmail } from "@/lib/crypto";
 
 export class AuthorizationError extends Error {
   constructor(message: string) {
@@ -151,7 +152,7 @@ export async function assignPlayerToTeam(
   });
 
   if (player.email) {
-    sendPlayerDraftedEmail(player.fullName, player.email, team.name, slotType);
+    sendPlayerDraftedEmail(player.fullName, decryptEmail(player.email)!, team.name, slotType);
   }
 
   notifyAllAdmins({
@@ -223,7 +224,7 @@ export async function removePlayerFromTeam(
   });
 
   if (membership.player.email) {
-    sendPlayerRemovedEmail(membership.player.fullName, membership.player.email, team.name);
+    sendPlayerRemovedEmail(membership.player.fullName, decryptEmail(membership.player.email)!, team.name);
   }
 
   notifyAllAdmins({

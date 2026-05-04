@@ -10,6 +10,7 @@ import { z } from "zod";
 import { sendTeamApprovedEmail } from "@/lib/email";
 import { autoRegenerateCricketFixture } from "@/lib/fixture-auto-regen";
 import { createNotification, notifyAllAdmins } from "@/lib/notifications";
+import { decryptEmail } from "@/lib/crypto";
 
 const approveSchema = z.object({
   teamId: z.string().uuid(),
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
       after: { status: updated?.status },
     });
 
-    const allEmails = team.memberships.map((m) => m.player.email).filter(Boolean) as string[];
+    const allEmails = team.memberships.map((m) => decryptEmail(m.player.email)).filter(Boolean) as string[];
     if (allEmails.length > 0 && updated) {
       sendTeamApprovedEmail(allEmails, team.name, updated.status);
     }

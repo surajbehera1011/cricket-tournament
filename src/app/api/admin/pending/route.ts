@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { jsonResponse } from "@/lib/api-utils";
+import { decryptEmail } from "@/lib/crypto";
 
 export async function GET() {
   try {
@@ -51,7 +52,7 @@ export async function GET() {
         gender: p.gender,
         preferredRole: p.preferredRole,
         experienceLevel: p.experienceLevel,
-        email: p.email,
+        email: decryptEmail(p.email),
         createdAt: p.createdAt,
       })),
     });

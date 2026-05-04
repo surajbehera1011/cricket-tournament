@@ -4,6 +4,7 @@ import { createAuditLog } from "./audit";
 import { sseManager } from "@/lib/sse";
 import type { TeamRegistrationInput, IndividualRegistrationInput } from "@/lib/validators";
 import { MANDATORY_PLAYER_COUNT, MANDATORY_FEMALE_COUNT, EXTRA_PLAYER_LIMIT } from "@/lib/validators";
+import { encryptEmail, hashEmail } from "@/lib/crypto";
 
 export async function getSettings() {
   let settings = await prisma.tournamentSettings.findUnique({ where: { id: "singleton" } });
@@ -60,7 +61,8 @@ export async function registerTeam(input: TeamRegistrationInput, color = "") {
     const captainPlayer = await tx.player.create({
       data: {
         fullName: input.captainName,
-        email: input.captainEmail,
+        email: encryptEmail(input.captainEmail),
+        emailHash: hashEmail(input.captainEmail),
         gender: input.captainGender as Gender,
         preferredRole: "",
         experienceLevel: "",
@@ -82,7 +84,8 @@ export async function registerTeam(input: TeamRegistrationInput, color = "") {
       const player = await tx.player.create({
         data: {
           fullName: entry.name,
-          email: entry.email,
+          email: encryptEmail(entry.email),
+          emailHash: hashEmail(entry.email),
           gender: entry.gender as Gender,
           preferredRole: "",
           experienceLevel: "",
@@ -106,7 +109,8 @@ export async function registerTeam(input: TeamRegistrationInput, color = "") {
       const player = await tx.player.create({
         data: {
           fullName: entry.name,
-          email: entry.email,
+          email: encryptEmail(entry.email),
+          emailHash: hashEmail(entry.email),
           gender: entry.gender as Gender,
           preferredRole: "",
           experienceLevel: "",
@@ -143,7 +147,7 @@ export async function registerTeam(input: TeamRegistrationInput, color = "") {
     await tx.registration.create({
       data: {
         registrationType: "TEAM",
-        submitterEmail: input.submitterEmail,
+        submitterEmail: encryptEmail(input.submitterEmail) || "",
         submitterName: input.submitterName,
         teamName: input.teamName,
         captainName: input.captainName,
@@ -170,7 +174,8 @@ export async function registerIndividual(input: IndividualRegistrationInput) {
     const player = await tx.player.create({
       data: {
         fullName: input.fullName,
-        email: input.email || null,
+        email: input.email ? encryptEmail(input.email) : null,
+        emailHash: input.email ? hashEmail(input.email) : null,
         gender: input.gender as Gender,
         preferredRole: input.preferredRole.join(", "),
         experienceLevel: input.experienceLevel,
@@ -182,7 +187,7 @@ export async function registerIndividual(input: IndividualRegistrationInput) {
     await tx.registration.create({
       data: {
         registrationType: "INDIVIDUAL",
-        submitterEmail: input.submitterEmail || "",
+        submitterEmail: encryptEmail(input.submitterEmail || "") || "",
         submitterName: input.fullName,
         preferredRole: input.preferredRole.join(", "),
         experienceLevel: input.experienceLevel,

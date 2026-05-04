@@ -7,6 +7,7 @@ import { registerIndividual } from "@/lib/business/registration";
 import { prisma } from "@/lib/prisma";
 import { sendIndividualRegistrationConfirmation } from "@/lib/email";
 import { notifyAllAdmins } from "@/lib/notifications";
+import { hashEmail, decryptEmail } from "@/lib/crypto";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,13 +30,13 @@ export async function POST(request: NextRequest) {
     }
 
     const existing = await prisma.player.findFirst({
-      where: { email: { equals: parsed.data.email, mode: "insensitive" } },
+      where: { emailHash: hashEmail(parsed.data.email) },
       select: { email: true, fullName: true },
     });
 
     if (existing) {
       return NextResponse.json(
-        { error: `A player with email ${existing.email} is already registered (${existing.fullName}).` },
+        { error: `A player with email ${decryptEmail(existing.email)} is already registered (${existing.fullName}).` },
         { status: 400 }
       );
     }

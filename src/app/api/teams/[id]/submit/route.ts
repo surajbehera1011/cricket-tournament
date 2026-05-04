@@ -9,6 +9,7 @@ import { createAuditLog } from "@/lib/business/audit";
 import { MANDATORY_PLAYER_COUNT, MANDATORY_FEMALE_COUNT, EXTRA_PLAYER_LIMIT } from "@/lib/validators";
 import { sendTeamSubmittedEmail } from "@/lib/email";
 import { notifyAllAdmins } from "@/lib/notifications";
+import { decryptEmail } from "@/lib/crypto";
 
 export async function POST(
   request: NextRequest,
@@ -106,7 +107,7 @@ export async function POST(
       after: { status: "COMPLETE" },
     });
 
-    const allEmails = team.memberships.map((m) => m.player.email).filter(Boolean) as string[];
+    const allEmails = team.memberships.map((m) => decryptEmail(m.player.email)).filter(Boolean) as string[];
     if (allEmails.length > 0) {
       sendTeamSubmittedEmail(allEmails, team.name, memberCount, femaleCount);
     }

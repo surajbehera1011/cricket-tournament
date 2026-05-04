@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { sendPickleballApprovedEmail, sendPickleballRejectedEmail } from "@/lib/email";
 import { autoRegeneratePickleballFixture } from "@/lib/fixture-auto-regen";
 import { notifyAllAdmins } from "@/lib/notifications";
+import { decryptEmail } from "@/lib/crypto";
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,12 +20,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const view = searchParams.get("view");
 
+    const decryptReg = (r: { player1Email: string; player2Email: string | null; [k: string]: unknown }) => ({
+      ...r,
+      player1Email: decryptEmail(r.player1Email) || "",
+      player2Email: decryptEmail(r.player2Email),
+    });
+
     if (view === "all") {
       const all = await prisma.pickleballRegistration.findMany({
         where: { status: { not: "REJECTED" } },
         orderBy: [{ category: "asc" }, { createdAt: "asc" }],
       });
-      return NextResponse.json(all);
+      return NextResponse.json(all.map(decryptReg));
     }
 
     const pending = await prisma.pickleballRegistration.findMany({
@@ -32,7 +39,7 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "asc" },
     });
 
-    return NextResponse.json(pending);
+    return NextResponse.json(pending.map(decryptReg));
   } catch (error) {
     console.error("Get pickleball pending error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -57,10 +64,12 @@ export async function POST(request: NextRequest) {
         data: { status },
       });
       for (const r of regs) {
+        const p1 = decryptEmail(r.player1Email) || "";
+        const p2 = decryptEmail(r.player2Email);
         if (action === "approve") {
-          sendPickleballApprovedEmail(r.player1Email, r.player1Name, r.category, r.player2Email, r.player2Name);
+          sendPickleballApprovedEmail(p1, r.player1Name, r.category, p2, r.player2Name);
         } else {
-          sendPickleballRejectedEmail(r.player1Email, r.player1Name, r.category, r.player2Email, r.player2Name);
+          sendPickleballRejectedEmail(p1, r.player1Name, r.category, p2, r.player2Name);
         }
       }
       if (action === "approve") {
@@ -83,9 +92,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Registration not found" }, { status: 404 });
     }
 
+    const regP1 = decryptEmail(reg.player1Email) || "";
+    const regP2 = decryptEmail(reg.player2Email);
+
     if (action === "approve") {
       await prisma.pickleballRegistration.update({ where: { id }, data: { status: "APPROVED" } });
-      sendPickleballApprovedEmail(reg.player1Email, reg.player1Name, reg.category, reg.player2Email, reg.player2Name);
+      sendPickleballApprovedEmail(regP1, reg.player1Name, reg.category, regP2, reg.player2Name);
       autoRegeneratePickleballFixture();
       notifyAllAdmins({
         title: "Pickleball Registration Approved",
@@ -97,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     if (action === "reject") {
       await prisma.pickleballRegistration.update({ where: { id }, data: { status: "REJECTED" } });
-      sendPickleballRejectedEmail(reg.player1Email, reg.player1Name, reg.category, reg.player2Email, reg.player2Name);
+      sendPickleballRejectedEmail(regP1, reg.player1Name, reg.category, regP2, reg.player2Name);
       notifyAllAdmins({
         title: "Pickleball Registration Rejected",
         message: `${reg.player1Name} (${reg.category.replace(/_/g, " ")}) rejected.`,

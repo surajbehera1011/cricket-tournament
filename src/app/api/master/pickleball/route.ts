@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { sendPickleballApprovedEmail, sendPickleballRejectedEmail } from "@/lib/email";
 import { autoRegeneratePickleballFixture } from "@/lib/fixture-auto-regen";
 import { notifyAllAdmins } from "@/lib/notifications";
+import { decryptEmail } from "@/lib/crypto";
 
 export async function GET() {
   try {
@@ -25,7 +26,10 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
     });
 
-    return NextResponse.json({ registration, totalPending });
+    const decrypted = registration
+      ? { ...registration, player1Email: decryptEmail(registration.player1Email) || "", player2Email: decryptEmail(registration.player2Email) }
+      : null;
+    return NextResponse.json({ registration: decrypted, totalPending });
   } catch (error) {
     console.error("Master pickleball GET error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -54,9 +58,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Registration already processed" }, { status: 400 });
     }
 
+    const rP1 = decryptEmail(reg.player1Email) || "";
+    const rP2 = decryptEmail(reg.player2Email);
+
     if (action === "approve") {
       await prisma.pickleballRegistration.update({ where: { id }, data: { status: "APPROVED" } });
-      sendPickleballApprovedEmail(reg.player1Email, reg.player1Name, reg.category, reg.player2Email, reg.player2Name);
+      sendPickleballApprovedEmail(rP1, reg.player1Name, reg.category, rP2, reg.player2Name);
       autoRegeneratePickleballFixture();
       notifyAllAdmins({
         title: "Pickleball Registration Approved",
@@ -68,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     if (action === "reject") {
       await prisma.pickleballRegistration.update({ where: { id }, data: { status: "REJECTED" } });
-      sendPickleballRejectedEmail(reg.player1Email, reg.player1Name, reg.category, reg.player2Email, reg.player2Name);
+      sendPickleballRejectedEmail(rP1, reg.player1Name, reg.category, rP2, reg.player2Name);
       notifyAllAdmins({
         title: "Pickleball Registration Rejected",
         message: `${reg.player1Name} (${reg.category.replace(/_/g, " ")}) was rejected.`,

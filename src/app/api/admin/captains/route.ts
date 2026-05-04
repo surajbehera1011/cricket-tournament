@@ -10,6 +10,7 @@ import { jsonResponse } from "@/lib/api-utils";
 import { z } from "zod";
 import { sendCaptainCredentialsEmail, sendCaptainCredentialsUpdatedEmail } from "@/lib/email";
 import { notifyAllAdmins } from "@/lib/notifications";
+import { decryptEmail } from "@/lib/crypto";
 
 const ALLOWED_DOMAIN = "@aligntech.com";
 
@@ -77,7 +78,7 @@ export async function GET() {
         id: t.id,
         name: t.name,
         captainName: t.captainName,
-        captainEmail: t.memberships[0]?.player?.email || "",
+        captainEmail: decryptEmail(t.memberships[0]?.player?.email) || "",
         status: t.status,
       })),
     });

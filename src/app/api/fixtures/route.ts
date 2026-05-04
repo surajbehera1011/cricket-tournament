@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { decryptEmail } from "@/lib/crypto";
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
           })
         : [];
 
-    const pbRegs =
+    const pbRegsRaw =
       sport === "PICKLEBALL"
         ? await prisma.pickleballRegistration.findMany({
             where: { status: "APPROVED" },
@@ -41,6 +42,7 @@ export async function GET(request: NextRequest) {
             },
           })
         : [];
+    const pbRegs = pbRegsRaw.map((r) => ({ ...r, player1Email: decryptEmail(r.player1Email) || "" }));
 
     const settings = await prisma.tournamentSettings.findFirst();
 

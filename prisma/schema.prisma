@@ -139,6 +139,7 @@ model Player {
   id              String     @id @default(uuid())
   fullName        String
   email           String?
+  emailHash       String?
   gender          Gender     @default(MALE)
   preferredRole   String     @default("")
   experienceLevel String     @default("")
@@ -227,15 +228,17 @@ model TournamentSettings {
 }
 
 model PickleballRegistration {
-  id            String             @id @default(uuid())
-  category      PickleballCategory
-  player1Name   String
-  player1Email  String
-  player2Name   String?
-  player2Email  String?
-  status        PickleballStatus   @default(PENDING_APPROVAL)
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  id               String             @id @default(uuid())
+  category         PickleballCategory
+  player1Name      String
+  player1Email     String
+  player1EmailHash String?
+  player2Name      String?
+  player2Email     String?
+  player2EmailHash String?
+  status           PickleballStatus   @default(PENDING_APPROVAL)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
   @@map("pickleball_registrations")
 }

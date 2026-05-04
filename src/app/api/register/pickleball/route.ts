@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { sendPickleballRegistrationConfirmation } from "@/lib/email";
 import { z } from "zod";
 import { notifyAllAdmins } from "@/lib/notifications";
+import { encryptEmail, hashEmail } from "@/lib/crypto";
 
 const SINGLES = ["MENS_SINGLES", "WOMENS_SINGLES"];
 
@@ -71,13 +72,14 @@ export async function POST(request: NextRequest) {
     if (!isSingles && player2Email) emailsToCheck.push(player2Email.toLowerCase());
 
     for (const email of emailsToCheck) {
+      const emailH = hashEmail(email);
       const existing = await prisma.pickleballRegistration.findFirst({
         where: {
           category,
           status: { not: "REJECTED" },
           OR: [
-            { player1Email: { equals: email, mode: "insensitive" } },
-            { player2Email: { equals: email, mode: "insensitive" } },
+            { player1EmailHash: emailH },
+            { player2EmailHash: emailH },
           ],
         },
       });
@@ -90,21 +92,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const p1Email = parsed.data.player1Email.trim().toLowerCase();
+    const p2Email = isSingles ? null : parsed.data.player2Email?.trim().toLowerCase() || null;
+
     const registration = await prisma.pickleballRegistration.create({
       data: {
         category: parsed.data.category,
         player1Name: parsed.data.player1Name.trim(),
-        player1Email: parsed.data.player1Email.trim().toLowerCase(),
+        player1Email: encryptEmail(p1Email)!,
+        player1EmailHash: hashEmail(p1Email),
         player2Name: isSingles ? null : parsed.data.player2Name?.trim() || null,
-        player2Email: isSingles ? null : parsed.data.player2Email?.trim().toLowerCase() || null,
+        player2Email: p2Email ? encryptEmail(p2Email) : null,
+        player2EmailHash: p2Email ? hashEmail(p2Email) : null,
       },
     });
 
     sendPickleballRegistrationConfirmation(
-      registration.player1Email,
-      registration.player1Name,
+      p1Email,
+      parsed.data.player1Name.trim(),
       registration.category,
-      registration.player2Email,
+      p2Email,
       registration.player2Name,
     );
 

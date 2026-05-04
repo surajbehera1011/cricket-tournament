@@ -9,6 +9,7 @@ import { createAuditLog } from "@/lib/business/audit";
 import { z } from "zod";
 import { sendTeamRejectedEmail, sendRosterRejectedEmail } from "@/lib/email";
 import { notifyAllAdmins } from "@/lib/notifications";
+import { decryptEmail } from "@/lib/crypto";
 
 const rejectSchema = z.object({
   teamId: z.string().uuid().optional(),
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
           after: { deleted: true },
         });
 
-        const allEmailsPending = team.memberships.map((m) => m.player?.email).filter(Boolean) as string[];
+        const allEmailsPending = team.memberships.map((m) => decryptEmail(m.player?.email)).filter(Boolean) as string[];
         if (allEmailsPending.length > 0) {
           sendTeamRejectedEmail(allEmailsPending, team.name);
         }
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
           after: { status: "INCOMPLETE", movedToPool: parsed.data.playerIds },
         });
 
-        const allEmailsRoster = team.memberships.map((m) => m.player?.email).filter(Boolean) as string[];
+        const allEmailsRoster = team.memberships.map((m) => decryptEmail(m.player?.email)).filter(Boolean) as string[];
         if (allEmailsRoster.length > 0) {
           sendRosterRejectedEmail(allEmailsRoster, team.name, parsed.data.playerIds!.length);
         }

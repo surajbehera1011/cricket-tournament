@@ -7,6 +7,7 @@ import { registerTeam } from "@/lib/business/registration";
 import { prisma } from "@/lib/prisma";
 import { sendTeamRegistrationConfirmation } from "@/lib/email";
 import { notifyAllAdmins } from "@/lib/notifications";
+import { hashEmail, decryptEmail } from "@/lib/crypto";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,13 +37,14 @@ export async function POST(request: NextRequest) {
       ...parsed.data.extraPlayers.map((p) => p.email),
     ].map((e) => e.toLowerCase());
 
+    const allHashes = allEmails.map((e) => hashEmail(e)!);
     const existing = await prisma.player.findMany({
-      where: { email: { in: allEmails, mode: "insensitive" } },
+      where: { emailHash: { in: allHashes } },
       select: { email: true, fullName: true },
     });
 
     if (existing.length > 0) {
-      const dupes = existing.map((p) => `${p.fullName} (${p.email})`).join(", ");
+      const dupes = existing.map((p) => `${p.fullName} (${decryptEmail(p.email)})`).join(", ");
       return NextResponse.json(
         { error: `These players are already registered: ${dupes}` },
         { status: 400 }

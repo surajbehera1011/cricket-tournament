@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { TeamStatus } from "@prisma/client";
 import { jsonResponse } from "@/lib/api-utils";
 import { getSettings } from "@/lib/business/registration";
+import { decryptEmail } from "@/lib/crypto";
 
 export async function GET() {
   try {
@@ -72,7 +73,7 @@ export async function GET() {
         players: t.memberships.map((m) => ({
           id: m.player.id,
           fullName: m.player.fullName,
-          email: m.player.email || "",
+          email: decryptEmail(m.player.email) || "",
           preferredRole: m.player.preferredRole,
           gender: m.player.gender,
           membershipType: m.membershipType,
@@ -108,7 +109,7 @@ export async function GET() {
         players: t.memberships.map((m) => ({
           id: m.player.id,
           fullName: m.player.fullName,
-          email: m.player.email || "",
+          email: decryptEmail(m.player.email) || "",
           preferredRole: m.player.preferredRole,
           gender: m.player.gender,
           membershipType: m.membershipType,

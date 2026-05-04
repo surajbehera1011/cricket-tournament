@@ -5,6 +5,7 @@ export const revalidate = 0;
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonResponse } from "@/lib/api-utils";
+import { hashEmail } from "@/lib/crypto";
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,9 +16,10 @@ export async function GET(request: NextRequest) {
       return jsonResponse({ error: "Email is required" }, 400);
     }
 
+    const emailH = hashEmail(email);
     const [players, teamMemberships, pickleballRegs] = await Promise.all([
       prisma.player.findMany({
-        where: { email: { equals: email, mode: "insensitive" } },
+        where: { emailHash: emailH },
         select: {
           id: true,
           fullName: true,
@@ -35,7 +37,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.teamMembership.findMany({
         where: {
-          player: { email: { equals: email, mode: "insensitive" } },
+          player: { emailHash: emailH },
         },
         select: {
           team: {
@@ -49,17 +51,15 @@ export async function GET(request: NextRequest) {
       prisma.pickleballRegistration.findMany({
         where: {
           OR: [
-            { player1Email: { equals: email, mode: "insensitive" } },
-            { player2Email: { equals: email, mode: "insensitive" } },
+            { player1EmailHash: emailH },
+            { player2EmailHash: emailH },
           ],
         },
         select: {
           id: true,
           category: true,
           player1Name: true,
-          player1Email: true,
           player2Name: true,
-          player2Email: true,
           status: true,
           createdAt: true,
         },
