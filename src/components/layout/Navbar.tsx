@@ -7,16 +7,17 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "./NotificationBell";
 
-const primaryLinks = [
+const staticPrimaryLinks = [
   { href: "/", label: "Dashboard" },
   { href: "/schedule", label: "Schedule" },
-  { href: "/master", label: "Approvals", roles: ["MASTER"] },
   { href: "/manage", label: "Manage Teams", roles: ["ADMIN", "CAPTAIN"] },
 ];
 
 const adminDropdownLinks = [
   { href: "/admin", label: "Admin Panel" },
   { href: "/admin/fixtures", label: "Fixtures" },
+  { href: "/master", label: "PB Approvals" },
+  { href: "/master/cricket", label: "Cricket Approvals" },
   { href: "/audit", label: "Audit Log" },
   { href: "/settings", label: "Settings" },
 ];
@@ -60,6 +61,17 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const primaryLinks = [
+    ...staticPrimaryLinks,
+    ...(session?.user?.role === "MASTER"
+      ? [{
+          href: session.user.name === "Cricket Master" ? "/master/cricket" : "/master",
+          label: "Approvals",
+          roles: ["MASTER"],
+        }]
+      : []),
+  ];
+
   const visiblePrimary = primaryLinks.filter((link) => {
     if (!link.roles) return true;
     if (!session?.user) return false;
@@ -100,7 +112,7 @@ export function Navbar() {
                   href={link.href}
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
-                    pathname === link.href
+                    (pathname === link.href || (link.href.startsWith("/master") && pathname.startsWith("/master")))
                       ? "bg-white/10 text-white"
                       : "text-slate-400 hover:text-white hover:bg-white/[0.06]"
                   )}

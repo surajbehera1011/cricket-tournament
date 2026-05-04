@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -84,6 +85,18 @@ export default function MasterPage() {
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg">
+        <div className="flex justify-center gap-2 mb-6">
+          <span className="px-4 py-1.5 rounded-lg text-sm font-medium bg-white/10 text-white">
+            Pickleball
+          </span>
+          <Link
+            href="/master/cricket"
+            className="px-4 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.06] transition-all"
+          >
+            Cricket
+          </Link>
+        </div>
+
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-white mb-1">Pickleball Approvals</h1>
           <p className="text-sm text-slate-400">
