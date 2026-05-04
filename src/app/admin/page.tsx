@@ -97,6 +97,10 @@ export default function AdminPage() {
   const [selectedIndividuals, setSelectedIndividuals] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
 
+  const [renamingTeamId, setRenamingTeamId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameLoading, setRenameLoading] = useState(false);
+
   const [newCaptain, setNewCaptain] = useState({ email: "", displayName: "", password: "", teamId: "" });
   const [creatingCaptain, setCreatingCaptain] = useState(false);
   const [editingCaptain, setEditingCaptain] = useState<string | null>(null);
@@ -194,6 +198,32 @@ export default function AdminPage() {
       toast("Some approvals failed", "error");
     } finally {
       setBulkLoading(false);
+    }
+  };
+
+  const handleRenameTeam = async (teamId: string) => {
+    if (!renameValue.trim()) return;
+    setRenameLoading(true);
+    try {
+      const res = await fetch("/api/admin/rename-team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId, newName: renameValue.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Rename failed");
+      }
+      const json = await res.json();
+      setPendingTeams((prev) =>
+        prev.map((t) => (t.id === teamId ? { ...t, name: json.name } : t))
+      );
+      setRenamingTeamId(null);
+      toast("Team renamed!", "success");
+    } catch (err: any) {
+      toast(err.message || "Rename failed", "error");
+    } finally {
+      setRenameLoading(false);
     }
   };
 
@@ -426,7 +456,38 @@ export default function AdminPage() {
                             className="mt-1.5 w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
                           />
                           <div>
-                            <h3 className="font-bold text-slate-200 text-lg">{team.name}</h3>
+                            {renamingTeamId === team.id ? (
+                              <div className="flex items-center gap-2 mb-1">
+                                <input
+                                  type="text"
+                                  value={renameValue}
+                                  onChange={(e) => setRenameValue(e.target.value)}
+                                  onKeyDown={(e) => { if (e.key === "Enter") handleRenameTeam(team.id); if (e.key === "Escape") setRenamingTeamId(null); }}
+                                  className="bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:border-brand-400"
+                                  autoFocus
+                                  disabled={renameLoading}
+                                />
+                                <button onClick={() => handleRenameTeam(team.id)} disabled={renameLoading || !renameValue.trim()} className="text-brand-400 hover:text-brand-300 disabled:opacity-50" title="Save">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                </button>
+                                <button onClick={() => setRenamingTeamId(null)} disabled={renameLoading} className="text-slate-400 hover:text-white" title="Cancel">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                              </div>
+                            ) : (
+                              <h3 className="font-bold text-slate-200 text-lg inline-flex items-center gap-2">
+                                {team.name}
+                                <button
+                                  onClick={() => { setRenamingTeamId(team.id); setRenameValue(team.name); }}
+                                  className="text-slate-500 hover:text-white transition-colors"
+                                  title="Rename team"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
+                              </h3>
+                            )}
                             <p className="text-sm text-slate-400">Captain: {team.captainName} &middot; {team.playerCount} players</p>
                             <div className="mt-2 flex flex-wrap gap-1">
                               {team.players.map((p) => (

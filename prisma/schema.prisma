@@ -59,6 +59,7 @@ enum AuditAction {
   CREATE_CAPTAIN
   UPDATE_CAPTAIN
   RECORD_SCORE
+  RENAME_TEAM
 }
 
 enum Gender {
