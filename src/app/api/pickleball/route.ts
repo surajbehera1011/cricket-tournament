@@ -4,6 +4,7 @@ export const revalidate = 0;
 
 import { prisma } from "@/lib/prisma";
 import { jsonResponse } from "@/lib/api-utils";
+import { decryptEmail } from "@/lib/crypto";
 
 export async function GET() {
   try {
@@ -18,7 +19,16 @@ export async function GET() {
       }),
     ]);
 
-    return jsonResponse({ registrations, pendingRegistrations });
+    const decryptReg = (r: typeof registrations[number]) => ({
+      ...r,
+      player1Email: decryptEmail(r.player1Email) || "",
+      player2Email: decryptEmail(r.player2Email),
+    });
+
+    return jsonResponse({
+      registrations: registrations.map(decryptReg),
+      pendingRegistrations: pendingRegistrations.map(decryptReg),
+    });
   } catch (error) {
     console.error("Get pickleball error:", error);
     return jsonResponse({ error: "Internal server error" }, 500);
