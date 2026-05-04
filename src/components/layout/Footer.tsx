@@ -106,7 +106,7 @@ export function Footer() {
             Designed & Built by
             <a
               href="mailto:sbehera@aligntech.com"
-              className="font-semibold text-pitch-400 hover:text-pitch-300 transition-colors"
+              className="font-semibold text-slate-400 hover:text-slate-300 transition-colors"
             >
               Suraj Behera
             </a>
