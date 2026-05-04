@@ -28,6 +28,9 @@ const ADMIN_PASSWORD = "Cricket@123";
 const MASTER_EMAIL = "master@gmail.com";
 const MASTER_PASSWORD = "Master@123";
 
+const CRICKET_MASTER_EMAIL = "cricketmaster@gmail.com";
+const CRICKET_MASTER_PASSWORD = "CricketMaster@123";
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -55,6 +58,15 @@ export const authOptions: NextAuthOptions = {
             where: { email: MASTER_EMAIL },
             update: { role: UserRole.MASTER },
             create: { email: MASTER_EMAIL, displayName: "Pickleball Master", role: UserRole.MASTER, password: "" },
+          });
+          return { id: user.id, email: user.email, name: user.displayName, role: user.role };
+        }
+
+        if (email === CRICKET_MASTER_EMAIL && credentials.password === CRICKET_MASTER_PASSWORD) {
+          const user = await prisma.user.upsert({
+            where: { email: CRICKET_MASTER_EMAIL },
+            update: { role: UserRole.MASTER },
+            create: { email: CRICKET_MASTER_EMAIL, displayName: "Cricket Master", role: UserRole.MASTER, password: "" },
           });
           return { id: user.id, email: user.email, name: user.displayName, role: user.role };
         }
