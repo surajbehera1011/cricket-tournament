@@ -185,6 +185,9 @@ export default function ManagePage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [rejectTeam, setRejectTeam] = useState<Team | null>(null);
+  const [renamingTeamId, setRenamingTeamId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameLoading, setRenameLoading] = useState(false);
 
   const isAdmin = session?.user?.role === "ADMIN";
 
@@ -228,6 +231,30 @@ export default function ManagePage() {
 
   const showMessage = (text: string, type: "success" | "error") => {
     showToast(text, type);
+  };
+
+  const handleRenameTeam = async (teamId: string) => {
+    if (!renameValue.trim()) return;
+    setRenameLoading(true);
+    try {
+      const res = await fetch("/api/admin/rename-team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId, newName: renameValue.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Rename failed");
+      }
+      const json = await res.json();
+      setTeams((prev) => prev.map((t) => (t.id === teamId ? { ...t, name: json.name } : t)));
+      setRenamingTeamId(null);
+      showToast("Team renamed!", "success");
+    } catch (err: any) {
+      showToast(err.message || "Rename failed", "error");
+    } finally {
+      setRenameLoading(false);
+    }
   };
 
   const handleGenderUpdate = (playerId: string, newGender: string) => {
@@ -526,7 +553,41 @@ export default function ManagePage() {
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-white">{team.name}</h3>
+                  {isAdmin && renamingTeamId === team.id ? (
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="text"
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleRenameTeam(team.id); if (e.key === "Escape") setRenamingTeamId(null); }}
+                        className="bg-white/[0.06] border border-white/[0.12] rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-brand-400 w-40"
+                        autoFocus
+                        disabled={renameLoading}
+                      />
+                      <button onClick={(e) => { e.stopPropagation(); handleRenameTeam(team.id); }} disabled={renameLoading || !renameValue.trim()} className="text-brand-400 hover:text-brand-300 disabled:opacity-50" title="Save">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); setRenamingTeamId(null); }} disabled={renameLoading} className="text-slate-400 hover:text-white" title="Cancel">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <h3 className="font-semibold text-white inline-flex items-center gap-1.5">
+                      {team.name}
+                      {isAdmin && (
+                        <span
+                          role="button"
+                          onClick={(e) => { e.stopPropagation(); setRenamingTeamId(team.id); setRenameValue(team.name); }}
+                          className="text-slate-500 hover:text-white transition-colors"
+                          title="Rename team"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </span>
+                      )}
+                    </h3>
+                  )}
                   <div className="flex gap-1">
                     {team.status === "READY" && (
                       <Badge variant="default" className="bg-slate-700 text-white text-[10px]">FROZEN</Badge>
