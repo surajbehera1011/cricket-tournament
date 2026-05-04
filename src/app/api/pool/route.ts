@@ -6,6 +6,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { PoolStatus } from "@prisma/client";
 import { jsonResponse } from "@/lib/api-utils";
+import { decryptEmail } from "@/lib/crypto";
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,7 +36,15 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    return jsonResponse({ players, pendingPlayers });
+    const decryptPlayer = (p: typeof players[number]) => ({
+      ...p,
+      email: decryptEmail(p.email),
+    });
+
+    return jsonResponse({
+      players: players.map(decryptPlayer),
+      pendingPlayers: pendingPlayers.map(decryptPlayer),
+    });
   } catch (error) {
     console.error("Get pool error:", error);
     return jsonResponse({ error: "Internal server error" }, 500);
