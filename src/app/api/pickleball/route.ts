@@ -1,4 +1,4 @@
-export const revalidate = 30;
+export const revalidate = 60;
 
 import { prisma } from "@/lib/prisma";
 import { jsonResponse } from "@/lib/api-utils";

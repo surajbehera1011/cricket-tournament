@@ -1,4 +1,4 @@
-export const revalidate = 30;
+export const revalidate = 60;
 
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
