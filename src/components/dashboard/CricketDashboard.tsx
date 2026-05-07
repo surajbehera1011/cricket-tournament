@@ -60,11 +60,10 @@ export function CricketDashboard({ tvMode = false }: CricketDashboardProps) {
 
   const fetchData = useCallback(async () => {
     try {
-      const ts = Date.now();
       const [teamsRes, poolRes, settingsRes] = await Promise.all([
-        fetch(`/api/teams?_t=${ts}`, { cache: "no-store" }),
-        fetch(`/api/pool?_t=${ts}`, { cache: "no-store" }),
-        fetch(`/api/settings?_t=${ts}`, { cache: "no-store" }),
+        fetch("/api/teams"),
+        fetch("/api/pool"),
+        fetch("/api/settings"),
       ]);
       const teamsData = await teamsRes.json();
       const poolData = await poolRes.json();

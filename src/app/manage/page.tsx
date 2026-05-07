@@ -193,10 +193,9 @@ export default function ManagePage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const ts = Date.now();
       const [teamsRes, poolRes] = await Promise.all([
-        fetch(`/api/teams?_t=${ts}`, { cache: "no-store" }),
-        fetch(`/api/pool?_t=${ts}`, { cache: "no-store" }),
+        fetch("/api/teams"),
+        fetch("/api/pool"),
       ]);
       const teamsData = await teamsRes.json();
       const poolData = await poolRes.json();

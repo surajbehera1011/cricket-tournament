@@ -106,10 +106,9 @@ export function PickleballDashboard() {
 
   const fetchData = useCallback(async () => {
     try {
-      const ts = Date.now();
       const [res, settingsRes] = await Promise.all([
-        fetch(`/api/pickleball?_t=${ts}`, { cache: "no-store" }),
-        fetch(`/api/settings?_t=${ts}`, { cache: "no-store" }),
+        fetch("/api/pickleball"),
+        fetch("/api/settings"),
       ]);
       const data = await res.json();
       const settings = await settingsRes.json();

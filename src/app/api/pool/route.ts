@@ -1,31 +1,15 @@
 export const revalidate = 60;
 
-import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { PoolStatus } from "@prisma/client";
 import { jsonResponse } from "@/lib/api-utils";
 import { decryptEmail } from "@/lib/crypto";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const role = searchParams.get("role");
-    const experience = searchParams.get("experience");
-
-    const where: Record<string, unknown> = {
-      poolStatus: PoolStatus.LOOKING_FOR_TEAM,
-    };
-
-    if (role) {
-      where.preferredRole = { contains: role, mode: "insensitive" };
-    }
-    if (experience) {
-      where.experienceLevel = experience;
-    }
-
     const [players, pendingPlayers] = await Promise.all([
       prisma.player.findMany({
-        where,
+        where: { poolStatus: PoolStatus.LOOKING_FOR_TEAM },
         orderBy: { createdAt: "desc" },
       }),
       prisma.player.findMany({

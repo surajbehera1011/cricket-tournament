@@ -43,10 +43,19 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/settings", { cache: "no-store" })
+    const cached = sessionStorage.getItem("__settings");
+    if (cached) {
+      try {
+        const s = JSON.parse(cached);
+        if (s.registrationOpen !== undefined) setRegistrationOpen(s.registrationOpen);
+        return;
+      } catch {}
+    }
+    fetch("/api/settings")
       .then((res) => res.json())
       .then((s) => {
         if (s.registrationOpen !== undefined) setRegistrationOpen(s.registrationOpen);
+        sessionStorage.setItem("__settings", JSON.stringify(s));
       })
       .catch(() => {});
   }, []);
