@@ -17,6 +17,8 @@ const updateSettingsSchema = z.object({
   minFemalePerTeam: z.number().int().min(0).max(10).optional(),
   tournamentName: z.string().min(1).max(200).optional(),
   registrationOpen: z.boolean().optional(),
+  cricketRegistrationOpen: z.boolean().optional(),
+  pickleballRegistrationOpen: z.boolean().optional(),
   tournamentStartDate: z.string().nullable().optional(),
   cricketStartDate: z.string().nullable().optional(),
   pickleballStartDate: z.string().nullable().optional(),

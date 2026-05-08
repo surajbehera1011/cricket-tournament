@@ -12,8 +12,8 @@ import { hashEmail, decryptEmail } from "@/lib/crypto";
 export async function POST(request: NextRequest) {
   try {
     const settings = await prisma.tournamentSettings.findUnique({ where: { id: "singleton" } });
-    if (settings && !settings.registrationOpen) {
-      return NextResponse.json({ error: "Registrations are currently closed." }, { status: 403 });
+    if (settings && !settings.cricketRegistrationOpen) {
+      return NextResponse.json({ error: "Cricket registrations are currently closed." }, { status: 403 });
     }
 
     const body = await request.json();

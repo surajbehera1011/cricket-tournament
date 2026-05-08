@@ -14,6 +14,8 @@ interface Settings {
   minFemalePerTeam: number;
   tournamentName: string;
   registrationOpen: boolean;
+  cricketRegistrationOpen: boolean;
+  pickleballRegistrationOpen: boolean;
   tournamentStartDate: string | null;
   cricketStartDate: string | null;
   pickleballStartDate: string | null;
@@ -151,14 +153,26 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-sm font-medium text-slate-300">Registration Open</label>
-              <p className="text-xs text-slate-500 mt-0.5">Allow new registrations for all sports</p>
+              <label className="text-sm font-medium text-slate-300">Cricket Registration</label>
+              <p className="text-xs text-slate-500 mt-0.5">Allow new cricket team & individual registrations</p>
             </div>
             <button
-              onClick={() => set({ registrationOpen: !settings.registrationOpen })}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.registrationOpen ? "bg-brand-600" : "bg-slate-600"}`}
+              onClick={() => set({ cricketRegistrationOpen: !settings.cricketRegistrationOpen })}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.cricketRegistrationOpen ? "bg-brand-600" : "bg-slate-600"}`}
             >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.registrationOpen ? "translate-x-6" : "translate-x-1"}`} />
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.cricketRegistrationOpen ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm font-medium text-slate-300">Pickleball Registration</label>
+              <p className="text-xs text-slate-500 mt-0.5">Allow new pickleball registrations</p>
+            </div>
+            <button
+              onClick={() => set({ pickleballRegistrationOpen: !settings.pickleballRegistrationOpen })}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.pickleballRegistrationOpen ? "bg-brand-600" : "bg-slate-600"}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.pickleballRegistrationOpen ? "translate-x-6" : "translate-x-1"}`} />
             </button>
           </div>
         </CardContent>

@@ -211,6 +211,8 @@ model TournamentSettings {
   minFemalePerTeam         Int      @default(1)
   tournamentName           String   @default("Office Cricket Tournament")
   registrationOpen         Boolean  @default(true)
+  cricketRegistrationOpen    Boolean  @default(true)
+  pickleballRegistrationOpen Boolean  @default(true)
   tournamentStartDate      DateTime?
   cricketStartDate         DateTime?
   pickleballStartDate      DateTime?

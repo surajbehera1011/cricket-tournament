@@ -47,14 +47,14 @@ export function Navbar() {
     if (cached) {
       try {
         const s = JSON.parse(cached);
-        if (s.registrationOpen !== undefined) setRegistrationOpen(s.registrationOpen);
+        setRegistrationOpen(s.cricketRegistrationOpen || s.pickleballRegistrationOpen);
         return;
       } catch {}
     }
     fetch("/api/settings")
       .then((res) => res.json())
       .then((s) => {
-        if (s.registrationOpen !== undefined) setRegistrationOpen(s.registrationOpen);
+        setRegistrationOpen(s.cricketRegistrationOpen || s.pickleballRegistrationOpen);
         sessionStorage.setItem("__settings", JSON.stringify(s));
       })
       .catch(() => {});

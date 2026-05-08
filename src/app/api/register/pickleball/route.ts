@@ -52,8 +52,8 @@ const schema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const settings = await prisma.tournamentSettings.findUnique({ where: { id: "singleton" } });
-    if (settings && !settings.registrationOpen) {
-      return NextResponse.json({ error: "Registrations are currently closed." }, { status: 403 });
+    if (settings && !settings.pickleballRegistrationOpen) {
+      return NextResponse.json({ error: "Pickleball registrations are currently closed." }, { status: 403 });
     }
 
     const body = await request.json();

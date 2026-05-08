@@ -74,15 +74,19 @@ function RegisterContent() {
 
   const [sport, setSport] = useState<Sport>(initialSport);
   const [cricketTab, setCricketTab] = useState<CricketTab>("team");
-  const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
+  const [cricketOpen, setCricketOpen] = useState<boolean | null>(null);
+  const [pickleballOpen, setPickleballOpen] = useState<boolean | null>(null);
   const [success, setSuccess] = useState<SuccessState | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetch("/api/settings", { cache: "no-store" })
+    fetch("/api/settings")
       .then((res) => res.json())
-      .then((s) => setRegistrationOpen(s.registrationOpen ?? true))
-      .catch(() => setRegistrationOpen(true));
+      .then((s) => {
+        setCricketOpen(s.cricketRegistrationOpen ?? true);
+        setPickleballOpen(s.pickleballRegistrationOpen ?? true);
+      })
+      .catch(() => { setCricketOpen(true); setPickleballOpen(true); });
   }, []);
 
   const handleCricketSuccess = (email: string) => {
@@ -120,7 +124,7 @@ function RegisterContent() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20 pb-12">
-        {registrationOpen === false ? (
+        {cricketOpen === false && pickleballOpen === false ? (
           <div className="dark-card rounded-2xl overflow-hidden">
             <div className="py-16 px-6 sm:px-8 text-center">
               <span className="text-5xl mb-4 block">🚫</span>
@@ -181,48 +185,70 @@ function RegisterContent() {
             {sport === "pickleball" && (
               <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
                 <CardContent className="py-8 px-6 sm:px-8">
-                  <PickleballForm onSuccess={handlePickleballSuccess} />
+                  {pickleballOpen === false ? (
+                    <div className="py-10 text-center">
+                      <span className="text-4xl mb-3 block">🚫</span>
+                      <h3 className="text-lg font-bold text-white mb-1">Pickleball Registration Closed</h3>
+                      <p className="text-slate-400 text-sm">Pickleball registration is currently closed.</p>
+                    </div>
+                  ) : (
+                    <PickleballForm onSuccess={handlePickleballSuccess} />
+                  )}
                 </CardContent>
               </Card>
             )}
 
             {sport === "cricket" && (
               <>
-                {/* Cricket sub-tabs */}
-                <div className="flex gap-1 bg-dark-400/60 backdrop-blur-sm p-1 rounded-xl mb-5 border border-white/[0.04]">
-                  <button
-                    onClick={() => setCricketTab("team")}
-                    className={cn(
-                      "flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2",
-                      cricketTab === "team"
-                        ? "bg-white/10 text-white"
-                        : "text-slate-500 hover:text-slate-300"
-                    )}
-                  >
-                    <span>👥</span> Register Team
-                  </button>
-                  <button
-                    onClick={() => setCricketTab("individual")}
-                    className={cn(
-                      "flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2",
-                      cricketTab === "individual"
-                        ? "bg-white/10 text-white"
-                        : "text-slate-500 hover:text-slate-300"
-                    )}
-                  >
-                    <span>👤</span> Register Individual
-                  </button>
-                </div>
+                {cricketOpen === false ? (
+                  <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
+                    <CardContent className="py-8 px-6 sm:px-8">
+                      <div className="py-10 text-center">
+                        <span className="text-4xl mb-3 block">🚫</span>
+                        <h3 className="text-lg font-bold text-white mb-1">Cricket Registration Closed</h3>
+                        <p className="text-slate-400 text-sm">Cricket registration is currently closed.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {/* Cricket sub-tabs */}
+                    <div className="flex gap-1 bg-dark-400/60 backdrop-blur-sm p-1 rounded-xl mb-5 border border-white/[0.04]">
+                      <button
+                        onClick={() => setCricketTab("team")}
+                        className={cn(
+                          "flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2",
+                          cricketTab === "team"
+                            ? "bg-white/10 text-white"
+                            : "text-slate-500 hover:text-slate-300"
+                        )}
+                      >
+                        <span>👥</span> Register Team
+                      </button>
+                      <button
+                        onClick={() => setCricketTab("individual")}
+                        className={cn(
+                          "flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2",
+                          cricketTab === "individual"
+                            ? "bg-white/10 text-white"
+                            : "text-slate-500 hover:text-slate-300"
+                        )}
+                      >
+                        <span>👤</span> Register Individual
+                      </button>
+                    </div>
 
-                <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
-                  <CardContent className="py-8 px-6 sm:px-8">
-                    {cricketTab === "team" ? (
-                      <TeamForm onSuccess={handleCricketSuccess} />
-                    ) : (
-                      <IndividualForm onSuccess={handleCricketSuccess} />
-                    )}
-                  </CardContent>
-              </Card>
+                    <Card className="shadow-xl border-0 rounded-2xl overflow-hidden">
+                      <CardContent className="py-8 px-6 sm:px-8">
+                        {cricketTab === "team" ? (
+                          <TeamForm onSuccess={handleCricketSuccess} />
+                        ) : (
+                          <IndividualForm onSuccess={handleCricketSuccess} />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
             </>
             )}
           </>
