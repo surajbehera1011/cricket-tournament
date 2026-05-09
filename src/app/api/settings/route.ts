@@ -100,9 +100,23 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    const allTeams = await prisma.team.findMany({ select: { id: true } });
-    for (const team of allTeams) {
-      await recomputeTeamStatus(team.id);
+    // Only recompute team statuses if team-related settings changed
+    const teamRelatedFields = [
+      'maxTeamSize',
+      'mandatoryPlayerCount', 
+      'mandatoryFemaleCount',
+      'extraPlayerLimit',
+      'minFemalePerTeam'
+    ];
+    const hasTeamSettingsChanged = teamRelatedFields.some(
+      field => parsed.data[field as keyof typeof parsed.data] !== undefined
+    );
+
+    if (hasTeamSettingsChanged) {
+      const allTeams = await prisma.team.findMany({ select: { id: true } });
+      for (const team of allTeams) {
+        await recomputeTeamStatus(team.id);
+      }
     }
 
     await createAuditLog({
