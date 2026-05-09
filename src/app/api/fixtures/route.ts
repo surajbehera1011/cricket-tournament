@@ -2,6 +2,8 @@ import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { decryptEmail } from "@/lib/crypto";
 
+export const revalidate = 30;
+
 export async function GET(request: NextRequest) {
   try {
     const sport = request.nextUrl.searchParams.get("sport")?.toUpperCase();

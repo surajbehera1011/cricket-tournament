@@ -31,7 +31,7 @@ export function NotificationBell() {
         })
         .catch(() => {});
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 120000);
+    const interval = setInterval(fetchNotifs, 300000);
     return () => clearInterval(interval);
   }, [status]);
 

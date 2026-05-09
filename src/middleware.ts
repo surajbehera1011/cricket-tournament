@@ -5,7 +5,7 @@ import { getToken } from "next-auth/jwt";
 const adminOnlyPages = ["/admin", "/audit", "/settings"];
 const masterOnlyPages = ["/master"];
 const authRequiredPages = ["/manage"];
-const adminOnlyApi = ["/api/admin", "/api/settings"];
+const adminOnlyApi = ["/api/admin", "/api/settings/update"];
 const masterOnlyApi = ["/api/master"];
 const authRequiredApi = ["/api/teams/"];
 
@@ -70,7 +70,7 @@ export const config = {
     "/settings/:path*",
     "/api/admin/:path*",
     "/api/master/:path*",
-    "/api/settings",
+    "/api/settings/update",
     "/api/teams/:path*",
     "/api/players/:path*",
   ],

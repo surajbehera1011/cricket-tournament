@@ -65,7 +65,7 @@ export function Navbar() {
     // Check cache first - use longer TTL to reduce API calls
     const cached = sessionStorage.getItem("__settings");
     const cacheTime = sessionStorage.getItem("__settings_time");
-    const CACHE_TTL = 60000; // 60 seconds cache to reduce API calls
+    const CACHE_TTL = 300000; // 5 minutes cache to reduce API calls
     
     if (cached && cacheTime && Date.now() - parseInt(cacheTime) < CACHE_TTL) {
       try {

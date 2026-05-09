@@ -136,7 +136,7 @@ export function LiveScoresWidget() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 120000);
+    const interval = setInterval(fetchData, 300000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
