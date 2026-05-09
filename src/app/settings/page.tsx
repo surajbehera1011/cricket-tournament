@@ -83,7 +83,7 @@ export default function SettingsPage() {
     if (!settings) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/settings", {
+      const res = await fetch("/api/settings/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
