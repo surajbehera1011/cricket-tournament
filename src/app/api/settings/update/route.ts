@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/business/audit";
-import { recomputeTeamStatus } from "@/lib/business/registration";
 
 const updateSettingsSchema = z.object({
   maxTeamSize: z.number().int().min(2).max(20).optional(),
@@ -91,9 +90,23 @@ export async function PUT(request: NextRequest) {
     );
 
     if (hasTeamSettingsChanged) {
-      const allTeams = await prisma.team.findMany({ select: { id: true } });
+      const allTeams = await prisma.team.findMany({
+        where: { status: { in: ["COMPLETE", "INCOMPLETE"] } },
+        include: { memberships: { include: { player: { select: { gender: true } } } } },
+      });
+      
+      const mandatoryCount = settings.mandatoryPlayerCount;
+      const minFemale = settings.mandatoryFemaleCount;
+      
       for (const team of allTeams) {
-        await recomputeTeamStatus(team.id);
+        const memberCount = team.memberships.length;
+        const femaleCount = team.memberships.filter((m) => m.player.gender === "FEMALE").length;
+        const criteriaMet = memberCount >= mandatoryCount && femaleCount >= minFemale;
+        const newStatus = criteriaMet ? "COMPLETE" : "INCOMPLETE";
+        
+        if (team.status !== newStatus) {
+          await prisma.team.update({ where: { id: team.id }, data: { status: newStatus } });
+        }
       }
     }
 
