@@ -94,6 +94,9 @@ export default function SettingsPage() {
       }
       const updated = await res.json();
       setSettings(updated);
+      // Clear sessionStorage so Navbar picks up new settings
+      sessionStorage.removeItem("__settings");
+      sessionStorage.removeItem("__settings_time");
       toast("Settings saved successfully", "success");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Failed to save", "error");
@@ -159,6 +162,7 @@ export default function SettingsPage() {
             <button
               onClick={() => set({ cricketRegistrationOpen: !settings.cricketRegistrationOpen })}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.cricketRegistrationOpen ? "bg-brand-600" : "bg-slate-600"}`}
+              aria-label="Toggle cricket registration"
             >
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.cricketRegistrationOpen ? "translate-x-6" : "translate-x-1"}`} />
             </button>
@@ -171,6 +175,7 @@ export default function SettingsPage() {
             <button
               onClick={() => set({ pickleballRegistrationOpen: !settings.pickleballRegistrationOpen })}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.pickleballRegistrationOpen ? "bg-brand-600" : "bg-slate-600"}`}
+              aria-label="Toggle pickleball registration"
             >
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.pickleballRegistrationOpen ? "translate-x-6" : "translate-x-1"}`} />
             </button>

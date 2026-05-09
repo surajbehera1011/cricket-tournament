@@ -22,11 +22,16 @@ const adminDropdownLinks = [
   { href: "/settings", label: "Settings" },
 ];
 
+interface RegistrationState {
+  cricketOpen: boolean;
+  pickleballOpen: boolean;
+}
+
 export function Navbar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
-  const [registrationOpen, setRegistrationOpen] = useState(true);
+  const [registration, setRegistration] = useState<RegistrationState>({ cricketOpen: true, pickleballOpen: true });
   const [scrolled, setScrolled] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -36,6 +41,20 @@ export function Navbar() {
   const isAdmin = session?.user?.role === "ADMIN";
   const isAdminPage = adminDropdownLinks.some((l) => pathname === l.href);
 
+  // Derived state for registration visibility
+  const anyRegistrationOpen = registration.cricketOpen || registration.pickleballOpen;
+  
+  // Determine which sport to link to based on what's open
+  const getRegisterHref = () => {
+    // If current sport is open, use it
+    if (currentSport === "cricket" && registration.cricketOpen) return "/register?sport=cricket";
+    if (currentSport === "pickleball" && registration.pickleballOpen) return "/register?sport=pickleball";
+    // Otherwise, prefer pickleball if open, then cricket
+    if (registration.pickleballOpen) return "/register?sport=pickleball";
+    if (registration.cricketOpen) return "/register?sport=cricket";
+    return "/register";
+  };
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -43,19 +62,32 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
+    // Check cache first - use longer TTL to reduce API calls
     const cached = sessionStorage.getItem("__settings");
-    if (cached) {
+    const cacheTime = sessionStorage.getItem("__settings_time");
+    const CACHE_TTL = 60000; // 60 seconds cache to reduce API calls
+    
+    if (cached && cacheTime && Date.now() - parseInt(cacheTime) < CACHE_TTL) {
       try {
         const s = JSON.parse(cached);
-        setRegistrationOpen(s.cricketRegistrationOpen || s.pickleballRegistrationOpen);
+        setRegistration({
+          cricketOpen: s.cricketRegistrationOpen ?? true,
+          pickleballOpen: s.pickleballRegistrationOpen ?? true,
+        });
         return;
       } catch {}
     }
+    
+    // Only fetch if cache is stale or missing
     fetch("/api/settings")
       .then((res) => res.json())
       .then((s) => {
-        setRegistrationOpen(s.cricketRegistrationOpen || s.pickleballRegistrationOpen);
+        setRegistration({
+          cricketOpen: s.cricketRegistrationOpen ?? true,
+          pickleballOpen: s.pickleballRegistrationOpen ?? true,
+        });
         sessionStorage.setItem("__settings", JSON.stringify(s));
+        sessionStorage.setItem("__settings_time", Date.now().toString());
       })
       .catch(() => {});
   }, []);
@@ -92,7 +124,7 @@ export function Navbar() {
     ...(isAdmin ? adminDropdownLinks : []),
   ];
 
-  const registerHref = `/register?sport=${currentSport}`;
+  const registerHref = getRegisterHref();
 
   return (
     <nav
@@ -191,7 +223,7 @@ export function Navbar() {
               )}
             </button>
 
-            {registrationOpen && (
+            {anyRegistrationOpen && (
               <div className="flex items-center gap-1.5">
                 <Link
                   href="/?tour=1"
@@ -260,7 +292,7 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {registrationOpen && (
+            {anyRegistrationOpen && (
               <Link
                 href={registerHref}
                 onClick={() => setMobileOpen(false)}

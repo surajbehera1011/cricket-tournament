@@ -83,11 +83,20 @@ function RegisterContent() {
     fetch("/api/settings")
       .then((res) => res.json())
       .then((s) => {
-        setCricketOpen(s.cricketRegistrationOpen ?? true);
-        setPickleballOpen(s.pickleballRegistrationOpen ?? true);
+        const cricketIsOpen = s.cricketRegistrationOpen ?? true;
+        const pickleballIsOpen = s.pickleballRegistrationOpen ?? true;
+        setCricketOpen(cricketIsOpen);
+        setPickleballOpen(pickleballIsOpen);
+        
+        // Auto-switch to open sport if current selection is closed
+        if (sport === "cricket" && !cricketIsOpen && pickleballIsOpen) {
+          setSport("pickleball");
+        } else if (sport === "pickleball" && !pickleballIsOpen && cricketIsOpen) {
+          setSport("cricket");
+        }
       })
       .catch(() => { setCricketOpen(true); setPickleballOpen(true); });
-  }, []);
+  }, [sport]);
 
   const handleCricketSuccess = (email: string) => {
     setSuccess({ sport: "cricket", type: cricketTab, email });
@@ -157,28 +166,36 @@ function RegisterContent() {
 
             <div className="flex gap-1 bg-dark-400/80 backdrop-blur-xl p-1.5 rounded-2xl mb-5 border border-white/[0.06] shadow-xl shadow-black/20">
               <button
-                onClick={() => setSport("pickleball")}
+                onClick={() => pickleballOpen !== false && setSport("pickleball")}
+                disabled={pickleballOpen === false}
                 className={cn(
                   "flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
-                  sport === "pickleball"
+                  pickleballOpen === false
+                    ? "text-slate-600 cursor-not-allowed"
+                    : sport === "pickleball"
                     ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25"
                     : "text-slate-400 hover:text-white hover:bg-white/[0.06]"
                 )}
               >
                 <span className="text-lg">🏓</span>
                 Pickleball
+                {pickleballOpen === false && <span className="text-xs ml-1">(Closed)</span>}
               </button>
               <button
-                onClick={() => setSport("cricket")}
+                onClick={() => cricketOpen !== false && setSport("cricket")}
+                disabled={cricketOpen === false}
                 className={cn(
                   "flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
-                  sport === "cricket"
+                  cricketOpen === false
+                    ? "text-slate-600 cursor-not-allowed"
+                    : sport === "cricket"
                     ? "bg-pitch-500 text-white shadow-lg shadow-pitch-500/25"
                     : "text-slate-400 hover:text-white hover:bg-white/[0.06]"
                 )}
               >
                 <span className="text-lg">🏏</span>
                 Cricket
+                {cricketOpen === false && <span className="text-xs ml-1">(Closed)</span>}
               </button>
             </div>
 
