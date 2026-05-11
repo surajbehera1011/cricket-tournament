@@ -10,7 +10,7 @@ interface MatchData { id: string; stage: string; groupName: string | null; round
 interface Settings { targetCricketTeams: number; cricketGroupCount: number; }
 
 /** Format scheduledDate to IST short label (e.g., "12 May, 5:00 PM") */
-function formatScheduleLabel(isoStr: string): string {
+function formatScheduleLabel(isoStr: string, venue?: string | null): string {
   const d = new Date(isoStr);
   const istOffset = 5.5 * 60 * 60 * 1000;
   const ist = new Date(d.getTime() + istOffset);
@@ -22,7 +22,9 @@ function formatScheduleLabel(isoStr: string): string {
   const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12;
   if (hours === 0) hours = 12;
-  return `${day} ${month}, ${hours}:${String(mins).padStart(2, "0")} ${ampm}`;
+  const timeStr = `${day} ${month}, ${hours}:${String(mins).padStart(2, "0")} ${ampm}`;
+  if (venue) return `${timeStr} · ${venue.replace("Court ", "C")}`;
+  return timeStr;
 }
 
 type Sport = "cricket" | "pickleball";
@@ -506,7 +508,7 @@ function KnockoutStage({ matches, teamLabel, teamColor, isTbd }: { matches: Matc
                       <span className="text-[8px] font-bold text-slate-600 tracking-wider">M{m.matchNumber}</span>
                       {isCompleted && <span className="w-1 h-1 rounded-full bg-emerald-400 ml-1" />}
                       <div className="flex-1" />
-                      {m.scheduledDate && <span className="text-[8px] text-cyan-500/70 font-medium">{formatScheduleLabel(m.scheduledDate)}</span>}
+                      {m.scheduledDate && <span className="text-[8px] text-cyan-500/70 font-medium">{formatScheduleLabel(m.scheduledDate, m.venue)}</span>}
                     </div>
 
                     <div className={`h-[22px] flex items-center px-3 gap-2 ${w2 ? "bg-emerald-500/[0.06]" : ""}`}>
@@ -558,7 +560,7 @@ function MatchCard({ m, l1, l2, c1, c2, t1, t2, accent, isFinal }: { m: MatchDat
         <div className="flex-1" />
         {m.scheduledDate && (
           <span className="text-[9px] text-cyan-500/80 font-medium">
-            {formatScheduleLabel(m.scheduledDate)}
+            {formatScheduleLabel(m.scheduledDate, m.venue)}
           </span>
         )}
       </div>
@@ -1112,7 +1114,7 @@ function PbBrackets({ matchesByCategory, entryLabel, isEntryTbd, pbRegs }: { mat
                           {!isBye && isLive && <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse ml-1" />}
                           {!isBye && isCompleted && <span className="w-1 h-1 rounded-full bg-emerald-400 ml-1" />}
                           <div className="flex-1" />
-                          {!isBye && m.scheduledDate && <span className="text-[8px] text-cyan-500/70 font-medium">{formatScheduleLabel(m.scheduledDate)}</span>}
+                          {!isBye && m.scheduledDate && <span className="text-[8px] text-cyan-500/70 font-medium">{formatScheduleLabel(m.scheduledDate, m.venue)}</span>}
                         </div>
                         {/* Player 2 */}
                         <div className={`h-[22px] flex items-center px-3 gap-2 ${w2 ? "bg-emerald-500/[0.06]" : ""}`}>
