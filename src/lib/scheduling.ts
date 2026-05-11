@@ -110,6 +110,19 @@ export function isPlayableMatch(match: MatchForScheduling): boolean {
 }
 
 /**
+ * Check if a match is "schedulable" — it will eventually be played.
+ * This includes matches with WINNER_ placeholders (later rounds) but excludes
+ * true byes where one side is null/TBD (only one participant).
+ * A bye is: one entry is a real UUID and the other is null.
+ */
+export function isSchedulableMatch(match: MatchForScheduling): boolean {
+  // Both entries must be non-null (can be WINNER_ placeholders or real UUIDs)
+  if (match.entry1Id === null || match.entry2Id === null) return false;
+  // At least one entry must be real or a WINNER_ ref (not both null)
+  return true;
+}
+
+/**
  * Get the slot index (0-based) for a time string.
  */
 function getSlotIndex(startTime: string): number {
@@ -242,7 +255,7 @@ export function generateSchedule(
   matches: MatchForScheduling[],
   existingAssignments?: ScheduleAssignment[]
 ): { assignments: ScheduleAssignment[]; conflicts: ScheduleConflict[] } {
-  const playable = matches.filter(isPlayableMatch);
+  const playable = matches.filter(isSchedulableMatch);
   const assignments: ScheduleAssignment[] = existingAssignments ? [...existingAssignments] : [];
   const conflicts: ScheduleConflict[] = [];
 
