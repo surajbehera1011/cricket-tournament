@@ -113,6 +113,7 @@ export default function SchedulePage() {
   const [frozenPb, setFrozenPb] = useState<MatchData[] | null>(null);
   const [loading, setLoading] = useState(true);
   const cricketRef = useRef<HTMLDivElement>(null);
+  const [pbView, setPbView] = useState<"brackets" | "grid">("brackets");
 
   const fetchAll = useCallback(async () => {
     try {
@@ -162,6 +163,10 @@ export default function SchedulePage() {
   const isEntryTbd = (id: string | null) => !id || id.startsWith("W") || !pbRegs.find(r => r.id === id);
   const pct = Math.min(100, Math.round((readyTeams.length / settings.targetCricketTeams) * 100));
 
+  // Check if any pickleball matches have scheduled dates
+  const hasScheduledPbMatches = frozenPb ? frozenPb.some(m => m.scheduledDate !== null) : false;
+  const allPbMatches = frozenPb ?? Object.values(pbMatchesByCategory).flat();
+
   if (loading) return <ScheduleSkeleton />;
 
   return (
@@ -169,7 +174,30 @@ export default function SchedulePage() {
       <HeroSection sport={sport} setSport={setSport} />
       {sport === "pickleball" ? (
         <div className="max-w-[1400px] mx-auto px-4 py-8">
-          <PbBrackets matchesByCategory={pbMatchesByCategory} entryLabel={entryLabel} isEntryTbd={isEntryTbd} pbRegs={pbRegs} />
+          {/* View toggle when schedule data exists */}
+          {hasScheduledPbMatches && (
+            <div className="flex items-center gap-2 mb-6">
+              <div className="inline-flex gap-1 bg-dark-400/80 backdrop-blur-xl p-1 rounded-xl border border-white/[0.06]">
+                <button
+                  onClick={() => setPbView("brackets")}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${pbView === "brackets" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "text-slate-400 hover:text-white hover:bg-white/[0.06]"}`}
+                >
+                  Brackets
+                </button>
+                <button
+                  onClick={() => setPbView("grid")}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${pbView === "grid" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "text-slate-400 hover:text-white hover:bg-white/[0.06]"}`}
+                >
+                  Schedule Grid
+                </button>
+              </div>
+            </div>
+          )}
+          {pbView === "brackets" || !hasScheduledPbMatches ? (
+            <PbBrackets matchesByCategory={pbMatchesByCategory} entryLabel={entryLabel} isEntryTbd={isEntryTbd} pbRegs={pbRegs} />
+          ) : (
+            <PbScheduleGrid matches={allPbMatches} entryLabel={entryLabel} isEntryTbd={isEntryTbd} />
+          )}
         </div>
       ) : (
         <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-10">
@@ -678,6 +706,207 @@ ${content}
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ─── Schedule Grid Component ────────────────────────────────────────────────
+const GRID_DAYS = [
+  { date: "2026-05-12", label: "Day 1 — Mon, May 12" },
+  { date: "2026-05-13", label: "Day 2 — Tue, May 13" },
+  { date: "2026-05-14", label: "Day 3 — Wed, May 14" },
+];
+const GRID_TIMES = [
+  { time: "17:00", label: "5:00 PM" },
+  { time: "17:20", label: "5:20 PM" },
+  { time: "17:40", label: "5:40 PM" },
+  { time: "18:00", label: "6:00 PM" },
+  { time: "18:20", label: "6:20 PM" },
+  { time: "18:40", label: "6:40 PM" },
+  { time: "19:00", label: "7:00 PM" },
+  { time: "19:20", label: "7:20 PM" },
+  { time: "19:40", label: "7:40 PM" },
+];
+const GRID_COURTS = ["Court 1", "Court 2", "Court 3"];
+
+function PbScheduleGrid({ matches, entryLabel, isEntryTbd }: { matches: MatchData[]; entryLabel: (id: string | null) => string; isEntryTbd: (id: string | null) => boolean }) {
+  const [activeDay, setActiveDay] = useState(0);
+  const [activeCourt, setActiveCourt] = useState(0); // for mobile
+
+  // Build a lookup: "date|time|court" -> match
+  const slotMap = new Map<string, MatchData>();
+  for (const m of matches) {
+    if (!m.scheduledDate || !m.venue) continue;
+    const d = new Date(m.scheduledDate);
+    // Convert to IST
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(d.getTime() + istOffset);
+    const year = istDate.getUTCFullYear();
+    const month = String(istDate.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(istDate.getUTCDate()).padStart(2, "0");
+    const hours = String(istDate.getUTCHours()).padStart(2, "0");
+    const minutes = String(istDate.getUTCMinutes()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
+    const timeStr = `${hours}:${minutes}`;
+    const key = `${dateStr}|${timeStr}|${m.venue}`;
+    slotMap.set(key, m);
+  }
+
+  const getCatInfo = (category: string | null) => {
+    return PB_CATS.find(c => c.key === category) || { key: "", label: "Unknown", color: "text-slate-400", bg: "bg-slate-500/10", accent: "#64748b" };
+  };
+
+  const day = GRID_DAYS[activeDay];
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-1.5 h-8 rounded-full bg-gradient-to-b from-emerald-400 to-teal-500" />
+        <h2 className="text-2xl font-black text-white tracking-tight">Schedule Grid</h2>
+      </div>
+
+      {/* Day tabs */}
+      <div className="flex gap-1 bg-dark-400/80 backdrop-blur-xl p-1.5 rounded-2xl mb-6 border border-white/[0.06] shadow-xl overflow-x-auto">
+        {GRID_DAYS.map((d, i) => (
+          <button
+            key={d.date}
+            onClick={() => setActiveDay(i)}
+            className={`flex-shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${activeDay === i ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "text-slate-400 hover:text-white hover:bg-white/[0.06]"}`}
+          >
+            {d.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Mobile court selector */}
+      <div className="flex gap-1 mb-4 md:hidden bg-dark-400/60 p-1 rounded-xl border border-white/[0.06]">
+        {GRID_COURTS.map((court, i) => (
+          <button
+            key={court}
+            onClick={() => setActiveCourt(i)}
+            className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${activeCourt === i ? "bg-white/[0.1] text-white border border-white/[0.1]" : "text-slate-500 hover:text-slate-300"}`}
+          >
+            {court}
+          </button>
+        ))}
+      </div>
+
+      {/* Grid */}
+      <div className="rounded-2xl bg-gradient-to-br from-[#0d1117] to-[#0a0e14] border border-white/[0.06] overflow-hidden">
+        {/* Desktop: full 3-court grid */}
+        <div className="hidden md:block">
+          {/* Court headers */}
+          <div className="grid grid-cols-[80px_1fr_1fr_1fr] border-b border-white/[0.06]">
+            <div className="p-3 text-[10px] font-bold text-slate-600 uppercase tracking-wider">Time</div>
+            {GRID_COURTS.map(court => (
+              <div key={court} className="p-3 text-center text-xs font-bold text-slate-300 border-l border-white/[0.06]">
+                {court}
+              </div>
+            ))}
+          </div>
+
+          {/* Time slot rows */}
+          {GRID_TIMES.map((slot, si) => (
+            <div key={slot.time} className={`grid grid-cols-[80px_1fr_1fr_1fr] ${si < GRID_TIMES.length - 1 ? "border-b border-white/[0.04]" : ""}`}>
+              <div className="p-3 flex items-center">
+                <span className="text-[11px] font-mono font-bold text-slate-500">{slot.label}</span>
+              </div>
+              {GRID_COURTS.map(court => {
+                const key = `${day.date}|${slot.time}|${court}`;
+                const match = slotMap.get(key);
+                return (
+                  <div key={court} className="p-1.5 border-l border-white/[0.04] min-h-[60px] flex items-center justify-center">
+                    {match ? (
+                      <ScheduleGridCell match={match} entryLabel={entryLabel} isEntryTbd={isEntryTbd} getCatInfo={getCatInfo} />
+                    ) : (
+                      <span className="text-slate-700 text-xs">—</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile: single court view */}
+        <div className="md:hidden">
+          <div className="p-3 border-b border-white/[0.06] text-center">
+            <span className="text-xs font-bold text-slate-300">{GRID_COURTS[activeCourt]}</span>
+          </div>
+          {GRID_TIMES.map((slot, si) => {
+            const key = `${day.date}|${slot.time}|${GRID_COURTS[activeCourt]}`;
+            const match = slotMap.get(key);
+            return (
+              <div key={slot.time} className={`flex items-center gap-3 px-3 py-2 ${si < GRID_TIMES.length - 1 ? "border-b border-white/[0.04]" : ""}`}>
+                <span className="text-[11px] font-mono font-bold text-slate-500 w-16 flex-shrink-0">{slot.label}</span>
+                <div className="flex-1 min-h-[48px] flex items-center">
+                  {match ? (
+                    <ScheduleGridCell match={match} entryLabel={entryLabel} isEntryTbd={isEntryTbd} getCatInfo={getCatInfo} />
+                  ) : (
+                    <span className="text-slate-700 text-xs">—</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScheduleGridCell({ match, entryLabel, isEntryTbd, getCatInfo }: {
+  match: MatchData;
+  entryLabel: (id: string | null) => string;
+  isEntryTbd: (id: string | null) => boolean;
+  getCatInfo: (category: string | null) => { key: string; label: string; color: string; bg: string; accent: string };
+}) {
+  const cat = getCatInfo(match.category);
+  const isCompleted = match.status === "COMPLETED";
+  const isLive = match.status === "LIVE";
+  const p1 = match.entry1Id;
+  const p2 = match.entry2Id;
+  const l1 = entryLabel(p1);
+  const l2 = entryLabel(p2);
+  const tbd1 = isEntryTbd(p1);
+  const tbd2 = isEntryTbd(p2);
+  const w1 = match.winnerId && match.winnerId === p1;
+  const w2 = match.winnerId && match.winnerId === p2;
+
+  return (
+    <div className={`w-full rounded-lg border p-2 transition-all ${isCompleted ? "border-emerald-500/25 bg-emerald-500/[0.03]" : isLive ? "border-red-500/30 bg-red-500/[0.03]" : "border-white/[0.08] bg-white/[0.02]"}`}>
+      {/* Category badge + live indicator */}
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${cat.bg} ${cat.color}`}>
+          {cat.label.split(" ").map(w => w[0]).join("")}
+        </span>
+        {isLive && (
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-[9px] font-bold text-green-400">LIVE</span>
+          </span>
+        )}
+        {isCompleted && (
+          <span className="text-[9px] font-bold text-emerald-400">✓</span>
+        )}
+        <span className="text-[8px] text-slate-600 ml-auto">M{match.matchNumber}</span>
+      </div>
+
+      {/* Players */}
+      <div className="space-y-0.5">
+        <div className="flex items-center gap-1">
+          <span className={`text-[11px] font-semibold truncate ${w1 ? "text-emerald-400" : tbd1 ? "text-slate-600 italic" : "text-slate-200"}`}>
+            {tbd1 ? `Winner of M${l1.replace("Register Now!", "TBD").replace(/^W/, "M")}` : l1}
+          </span>
+          {isCompleted && match.score1 && <span className={`text-[10px] font-mono ml-auto ${w1 ? "text-emerald-400 font-bold" : "text-slate-500"}`}>{match.score1}</span>}
+        </div>
+        <div className="flex items-center gap-1">
+          <span className={`text-[11px] font-semibold truncate ${w2 ? "text-emerald-400" : tbd2 ? "text-slate-600 italic" : "text-slate-200"}`}>
+            {tbd2 ? `Winner of M${l2.replace("Register Now!", "TBD").replace(/^W/, "M")}` : l2}
+          </span>
+          {isCompleted && match.score2 && <span className={`text-[10px] font-mono ml-auto ${w2 ? "text-emerald-400 font-bold" : "text-slate-500"}`}>{match.score2}</span>}
+        </div>
+      </div>
     </div>
   );
 }

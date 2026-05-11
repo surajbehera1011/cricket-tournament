@@ -155,6 +155,15 @@ export default function AdminFixturesPage() {
   const [bulkDate, setBulkDate] = useState("");
   const [bulkVenue, setBulkVenue] = useState("");
 
+  // Auto-schedule state
+  const [autoScheduling, setAutoScheduling] = useState(false);
+  const [autoSchedulePreview, setAutoSchedulePreview] = useState<{
+    assignments: Array<{ matchId: string; court: string; scheduledDate: string }>;
+    summary: { totalMatches: number; byDay: Record<string, number>; byCourt: Record<string, number> };
+    conflicts: Array<{ type: string; matchId: string; details: string }>;
+  } | null>(null);
+  const [autoScheduleConfirming, setAutoScheduleConfirming] = useState(false);
+
   const fetchFixture = useCallback(async () => {
     setLoading(true);
     try {
@@ -329,6 +338,45 @@ export default function AdminFixturesPage() {
       fetchFixture();
     } catch {
       toast("Failed", "error");
+    }
+  };
+
+  const autoSchedulePreviewFn = async () => {
+    setAutoScheduling(true);
+    setAutoSchedulePreview(null);
+    try {
+      const res = await fetch("/api/admin/fixtures/auto-schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: false }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Auto-schedule failed");
+      setAutoSchedulePreview(data);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Auto-schedule failed", "error");
+    } finally {
+      setAutoScheduling(false);
+    }
+  };
+
+  const autoScheduleConfirm = async () => {
+    setAutoScheduleConfirming(true);
+    try {
+      const res = await fetch("/api/admin/fixtures/auto-schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true, sendNotifications: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Confirmation failed");
+      toast(`Scheduled ${data.scheduled} matches, notified ${data.notified} players`, "success");
+      setAutoSchedulePreview(null);
+      fetchFixture();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Confirmation failed", "error");
+    } finally {
+      setAutoScheduleConfirming(false);
     }
   };
 
@@ -526,6 +574,83 @@ export default function AdminFixturesPage() {
             >
               Apply & Notify All
             </button>
+          </div>
+        )}
+
+        {/* Auto-Schedule for Pickleball */}
+        {sport === "PICKLEBALL" && (fixture?.frozenCategories || []).length > 0 && (
+          <div className="pt-3 border-t border-white/[0.06] space-y-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={autoSchedulePreviewFn}
+                disabled={autoScheduling}
+                className="px-5 py-2 bg-violet-500/20 text-violet-400 rounded-lg text-sm font-bold hover:bg-violet-500/30 border border-violet-500/30 transition-colors disabled:opacity-50"
+              >
+                {autoScheduling ? "Scheduling..." : "Auto-Schedule All Matches"}
+              </button>
+              <span className="text-xs text-slate-500">Assigns all playable matches to courts &amp; time slots</span>
+            </div>
+
+            {/* Preview Section */}
+            {autoSchedulePreview && (
+              <div className="rounded-xl bg-violet-500/[0.04] border border-violet-500/20 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-violet-300">Schedule Preview</h3>
+                  <button
+                    onClick={() => setAutoSchedulePreview(null)}
+                    className="text-xs text-slate-500 hover:text-slate-300"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3 text-center">
+                    <div className="text-lg font-bold text-white">{autoSchedulePreview.summary.totalMatches}</div>
+                    <div className="text-[10px] text-slate-500 uppercase tracking-wider">Total Matches</div>
+                  </div>
+                  {Object.entries(autoSchedulePreview.summary.byDay).map(([day, count]) => (
+                    <div key={day} className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3 text-center">
+                      <div className="text-lg font-bold text-white">{count}</div>
+                      <div className="text-[10px] text-slate-500 uppercase tracking-wider">{new Date(day + "T00:00:00").toLocaleDateString("en-IN", { month: "short", day: "numeric" })}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(autoSchedulePreview.summary.byCourt).map(([court, count]) => (
+                    <span key={court} className="text-xs px-2 py-1 rounded-full bg-white/[0.04] border border-white/[0.06] text-slate-300">
+                      {court}: {count} matches
+                    </span>
+                  ))}
+                </div>
+
+                {autoSchedulePreview.conflicts.length > 0 && (
+                  <div className="rounded-lg bg-amber-500/[0.06] border border-amber-500/20 p-3">
+                    <p className="text-xs font-bold text-amber-400 mb-1">⚠️ {autoSchedulePreview.conflicts.length} conflict(s)</p>
+                    {autoSchedulePreview.conflicts.slice(0, 3).map((c, i) => (
+                      <p key={i} className="text-[11px] text-amber-300/70">{c.details}</p>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    onClick={autoScheduleConfirm}
+                    disabled={autoScheduleConfirming}
+                    className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                  >
+                    {autoScheduleConfirming ? "Confirming..." : "Confirm & Send Notifications"}
+                  </button>
+                  <button
+                    onClick={() => setAutoSchedulePreview(null)}
+                    className="px-4 py-2 text-slate-400 hover:text-white text-sm font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

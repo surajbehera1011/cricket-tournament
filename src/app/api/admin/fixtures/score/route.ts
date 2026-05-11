@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notifyAllAdmins } from "@/lib/notifications";
+import { sendNextMatchNotification } from "@/lib/email";
+import { getAvailableSlots, COURT_CATEGORIES, buildDateTime } from "@/lib/scheduling";
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,6 +77,13 @@ export async function POST(request: NextRequest) {
 
     // Advance winner to next round
     await advanceWinner(match, winnerId);
+
+    // Notify players of next match if both sides are now confirmed (non-blocking)
+    try {
+      await checkAndNotifyNextMatch(match, winnerId);
+    } catch (notifyErr) {
+      console.error("Next-match notification failed (non-blocking):", notifyErr);
+    }
 
     // Audit log (non-blocking)
     try {
@@ -167,6 +176,142 @@ async function advanceWinner(
       data: updateData,
     });
   }
+}
+
+/**
+ * After a match result is recorded with a winner, check if the next match
+ * now has both participants confirmed and send a notification if so.
+ * Wrapped in try/catch at the call site so failures don't break score recording.
+ */
+async function checkAndNotifyNextMatch(
+  completedMatch: {
+    id: string;
+    fixtureId: string;
+    sport: string;
+    stage: string;
+    roundNumber: number;
+    matchNumber: number;
+    category: string | null;
+  },
+  winnerId: string
+) {
+  // Only applies to pickleball knockout matches
+  if (completedMatch.sport !== "PICKLEBALL") return;
+
+  // Find the next match that the winner was advanced into
+  const winnerRef = `WINNER_M${completedMatch.matchNumber}`;
+  const allMatches = await prisma.match.findMany({
+    where: { fixtureId: completedMatch.fixtureId },
+    orderBy: { matchNumber: "asc" },
+  });
+
+  // Look for a match where entry1Id or entry2Id previously contained the WINNER_M{matchNumber} pattern
+  // After advanceWinner ran, the placeholder was replaced with the actual winnerId,
+  // so we look for the match that now has winnerId in one slot
+  const nextMatch = allMatches.find((m) => {
+    if (m.id === completedMatch.id) return false;
+    if (completedMatch.category && m.category !== completedMatch.category) return false;
+    if (m.roundNumber <= completedMatch.roundNumber) return false;
+    // The winner was just placed into this match
+    return m.entry1Id === winnerId || m.entry2Id === winnerId;
+  });
+
+  if (!nextMatch) return;
+
+  // Check if both entry1Id and entry2Id are now real player IDs
+  const bothConfirmed =
+    nextMatch.entry1Id !== null &&
+    nextMatch.entry2Id !== null &&
+    !nextMatch.entry1Id.startsWith("WINNER_") &&
+    !nextMatch.entry2Id.startsWith("WINNER_");
+
+  if (!bothConfirmed) return;
+
+  // If match already had notification sent, skip
+  if (nextMatch.notificationSent) return;
+
+  // If match has scheduledDate and venue, send notification directly
+  if (nextMatch.scheduledDate && nextMatch.venue) {
+    await sendNextMatchNotification({
+      id: nextMatch.id,
+      sport: nextMatch.sport,
+      stage: nextMatch.stage,
+      groupName: nextMatch.groupName,
+      matchNumber: nextMatch.matchNumber,
+      category: nextMatch.category,
+      entry1Id: nextMatch.entry1Id,
+      entry2Id: nextMatch.entry2Id,
+      scheduledDate: nextMatch.scheduledDate,
+      venue: nextMatch.venue,
+    });
+
+    await prisma.match.update({
+      where: { id: nextMatch.id },
+      data: { notificationSent: true },
+    });
+    return;
+  }
+
+  // Match lacks schedule — auto-assign the next available slot on the appropriate court
+  const court = getCourtForCategory(nextMatch.category);
+  if (!court) return;
+
+  // Get all existing assignments for this fixture to find available slots
+  const scheduledMatches = allMatches
+    .filter((m) => m.scheduledDate && m.venue)
+    .map((m) => ({
+      matchId: m.id,
+      court: m.venue!,
+      scheduledDate: m.scheduledDate!,
+    }));
+
+  const availableSlots = getAvailableSlots(court, scheduledMatches);
+  if (availableSlots.length === 0) return;
+
+  // Take the first available slot (chronologically earliest)
+  const slot = availableSlots[0];
+  const scheduledDate = buildDateTime(slot.timeSlot.date, slot.timeSlot.startTime);
+
+  // Persist the schedule assignment
+  await prisma.match.update({
+    where: { id: nextMatch.id },
+    data: {
+      scheduledDate,
+      venue: court,
+    },
+  });
+
+  // Send notification
+  await sendNextMatchNotification({
+    id: nextMatch.id,
+    sport: nextMatch.sport,
+    stage: nextMatch.stage,
+    groupName: nextMatch.groupName,
+    matchNumber: nextMatch.matchNumber,
+    category: nextMatch.category,
+    entry1Id: nextMatch.entry1Id,
+    entry2Id: nextMatch.entry2Id,
+    scheduledDate,
+    venue: court,
+  });
+
+  await prisma.match.update({
+    where: { id: nextMatch.id },
+    data: { notificationSent: true },
+  });
+}
+
+/**
+ * Determine the appropriate court for a given pickleball category.
+ */
+function getCourtForCategory(category: string | null): string | null {
+  if (!category) return null;
+  for (const [court, categories] of Object.entries(COURT_CATEGORIES)) {
+    if (categories.includes(category)) {
+      return court;
+    }
+  }
+  return null;
 }
 
 async function tryAdvanceGroupWinnersToKnockout(
