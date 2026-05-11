@@ -66,15 +66,15 @@ function getGraphClient(): GraphClient {
   return GraphClient.initWithMiddleware({ authProvider });
 }
 
-async function sendEmail(to: string | string[], subject: string, html: string) {
-  if (!emailEnabled()) return;
+async function sendEmail(to: string | string[], subject: string, html: string): Promise<boolean> {
+  if (!emailEnabled()) return false;
   const recipients = (Array.isArray(to) ? to : [to]).filter(Boolean);
-  if (recipients.length === 0) return;
+  if (recipients.length === 0) return false;
 
   for (const recipient of recipients) {
     if (!recipient.endsWith(ALLOWED_DOMAIN)) {
       console.error(`[Email] External recipient blocked: "${recipient}" — only ${ALLOWED_DOMAIN} addresses allowed`);
-      return;
+      return false;
     }
   }
 
@@ -94,8 +94,10 @@ async function sendEmail(to: string | string[], subject: string, html: string) {
       .post(message);
 
     console.log(`[Email] Sent "${subject}" to ${recipients.join(", ")}`);
+    return true;
   } catch (err) {
     console.error(`[Email] Failed to send "${subject}":`, err);
+    return false;
   }
 }
 
@@ -832,13 +834,15 @@ export async function sendScheduleConfirmationEmails(
           ${para("Make sure you're at the court on time. Good luck!")}
           ${btn("View Schedule", `${APP_URL}/schedule`, "#ec4899")}`;
 
-        await sendEmail(
+        const emailSent = await sendEmail(
           emails,
           `[Pickleball] Match Scheduled — ${catLabel} #${match.matchNumber}`,
           wrap(title, "#ec4899", body, "pickleball")
         );
 
-        // Mark notification as sent
+        // Only mark as sent if email was actually delivered
+        if (!emailSent) throw new Error("Email not sent");
+
         await prisma.match.update({
           where: { id: match.id },
           data: { notificationSent: true },
