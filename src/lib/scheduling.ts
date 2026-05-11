@@ -54,7 +54,7 @@ export const COURTS = ["Court 1", "Court 2", "Court 3"] as const;
 
 export const COURT_CATEGORIES: Record<string, string[]> = {
   "Court 1": ["MENS_SINGLES"],
-  "Court 2": ["WOMENS_SINGLES", "WOMENS_DOUBLES", "MENS_SINGLES"],
+  "Court 2": ["WOMENS_SINGLES", "WOMENS_DOUBLES", "MENS_SINGLES", "MIXED_DOUBLES", "MENS_DOUBLES"],
   "Court 3": ["MIXED_DOUBLES", "MENS_DOUBLES"],
 };
 
@@ -327,17 +327,23 @@ export function generateSchedule(
   const mensForCourt1 = court1Matches.slice(0, court1Capacity);
   const mensOverflow = court1Matches.slice(court1Capacity);
 
+  // Assign Court 3: MIXED_DOUBLES + MENS_DOUBLES (up to capacity)
+  const court3Capacity = TOURNAMENT_DATES.length * SLOTS_PER_DAY; // 27
+  const court3ForCourt3 = court3Matches.slice(0, court3Capacity);
+  const court3Overflow = court3Matches.slice(court3Capacity);
+
   // Assign Court 1 matches
   assignMatchesToCourt("Court 1", mensForCourt1, allSlots, occupiedSlots, playerTimeMap, assignments, conflicts, matches);
+
+  // Assign Court 3 matches (primary)
+  assignMatchesToCourt("Court 3", court3ForCourt3, allSlots, occupiedSlots, playerTimeMap, assignments, conflicts, matches);
 
   // Assign Court 2 primary (WOMENS_SINGLES, WOMENS_DOUBLES) first
   assignMatchesToCourt("Court 2", court2Primary, allSlots, occupiedSlots, playerTimeMap, assignments, conflicts, matches);
 
-  // Assign Court 2 overflow (MENS_SINGLES) after all women's matches
+  // Assign Court 2 overflow: MENS_SINGLES overflow first, then Court 3 overflow
   assignMatchesToCourt("Court 2", mensOverflow, allSlots, occupiedSlots, playerTimeMap, assignments, conflicts, matches);
-
-  // Assign Court 3 matches
-  assignMatchesToCourt("Court 3", court3Matches, allSlots, occupiedSlots, playerTimeMap, assignments, conflicts, matches);
+  assignMatchesToCourt("Court 2", court3Overflow, allSlots, occupiedSlots, playerTimeMap, assignments, conflicts, matches);
 
   return { assignments, conflicts };
 }

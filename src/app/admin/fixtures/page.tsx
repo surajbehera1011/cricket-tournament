@@ -625,6 +625,40 @@ export default function AdminFixturesPage() {
                   ))}
                 </div>
 
+                {/* Detailed schedule table */}
+                <div className="max-h-[400px] overflow-y-auto rounded-lg border border-white/[0.06]">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0 bg-dark-500 border-b border-white/[0.06]">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-slate-400 font-bold">Day</th>
+                        <th className="px-3 py-2 text-left text-slate-400 font-bold">Time</th>
+                        <th className="px-3 py-2 text-left text-slate-400 font-bold">Court</th>
+                        <th className="px-3 py-2 text-left text-slate-400 font-bold">Category</th>
+                        <th className="px-3 py-2 text-left text-slate-400 font-bold">Round</th>
+                        <th className="px-3 py-2 text-left text-slate-400 font-bold">Match #</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.03]">
+                      {autoSchedulePreview.assignments
+                        .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
+                        .map((a) => {
+                          const d = new Date(a.scheduledDate);
+                          const match = fixture?.matches?.find((m: { id: string }) => m.id === a.matchId);
+                          return (
+                            <tr key={a.matchId} className="hover:bg-white/[0.02]">
+                              <td className="px-3 py-1.5 text-slate-300">{d.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}</td>
+                              <td className="px-3 py-1.5 text-white font-mono">{d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true })}</td>
+                              <td className="px-3 py-1.5 text-slate-300">{a.court}</td>
+                              <td className="px-3 py-1.5 text-slate-300">{match?.category?.replace(/_/g, " ") || "—"}</td>
+                              <td className="px-3 py-1.5 text-slate-400">R{match?.roundNumber || "?"}</td>
+                              <td className="px-3 py-1.5 text-slate-400">M{match?.matchNumber || "?"}</td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+
                 {autoSchedulePreview.conflicts.length > 0 && (
                   <div className="rounded-lg bg-amber-500/[0.06] border border-amber-500/20 p-3">
                     <p className="text-xs font-bold text-amber-400 mb-1">⚠️ {autoSchedulePreview.conflicts.length} conflict(s)</p>
