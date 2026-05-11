@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     );
     scheduled = assignments.length;
 
-    // Handle notifications
+    // Handle notifications — fire and forget (don't block the response)
     let notified = 0;
     if (sendNotifications) {
       // Only notify matches where both entries are confirmed (not WINNER_ placeholders)
@@ -83,9 +83,13 @@ export async function POST(request: NextRequest) {
         })
         .map((a) => a.matchId);
 
+      notified = confirmedMatchIds.length;
+
+      // Send emails in background — don't await, don't block response
       if (confirmedMatchIds.length > 0) {
-        const result = await sendScheduleConfirmationEmails(confirmedMatchIds);
-        notified = result.sent;
+        sendScheduleConfirmationEmails(confirmedMatchIds).catch((err) => {
+          console.error("[auto-schedule] Background email sending failed:", err);
+        });
       }
     }
 

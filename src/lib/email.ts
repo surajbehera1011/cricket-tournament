@@ -12,6 +12,40 @@ const APP_URL = process.env.APP_URL || process.env.NEXTAUTH_URL || "http://local
 
 const ALLOWED_DOMAIN = "@aligntech.com";
 
+/**
+ * Format a Date to IST time string (e.g., "5:00 PM")
+ * Works correctly regardless of server timezone (Vercel runs in UTC)
+ */
+function formatTimeIST(date: Date): string {
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(date.getTime() + istOffset);
+  let hours = istDate.getUTCHours();
+  const minutes = istDate.getUTCMinutes();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  return `${hours}:${String(minutes).padStart(2, "0")} ${ampm}`;
+}
+
+/**
+ * Format a Date to IST date string (e.g., "Monday, May 12, 2026")
+ * Works correctly regardless of server timezone
+ */
+function formatDateIST(date: Date): string {
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(date.getTime() + istOffset);
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  return `${days[istDate.getUTCDay()]}, ${months[istDate.getUTCMonth()]} ${istDate.getUTCDate()}, ${istDate.getUTCFullYear()}`;
+}
+
+/**
+ * Format a Date to IST full date+time string
+ */
+function formatDateTimeIST(date: Date): string {
+  return `${formatDateIST(date)} at ${formatTimeIST(date)}`;
+}
+
 function emailEnabled(): boolean {
   if (!AZURE_MAIL_TENANT_ID || !AZURE_MAIL_CLIENT_ID || !AZURE_MAIL_CLIENT_SECRET || !MAIL_FROM_ADDRESS) {
     console.warn("[Email] Azure Graph API not configured — skipping email");
@@ -592,14 +626,7 @@ export async function sendMatchScheduledEmail(match: MatchForEmail) {
   if (!match.scheduledDate || !match.venue) return;
 
   const { prisma } = await import("@/lib/prisma");
-  const dateStr = new Date(match.scheduledDate).toLocaleString("en-IN", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const dateStr = formatDateTimeIST(new Date(match.scheduledDate));
 
   if (match.sport === "CRICKET") {
     const team1 = match.team1Id && !match.team1Id.startsWith("WINNER_")
@@ -766,19 +793,10 @@ export async function sendScheduleConfirmationEmails(
         continue;
       }
 
-      // Format date/time nicely
+      // Format date/time nicely in IST
       const dateObj = new Date(match.scheduledDate);
-      const timeStr = dateObj.toLocaleString("en-IN", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-      const dateStr = dateObj.toLocaleString("en-IN", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
+      const timeStr = formatTimeIST(dateObj);
+      const dateStr = formatDateIST(dateObj);
 
       const catLabel = match.category
         ? CATEGORY_LABELS[match.category] || match.category
@@ -869,19 +887,10 @@ export async function sendNextMatchNotification(match: MatchForEmail): Promise<v
 
   if (emails.length === 0) return;
 
-  // Format date/time
+  // Format date/time in IST
   const dateObj = new Date(match.scheduledDate);
-  const timeStr = dateObj.toLocaleString("en-IN", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-  const dateStr = dateObj.toLocaleString("en-IN", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const timeStr = formatTimeIST(dateObj);
+  const dateStr = formatDateIST(dateObj);
 
   const catLabel = match.category
     ? CATEGORY_LABELS[match.category] || match.category
