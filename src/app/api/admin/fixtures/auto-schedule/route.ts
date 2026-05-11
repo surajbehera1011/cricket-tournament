@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     );
     scheduled = assignments.length;
 
-    // Handle notifications — fire and forget (don't block the response)
+    // Handle notifications — send synchronously but with timeout protection
     let notified = 0;
     if (sendNotifications) {
       // Only notify matches where both entries are confirmed (not WINNER_ placeholders)
@@ -84,16 +84,11 @@ export async function POST(request: NextRequest) {
         .map((a) => a.matchId);
 
       notified = confirmedMatchIds.length;
-
-      // Send emails in background — don't await, don't block response
-      if (confirmedMatchIds.length > 0) {
-        sendScheduleConfirmationEmails(confirmedMatchIds).catch((err) => {
-          console.error("[auto-schedule] Background email sending failed:", err);
-        });
-      }
+      // Don't send emails here — use the separate /send-notifications endpoint
+      // This ensures the schedule save always succeeds
     }
 
-    return NextResponse.json({ scheduled, notified });
+    return NextResponse.json({ scheduled, notified, message: `Schedule saved. Use "Send Notifications" to email ${notified} players.` });
   } catch (err) {
     console.error("[admin/fixtures/auto-schedule POST]", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

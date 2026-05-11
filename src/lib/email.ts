@@ -730,8 +730,9 @@ export async function sendMatchScheduledEmail(match: MatchForEmail) {
 
 /**
  * Send schedule confirmation emails for a batch of match IDs.
- * For each match, resolves player emails and sends match details.
- * Marks notificationSent = true after successful send.
+ * Optimized for Vercel's 10s function timeout:
+ * - Fetches all data in bulk (2 queries total)
+ * - Sends emails in parallel batches of 5
  * Returns count of sent and failed emails.
  */
 export async function sendScheduleConfirmationEmails(
@@ -743,102 +744,114 @@ export async function sendScheduleConfirmationEmails(
   let sent = 0;
   let failed = 0;
 
-  for (const matchId of matchIds) {
-    try {
-      const match = await prisma.match.findUnique({ where: { id: matchId } });
-      if (!match || !match.scheduledDate || !match.venue) {
+  // Bulk fetch all matches at once
+  const matches = await prisma.match.findMany({
+    where: { id: { in: matchIds } },
+  });
+
+  // Filter to only matches with both entries confirmed and scheduled
+  const eligibleMatches = matches.filter(
+    (m) =>
+      m.scheduledDate &&
+      m.venue &&
+      m.entry1Id &&
+      m.entry2Id &&
+      !m.entry1Id.startsWith("WINNER_") &&
+      !m.entry2Id.startsWith("WINNER_") &&
+      !m.notificationSent
+  );
+
+  if (eligibleMatches.length === 0) return { sent: 0, failed: 0 };
+
+  // Collect all unique entry IDs and bulk fetch registrations
+  const entryIds = new Set<string>();
+  for (const m of eligibleMatches) {
+    if (m.entry1Id) entryIds.add(m.entry1Id);
+    if (m.entry2Id) entryIds.add(m.entry2Id);
+  }
+
+  const registrations = await prisma.pickleballRegistration.findMany({
+    where: { id: { in: Array.from(entryIds) } },
+  });
+  const regMap = new Map(registrations.map((r) => [r.id, r]));
+
+  // Process emails in parallel batches of 5
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < eligibleMatches.length; i += BATCH_SIZE) {
+    const batch = eligibleMatches.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(async (match) => {
+        const entry1 = regMap.get(match.entry1Id!);
+        const entry2 = regMap.get(match.entry2Id!);
+        if (!entry1 || !entry2) throw new Error("Entry not found");
+
+        // Resolve emails
+        const emails: string[] = [];
+        const e1p1 = decryptEmail(entry1.player1Email);
+        if (e1p1) emails.push(e1p1);
+        if (entry1.player2Email) {
+          const e1p2 = decryptEmail(entry1.player2Email);
+          if (e1p2) emails.push(e1p2);
+        }
+        const e2p1 = decryptEmail(entry2.player1Email);
+        if (e2p1) emails.push(e2p1);
+        if (entry2.player2Email) {
+          const e2p2 = decryptEmail(entry2.player2Email);
+          if (e2p2) emails.push(e2p2);
+        }
+
+        if (emails.length === 0) throw new Error("No emails");
+
+        // Format date/time in IST
+        const dateObj = new Date(match.scheduledDate!);
+        const timeStr = formatTimeIST(dateObj);
+        const dateStr = formatDateIST(dateObj);
+
+        const catLabel = match.category
+          ? CATEGORY_LABELS[match.category] || match.category
+          : "Pickleball";
+
+        const entry1Name = entry1.player2Name
+          ? `${entry1.player1Name} & ${entry1.player2Name}`
+          : entry1.player1Name;
+        const entry2Name = entry2.player2Name
+          ? `${entry2.player1Name} & ${entry2.player2Name}`
+          : entry2.player1Name;
+
+        const title = "Your Pickleball Match is Scheduled!";
+        const body = `
+          ${para("Your match schedule has been confirmed! Here are the details:")}
+          ${detailsTable([
+            ["Category", `<strong style="color:#ec4899;">${catLabel}</strong>`],
+            ["Match", `#${match.matchNumber}`],
+            ["Date", `<strong style="color:#ffffff;">${dateStr}</strong>`],
+            ["Time", `<strong style="color:#22d3ee;">${timeStr}</strong>`],
+            ["Court", `<strong style="color:#ffffff;">${match.venue}</strong>`],
+            ["Players", `<strong style="color:#ffffff;">${entry1Name}</strong> vs <strong style="color:#ffffff;">${entry2Name}</strong>`],
+          ])}
+          ${para("Make sure you're at the court on time. Good luck!")}
+          ${btn("View Schedule", `${APP_URL}/schedule`, "#ec4899")}`;
+
+        await sendEmail(
+          emails,
+          `[Pickleball] Match Scheduled — ${catLabel} #${match.matchNumber}`,
+          wrap(title, "#ec4899", body, "pickleball")
+        );
+
+        // Mark notification as sent
+        await prisma.match.update({
+          where: { id: match.id },
+          data: { notificationSent: true },
+        });
+      })
+    );
+
+    for (const result of results) {
+      if (result.status === "fulfilled") sent++;
+      else {
+        console.error("[Email] Schedule confirmation failed:", result.reason);
         failed++;
-        continue;
       }
-
-      // Only send for matches where both entries are confirmed (real player IDs)
-      if (
-        !match.entry1Id ||
-        !match.entry2Id ||
-        match.entry1Id.startsWith("WINNER_") ||
-        match.entry2Id.startsWith("WINNER_")
-      ) {
-        continue; // Skip — not both confirmed, don't count as failure
-      }
-
-      const entry1 = await prisma.pickleballRegistration.findUnique({
-        where: { id: match.entry1Id },
-      });
-      const entry2 = await prisma.pickleballRegistration.findUnique({
-        where: { id: match.entry2Id },
-      });
-
-      if (!entry1 || !entry2) {
-        failed++;
-        continue;
-      }
-
-      // Resolve emails
-      const emails: string[] = [];
-      const e1p1 = decryptEmail(entry1.player1Email);
-      if (e1p1) emails.push(e1p1);
-      if (entry1.player2Email) {
-        const e1p2 = decryptEmail(entry1.player2Email);
-        if (e1p2) emails.push(e1p2);
-      }
-      const e2p1 = decryptEmail(entry2.player1Email);
-      if (e2p1) emails.push(e2p1);
-      if (entry2.player2Email) {
-        const e2p2 = decryptEmail(entry2.player2Email);
-        if (e2p2) emails.push(e2p2);
-      }
-
-      if (emails.length === 0) {
-        failed++;
-        continue;
-      }
-
-      // Format date/time nicely in IST
-      const dateObj = new Date(match.scheduledDate);
-      const timeStr = formatTimeIST(dateObj);
-      const dateStr = formatDateIST(dateObj);
-
-      const catLabel = match.category
-        ? CATEGORY_LABELS[match.category] || match.category
-        : "Pickleball";
-
-      const entry1Name = entry1.player2Name
-        ? `${entry1.player1Name} & ${entry1.player2Name}`
-        : entry1.player1Name;
-      const entry2Name = entry2.player2Name
-        ? `${entry2.player1Name} & ${entry2.player2Name}`
-        : entry2.player1Name;
-
-      const title = "Your Pickleball Match is Scheduled!";
-      const body = `
-        ${para("Your match schedule has been confirmed! Here are the details:")}
-        ${detailsTable([
-          ["Category", `<strong style="color:#ec4899;">${catLabel}</strong>`],
-          ["Match", `#${match.matchNumber}`],
-          ["Date", `<strong style="color:#ffffff;">${dateStr}</strong>`],
-          ["Time", `<strong style="color:#22d3ee;">${timeStr}</strong>`],
-          ["Court", `<strong style="color:#ffffff;">${match.venue}</strong>`],
-          ["Players", `<strong style="color:#ffffff;">${entry1Name}</strong> vs <strong style="color:#ffffff;">${entry2Name}</strong>`],
-        ])}
-        ${para("Make sure you're at the court on time. Good luck!")}
-        ${btn("View Schedule", `${APP_URL}/schedule`, "#ec4899")}`;
-
-      await sendEmail(
-        emails,
-        `[Pickleball] Match Scheduled — ${catLabel} #${match.matchNumber}`,
-        wrap(title, "#ec4899", body, "pickleball")
-      );
-
-      // Mark notification as sent
-      await prisma.match.update({
-        where: { id: matchId },
-        data: { notificationSent: true },
-      });
-
-      sent++;
-    } catch (err) {
-      console.error(`[Email] Failed to send schedule confirmation for match ${matchId}:`, err);
-      failed++;
     }
   }
 

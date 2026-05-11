@@ -163,6 +163,8 @@ export default function AdminFixturesPage() {
     conflicts: Array<{ type: string; matchId: string; details: string }>;
   } | null>(null);
   const [autoScheduleConfirming, setAutoScheduleConfirming] = useState(false);
+  const [sendingNotifications, setSendingNotifications] = useState(false);
+  const [notificationProgress, setNotificationProgress] = useState("");
 
   const fetchFixture = useCallback(async () => {
     setLoading(true);
@@ -370,13 +372,46 @@ export default function AdminFixturesPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Confirmation failed");
-      toast(`Scheduled ${data.scheduled} matches, notified ${data.notified} players`, "success");
+      toast(`Scheduled ${data.scheduled} matches. ${data.message}`, "success");
       setAutoSchedulePreview(null);
       fetchFixture();
     } catch (err) {
       toast(err instanceof Error ? err.message : "Confirmation failed", "error");
     } finally {
       setAutoScheduleConfirming(false);
+    }
+  };
+
+  const sendAllNotifications = async () => {
+    setSendingNotifications(true);
+    setNotificationProgress("Starting...");
+    let totalSent = 0;
+    let totalFailed = 0;
+
+    try {
+      // Keep calling until no remaining
+      let remaining = 1; // start loop
+      while (remaining > 0) {
+        const res = await fetch("/api/admin/fixtures/send-notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ batchSize: 5 }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Send failed");
+
+        totalSent += data.sent;
+        totalFailed += data.failed;
+        remaining = data.remaining;
+        setNotificationProgress(`Sent ${totalSent} emails... ${remaining > 0 ? `${remaining} remaining` : "Done!"}`);
+      }
+
+      toast(`All notifications sent! ${totalSent} emails delivered${totalFailed > 0 ? `, ${totalFailed} failed` : ""}.`, "success");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Notification sending failed", "error");
+    } finally {
+      setSendingNotifications(false);
+      setNotificationProgress("");
     }
   };
 
@@ -674,7 +709,7 @@ export default function AdminFixturesPage() {
                     disabled={autoScheduleConfirming}
                     className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                   >
-                    {autoScheduleConfirming ? "Confirming..." : "Confirm & Send Notifications"}
+                    {autoScheduleConfirming ? "Saving Schedule..." : "Confirm Schedule"}
                   </button>
                   <button
                     onClick={() => setAutoSchedulePreview(null)}
@@ -685,6 +720,23 @@ export default function AdminFixturesPage() {
                 </div>
               </div>
             )}
+
+            {/* Send Notifications Button — separate from schedule confirmation */}
+            <div className="pt-3 border-t border-white/[0.04]">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={sendAllNotifications}
+                  disabled={sendingNotifications}
+                  className="px-5 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg text-sm font-bold hover:bg-cyan-500/30 border border-cyan-500/30 transition-colors disabled:opacity-50"
+                >
+                  {sendingNotifications ? "Sending..." : "📧 Send Match Notifications"}
+                </button>
+                <span className="text-xs text-slate-500">Emails all players whose matches have both players confirmed</span>
+              </div>
+              {notificationProgress && (
+                <p className="text-xs text-cyan-400 mt-2 animate-pulse">{notificationProgress}</p>
+              )}
+            </div>
           </div>
         )}
       </div>
