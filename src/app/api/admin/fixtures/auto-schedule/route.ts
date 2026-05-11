@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateSchedule, ScheduleAssignment } from "@/lib/scheduling";
+import { sendScheduleConfirmationEmails } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -50,35 +51,42 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Confirm mode: persist assignments to the database
+    // Confirm mode: persist assignments to the database using a transaction
     let scheduled = 0;
-    for (const assignment of assignments) {
-      await prisma.match.update({
-        where: { id: assignment.matchId },
-        data: {
-          scheduledDate: assignment.scheduledDate,
-          venue: assignment.court,
-        },
-      });
-      scheduled++;
-    }
+    await prisma.$transaction(
+      assignments.map((assignment) =>
+        prisma.match.update({
+          where: { id: assignment.matchId },
+          data: {
+            scheduledDate: assignment.scheduledDate,
+            venue: assignment.court,
+          },
+        })
+      )
+    );
+    scheduled = assignments.length;
 
     // Handle notifications
     let notified = 0;
     if (sendNotifications) {
-      // Count matches where both entries are confirmed (not WINNER_ placeholders)
-      const confirmedMatches = assignments.filter((a) => {
-        const match = fixture.matches.find((m) => m.id === a.matchId);
-        if (!match) return false;
-        return (
-          match.entry1Id &&
-          match.entry2Id &&
-          !match.entry1Id.startsWith("WINNER_") &&
-          !match.entry2Id.startsWith("WINNER_")
-        );
-      });
-      // Email function will be added later; for now return the count
-      notified = confirmedMatches.length;
+      // Only notify matches where both entries are confirmed (not WINNER_ placeholders)
+      const confirmedMatchIds = assignments
+        .filter((a) => {
+          const match = fixture.matches.find((m) => m.id === a.matchId);
+          if (!match) return false;
+          return (
+            match.entry1Id &&
+            match.entry2Id &&
+            !match.entry1Id.startsWith("WINNER_") &&
+            !match.entry2Id.startsWith("WINNER_")
+          );
+        })
+        .map((a) => a.matchId);
+
+      if (confirmedMatchIds.length > 0) {
+        const result = await sendScheduleConfirmationEmails(confirmedMatchIds);
+        notified = result.sent;
+      }
     }
 
     return NextResponse.json({ scheduled, notified });
