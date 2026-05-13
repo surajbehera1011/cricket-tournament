@@ -103,6 +103,7 @@ export default function AdminPage() {
   const [selectedPoolPlayers, setSelectedPoolPlayers] = useState<Set<string>>(new Set());
   const [teamNameInput, setTeamNameInput] = useState("");
   const [createTeamLoading, setCreateTeamLoading] = useState(false);
+  const [captainPlayerId, setCaptainPlayerId] = useState<string>("");
   const [poolSearchQuery, setPoolSearchQuery] = useState("");
   const [poolFetched, setPoolFetched] = useState(false);
 
@@ -402,7 +403,8 @@ export default function AdminPage() {
   const selectedFemaleCount = poolPlayers.filter((p) => selectedPoolPlayers.has(p.id) && p.gender === "FEMALE").length;
   const isTeamNameValid = teamNameInput.trim().length >= 2 && teamNameInput.trim().length <= 100;
   const isCompositionValid = selectedPoolPlayers.size >= poolSettings.mandatoryPlayerCount && selectedFemaleCount >= poolSettings.mandatoryFemaleCount;
-  const canSubmitTeam = isTeamNameValid && isCompositionValid && !createTeamLoading;
+  const isCaptainSelected = captainPlayerId !== "" && selectedPoolPlayers.has(captainPlayerId);
+  const canSubmitTeam = isTeamNameValid && isCompositionValid && isCaptainSelected && !createTeamLoading;
 
   const handleCreateTeam = async () => {
     if (!canSubmitTeam) return;
@@ -414,6 +416,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           teamName: teamNameInput.trim(),
           playerIds: Array.from(selectedPoolPlayers),
+          captainPlayerId,
         }),
       });
       if (!res.ok) {
@@ -424,6 +427,7 @@ export default function AdminPage() {
       toast(`Team "${data.team.name}" created with ${data.team.memberCount} players!`, "success");
       setTeamNameInput("");
       setSelectedPoolPlayers(new Set());
+      setCaptainPlayerId("");
       setPoolFetched(false);
       fetchPoolPlayers();
       fetchData();
@@ -1288,6 +1292,28 @@ export default function AdminPage() {
               <p className="text-xs text-red-400 mt-1">Team name must be at least 2 characters</p>
             )}
           </div>
+
+          {/* Captain selector */}
+          {selectedPoolPlayers.size > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Captain *</label>
+              <select
+                value={captainPlayerId}
+                onChange={(e) => setCaptainPlayerId(e.target.value)}
+                className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-200"
+              >
+                <option value="">Select captain from selected players</option>
+                {poolPlayers
+                  .filter((p) => selectedPoolPlayers.has(p.id))
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>{p.fullName}</option>
+                  ))}
+              </select>
+              {!isCaptainSelected && selectedPoolPlayers.size >= poolSettings.mandatoryPlayerCount && (
+                <p className="text-xs text-amber-400 mt-1">Please select a captain</p>
+              )}
+            </div>
+          )}
 
           {/* Search filter */}
           <div className="relative">

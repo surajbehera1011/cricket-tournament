@@ -14,6 +14,7 @@ import { z } from "zod";
 const adminCreateTeamSchema = z.object({
   teamName: z.string().min(2, "Team name must be at least 2 characters").max(100, "Team name must be at most 100 characters"),
   playerIds: z.array(z.string().uuid()).min(1, "At least one player is required"),
+  captainPlayerId: z.string().uuid("Captain must be selected"),
 });
 
 export async function POST(request: NextRequest) {
@@ -32,7 +33,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { teamName, playerIds } = parsed.data;
+    const { teamName, playerIds, captainPlayerId } = parsed.data;
+
+    // Verify captain is in the selected players
+    if (!playerIds.includes(captainPlayerId)) {
+      return NextResponse.json(
+        { error: "Captain must be one of the selected players" },
+        { status: 400 }
+      );
+    }
 
     // Fetch settings
     const settings = await getSettings();
@@ -96,23 +105,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Atomic transaction: create team, memberships, update player statuses
+    const captainPlayer = players.find((p) => p.id === captainPlayerId);
     const team = await prisma.$transaction(async (tx) => {
       const newTeam = await tx.team.create({
         data: {
           name: teamName,
           status: TeamStatus.COMPLETE,
           teamSize: maxTeamSize,
-          captainName: "",
+          captainName: captainPlayer?.fullName || "",
         },
       });
 
       for (let i = 0; i < playerIds.length; i++) {
+        const isCaptain = playerIds[i] === captainPlayerId;
         await tx.teamMembership.create({
           data: {
             teamId: newTeam.id,
             playerId: playerIds[i],
             membershipType: MembershipType.DRAFT_PICK,
-            positionSlot: `Player ${i + 1}`,
+            positionSlot: isCaptain ? "Captain" : `Player ${i + 1}`,
           },
         });
 
