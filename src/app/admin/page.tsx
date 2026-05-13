@@ -82,7 +82,7 @@ export default function AdminPage() {
   const [approvedTeams, setApprovedTeams] = useState<ApprovedTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [tab, setTab] = useState<"pending" | "pickleball" | "captains">("pending");
+  const [tab, setTab] = useState<"pending" | "pickleball" | "captains" | "create-team">("pending");
 
   const [pendingPickleball, setPendingPickleball] = useState<PendingPickleball[]>([]);
   const [allPickleball, setAllPickleball] = useState<PendingPickleball[]>([]);
@@ -96,6 +96,15 @@ export default function AdminPage() {
   const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
   const [selectedIndividuals, setSelectedIndividuals] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+
+  // Create Team state
+  const [poolPlayers, setPoolPlayers] = useState<{ id: string; fullName: string; gender: string; preferredRole: string; experienceLevel: string }[]>([]);
+  const [poolSettings, setPoolSettings] = useState<{ mandatoryPlayerCount: number; mandatoryFemaleCount: number; maxTeamSize: number }>({ mandatoryPlayerCount: 8, mandatoryFemaleCount: 1, maxTeamSize: 10 });
+  const [selectedPoolPlayers, setSelectedPoolPlayers] = useState<Set<string>>(new Set());
+  const [teamNameInput, setTeamNameInput] = useState("");
+  const [createTeamLoading, setCreateTeamLoading] = useState(false);
+  const [poolSearchQuery, setPoolSearchQuery] = useState("");
+  const [poolFetched, setPoolFetched] = useState(false);
 
   const [renamingTeamId, setRenamingTeamId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -357,6 +366,74 @@ export default function AdminPage() {
     if (formEl) formEl.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const fetchPoolPlayers = useCallback(async () => {
+    try {
+      const ts = Date.now();
+      const res = await fetch(`/api/admin/teams/pool-players?_t=${ts}`, { cache: "no-store" });
+      const data = await res.json();
+      if (data.players) setPoolPlayers(data.players);
+      if (data.settings) setPoolSettings(data.settings);
+      setPoolFetched(true);
+    } catch (err) {
+      console.error("Fetch pool players error:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === "create-team" && !poolFetched) {
+      fetchPoolPlayers();
+    }
+  }, [tab, poolFetched, fetchPoolPlayers]);
+
+  const togglePoolPlayer = (id: string) => {
+    setSelectedPoolPlayers((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        if (next.size < poolSettings.maxTeamSize) {
+          next.add(id);
+        }
+      }
+      return next;
+    });
+  };
+
+  const selectedFemaleCount = poolPlayers.filter((p) => selectedPoolPlayers.has(p.id) && p.gender === "FEMALE").length;
+  const isTeamNameValid = teamNameInput.trim().length >= 2 && teamNameInput.trim().length <= 100;
+  const isCompositionValid = selectedPoolPlayers.size >= poolSettings.mandatoryPlayerCount && selectedFemaleCount >= poolSettings.mandatoryFemaleCount;
+  const canSubmitTeam = isTeamNameValid && isCompositionValid && !createTeamLoading;
+
+  const handleCreateTeam = async () => {
+    if (!canSubmitTeam) return;
+    setCreateTeamLoading(true);
+    try {
+      const res = await fetch("/api/admin/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamName: teamNameInput.trim(),
+          playerIds: Array.from(selectedPoolPlayers),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to create team");
+      }
+      const data = await res.json();
+      toast(`Team "${data.team.name}" created with ${data.team.memberCount} players!`, "success");
+      setTeamNameInput("");
+      setSelectedPoolPlayers(new Set());
+      setPoolFetched(false);
+      fetchPoolPlayers();
+      fetchData();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to create team", "error");
+    } finally {
+      setCreateTeamLoading(false);
+    }
+  };
+
   if (session?.user?.role !== "ADMIN") {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
@@ -402,6 +479,12 @@ export default function AdminPage() {
           className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${tab === "pickleball" ? "bg-emerald-600 text-white shadow-sm" : "bg-dark-400/60 text-slate-300 border border-white/[0.06] hover:bg-dark-400"}`}
         >
           🏓 Pickleball ({pendingPickleball.length})
+        </button>
+        <button
+          onClick={() => setTab("create-team")}
+          className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${tab === "create-team" ? "bg-brand-600 text-white shadow-sm" : "bg-dark-400/60 text-slate-300 border border-white/[0.06] hover:bg-dark-400"}`}
+        >
+          + Create Team
         </button>
       </div>
 
@@ -1156,6 +1239,152 @@ export default function AdminPage() {
               })()}
             </div>
           )}
+        </div>
+      )}
+
+      {tab === "create-team" && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-200 mb-1">Create Team from Player Pool</h2>
+            <p className="text-sm text-slate-400 mb-4">Select players from the individual pool to form a new team.</p>
+          </div>
+
+          {/* Constraints info */}
+          <div className="bg-dark-400/60 rounded-xl border border-white/[0.06] p-4">
+            <div className="flex flex-wrap gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400">Min players:</span>
+                <span className={`font-medium ${selectedPoolPlayers.size >= poolSettings.mandatoryPlayerCount ? "text-green-400" : "text-amber-400"}`}>
+                  {selectedPoolPlayers.size}/{poolSettings.mandatoryPlayerCount}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400">Min female:</span>
+                <span className={`font-medium ${selectedFemaleCount >= poolSettings.mandatoryFemaleCount ? "text-green-400" : "text-amber-400"}`}>
+                  {selectedFemaleCount}/{poolSettings.mandatoryFemaleCount}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400">Max size:</span>
+                <span className={`font-medium ${selectedPoolPlayers.size <= poolSettings.maxTeamSize ? "text-green-400" : "text-red-400"}`}>
+                  {selectedPoolPlayers.size}/{poolSettings.maxTeamSize}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Team name input */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Team Name *</label>
+            <input
+              type="text"
+              value={teamNameInput}
+              onChange={(e) => setTeamNameInput(e.target.value)}
+              placeholder="Enter team name (2-100 characters)"
+              maxLength={100}
+              className="w-full px-3 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-dark-500 text-slate-200 placeholder-slate-500"
+            />
+            {teamNameInput.length > 0 && teamNameInput.trim().length < 2 && (
+              <p className="text-xs text-red-400 mt-1">Team name must be at least 2 characters</p>
+            )}
+          </div>
+
+          {/* Search filter */}
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={poolSearchQuery}
+              onChange={(e) => setPoolSearchQuery(e.target.value)}
+              placeholder="Search players by name..."
+              className="w-full pl-10 pr-4 py-2 border border-white/10 rounded-xl text-sm bg-dark-500 text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+            />
+            {poolSearchQuery && (
+              <button
+                onClick={() => setPoolSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {/* Player list */}
+          {poolPlayers.length === 0 ? (
+            <p className="text-slate-500 text-center py-6 bg-dark-400/60 rounded-xl border border-white/[0.06]">No players available in the pool</p>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs text-slate-400">{poolPlayers.length} player(s) available in pool</p>
+              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                {poolPlayers
+                  .filter((p) => !poolSearchQuery.trim() || p.fullName.toLowerCase().includes(poolSearchQuery.trim().toLowerCase()))
+                  .map((player) => (
+                    <div
+                      key={player.id}
+                      className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+                        selectedPoolPlayers.has(player.id)
+                          ? "border-brand-400/40 bg-brand-500/10"
+                          : "border-white/[0.06] bg-dark-400/60 hover:bg-dark-400"
+                      }`}
+                      onClick={() => togglePoolPlayer(player.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedPoolPlayers.has(player.id)}
+                          onChange={() => togglePoolPlayer(player.id)}
+                          disabled={!selectedPoolPlayers.has(player.id) && selectedPoolPlayers.size >= poolSettings.maxTeamSize}
+                          className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
+                        />
+                        <div>
+                          <p className="font-medium text-slate-200 text-sm">{player.fullName}</p>
+                          <div className="flex gap-1 mt-0.5">
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                              player.gender === "FEMALE" ? "bg-pink-500/10 text-pink-400 border border-pink-500/20" : "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                            }`}>
+                              {player.gender === "FEMALE" ? "F" : "M"}
+                            </span>
+                            {player.preferredRole && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-slate-500/10 text-slate-400 border border-white/[0.06]">
+                                {player.preferredRole}
+                              </span>
+                            )}
+                            {player.experienceLevel && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-slate-500/10 text-slate-400 border border-white/[0.06]">
+                                {player.experienceLevel}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Submit button */}
+          <div className="flex items-center gap-3 pt-2">
+            <Button
+              onClick={handleCreateTeam}
+              loading={createTeamLoading}
+              disabled={!canSubmitTeam}
+            >
+              Create Team ({selectedPoolPlayers.size} players)
+            </Button>
+            {selectedPoolPlayers.size > 0 && (
+              <button
+                onClick={() => setSelectedPoolPlayers(new Set())}
+                className="text-sm text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                Clear selection
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
