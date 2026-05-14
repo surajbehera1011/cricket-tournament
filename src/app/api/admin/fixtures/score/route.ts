@@ -78,12 +78,12 @@ export async function POST(request: NextRequest) {
     // Advance winner to next round
     await advanceWinner(match, winnerId);
 
-    // Notify players of next match if both sides are now confirmed (non-blocking)
-    try {
-      await checkAndNotifyNextMatch(match, winnerId);
-    } catch (notifyErr) {
-      console.error("Next-match notification failed (non-blocking):", notifyErr);
-    }
+    // Auto-email disabled — admin will send notifications manually
+    // try {
+    //   await checkAndNotifyNextMatch(match, winnerId);
+    // } catch (notifyErr) {
+    //   console.error("Next-match notification failed (non-blocking):", notifyErr);
+    // }
 
     // Audit log (non-blocking)
     try {
