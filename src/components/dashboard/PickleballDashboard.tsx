@@ -15,6 +15,32 @@ interface PickleballReg {
   status?: string;
 }
 
+interface FixtureMatch {
+  id: string;
+  category: string;
+  roundNumber: number;
+  matchNumber: number;
+  entry1Id: string | null;
+  entry2Id: string | null;
+  winnerId: string | null;
+  status: string;
+  score1: number | null;
+  score2: number | null;
+}
+
+interface PbRegEntry {
+  id: string;
+  player1Name: string;
+  player2Name: string | null;
+  category: string;
+}
+
+interface ShowcaseEntry {
+  category: string;
+  playerNames: string;
+  type: "champion" | "semifinalist";
+}
+
 const CATEGORIES = [
   { key: "MENS_SINGLES", label: "Men's Singles", icon: "🏓", color: "text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/20", accent: "bg-sky-500" },
   { key: "WOMENS_SINGLES", label: "Women's Singles", icon: "🏓", color: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20", accent: "bg-pink-500" },
@@ -92,6 +118,126 @@ function CategoryModal({ cat, entries, onClose }: {
   );
 }
 
+function computeShowcase(matches: FixtureMatch[], pbRegs: PbRegEntry[]): { champions: ShowcaseEntry[]; semiFinalists: ShowcaseEntry[] } {
+  const champions: ShowcaseEntry[] = [];
+  const semiFinalists: ShowcaseEntry[] = [];
+
+  // Group matches by category
+  const byCategory: Record<string, FixtureMatch[]> = {};
+  for (const m of matches) {
+    if (!byCategory[m.category]) byCategory[m.category] = [];
+    byCategory[m.category].push(m);
+  }
+
+  const regMap = new Map(pbRegs.map((r) => [r.id, r]));
+
+  for (const [category, catMatches] of Object.entries(byCategory)) {
+    const rounds = [...new Set(catMatches.map((m) => m.roundNumber))].sort((a, b) => a - b);
+    if (rounds.length < 2) continue;
+
+    const finalRound = rounds[rounds.length - 1];
+    const semiFinalRound = rounds[rounds.length - 2];
+
+    // Champions: final round, completed, has winner
+    const finalMatches = catMatches.filter((m) => m.roundNumber === finalRound && m.status === "COMPLETED" && m.winnerId);
+    for (const m of finalMatches) {
+      const reg = regMap.get(m.winnerId!);
+      if (reg) {
+        const names = reg.player2Name ? `${reg.player1Name} & ${reg.player2Name}` : reg.player1Name;
+        champions.push({ category, playerNames: names, type: "champion" });
+      }
+    }
+
+    // Semi-finalists: semi-final round, completed, has winner
+    const semiMatches = catMatches.filter((m) => m.roundNumber === semiFinalRound && m.status === "COMPLETED" && m.winnerId);
+    for (const m of semiMatches) {
+      const reg = regMap.get(m.winnerId!);
+      if (reg) {
+        const names = reg.player2Name ? `${reg.player1Name} & ${reg.player2Name}` : reg.player1Name;
+        semiFinalists.push({ category, playerNames: names, type: "semifinalist" });
+      }
+    }
+  }
+
+  return { champions, semiFinalists };
+}
+
+function ShowcaseSection({ champions, semiFinalists }: { champions: ShowcaseEntry[]; semiFinalists: ShowcaseEntry[] }) {
+  if (champions.length === 0 && semiFinalists.length === 0) return null;
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+      {/* Champions */}
+      {champions.length > 0 && (
+        <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/[0.08] via-dark-400/80 to-yellow-500/[0.06] backdrop-blur-sm mb-4">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-400/[0.12] via-transparent to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500" />
+          <div className="relative p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-3xl">🏆</span>
+              <div>
+                <h2 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400">
+                  Champions
+                </h2>
+                <p className="text-[11px] text-amber-400/60 font-semibold uppercase tracking-widest">Tournament Winners</p>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {champions.map((c, idx) => {
+                const catMeta = CATEGORIES.find((cat) => cat.key === c.category);
+                return (
+                  <div
+                    key={`${c.category}-${idx}`}
+                    className="relative overflow-hidden rounded-xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-yellow-500/5 p-4"
+                  >
+                    <div className="absolute top-2 right-2 text-2xl opacity-20">🏆</div>
+                    <div className="relative">
+                      <p className="text-[10px] font-bold text-amber-400/70 uppercase tracking-wider mb-1">
+                        {catMeta?.label || c.category}
+                      </p>
+                      <p className="text-sm font-bold text-white">{c.playerNames}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Semi-Finalists */}
+      {semiFinalists.length > 0 && (
+        <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-dark-400/60 backdrop-blur-sm">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-slate-500 via-slate-400 to-slate-500" />
+          <div className="relative p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">⚡</span>
+              <h3 className="text-base font-bold text-slate-200">Semi-Finalists</h3>
+              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Advancing</span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {semiFinalists.map((s, idx) => {
+                const catMeta = CATEGORIES.find((cat) => cat.key === s.category);
+                return (
+                  <div
+                    key={`${s.category}-${idx}`}
+                    className={`rounded-lg border ${catMeta?.border || "border-white/[0.06]"} ${catMeta?.bg || "bg-white/[0.03]"} px-3 py-2.5`}
+                  >
+                    <p className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${catMeta?.color || "text-slate-400"}`}>
+                      {catMeta?.label || s.category}
+                    </p>
+                    <p className="text-xs font-semibold text-white">{s.playerNames}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PickleballDashboard() {
   const { toast } = useToast();
   const [registrations, setRegistrations] = useState<PickleballReg[]>([]);
@@ -103,12 +249,15 @@ export function PickleballDashboard() {
   const [venue, setVenue] = useState("");
   const [venueMapUrl, setVenueMapUrl] = useState("");
   const [openCat, setOpenCat] = useState<string | null>(null);
+  const [champions, setChampions] = useState<ShowcaseEntry[]>([]);
+  const [semiFinalists, setSemiFinalists] = useState<ShowcaseEntry[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
-      const [res, settingsRes] = await Promise.all([
+      const [res, settingsRes, fixturesRes] = await Promise.all([
         fetch("/api/pickleball"),
         fetch("/api/settings"),
+        fetch("/api/fixtures?sport=PICKLEBALL"),
       ]);
       const data = await res.json();
       const settings = await settingsRes.json();
@@ -122,6 +271,14 @@ export function PickleballDashboard() {
       setRegCloseDate(settings?.pickleballRegCloseDate || null);
       setVenue(settings?.pickleballVenue || "");
       setVenueMapUrl(settings?.pickleballVenueMapUrl || "");
+
+      // Compute showcase from fixtures
+      const fixturesData = await fixturesRes.json();
+      if (fixturesData?.fixture?.matches && fixturesData?.pbRegs) {
+        const { champions: c, semiFinalists: sf } = computeShowcase(fixturesData.fixture.matches, fixturesData.pbRegs);
+        setChampions(c);
+        setSemiFinalists(sf);
+      }
     } catch (err) {
       console.error("Failed to fetch pickleball data:", err);
       toast("Failed to load pickleball data. Please try refreshing.", "error");
@@ -231,6 +388,9 @@ export function PickleballDashboard() {
           </div>
         </div>
       )}
+
+      {/* Semi-Finalists & Champions Showcase */}
+      <ShowcaseSection champions={champions} semiFinalists={semiFinalists} />
 
       {/* Category Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
