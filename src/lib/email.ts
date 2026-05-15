@@ -426,7 +426,7 @@ export function sendPlayerRemovedEmail(
 // CRICKET — Captain Credentials
 // ──────────────────────────────────────────────────
 
-export function sendCaptainCredentialsEmail(
+export async function sendCaptainCredentialsEmail(
   captainEmail: string,
   displayName: string,
   password: string,
@@ -455,14 +455,14 @@ export function sendCaptainCredentialsEmail(
     </table>
     ${btn("Sign In Now", `${APP_URL}/auth/signin`, "#3b82f6")}`;
 
-  sendEmail(captainEmail, "[Cricket] Your Captain Login — Align Sports League", wrap(title, "#3b82f6", body, "cricket"));
+  await sendEmail(captainEmail, "[Cricket] Your Captain Login — Align Sports League", wrap(title, "#3b82f6", body, "cricket"));
 }
 
 // ──────────────────────────────────────────────────
 // CRICKET — Captain Credentials Updated
 // ──────────────────────────────────────────────────
 
-export function sendCaptainCredentialsUpdatedEmail(
+export async function sendCaptainCredentialsUpdatedEmail(
   captainEmail: string,
   displayName: string,
   changes: { emailChanged?: boolean; passwordChanged?: boolean; newPassword?: string }
@@ -491,7 +491,7 @@ export function sendCaptainCredentialsUpdatedEmail(
     </div>
     ${btn("Sign In Now", `${APP_URL}/auth/signin`, "#f59e0b")}`;
 
-  sendEmail(captainEmail, "[Cricket] Credentials Updated — Align Sports League", wrap(title, "#f59e0b", body, "cricket"));
+  await sendEmail(captainEmail, "[Cricket] Credentials Updated — Align Sports League", wrap(title, "#f59e0b", body, "cricket"));
 }
 
 // ──────────────────────────────────────────────────

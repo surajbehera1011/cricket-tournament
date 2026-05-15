@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       });
       teamName = assignedTeam?.name;
     }
-    sendCaptainCredentialsEmail(
+    await sendCaptainCredentialsEmail(
       captain.email,
       captain.displayName,
       parsed.data.password,
@@ -217,7 +217,7 @@ export async function PATCH(request: NextRequest) {
     const emailChanged = !!parsed.data.email && parsed.data.email !== captain.email;
     const passwordChanged = !!parsed.data.password;
     if (emailChanged || passwordChanged) {
-      sendCaptainCredentialsUpdatedEmail(
+      await sendCaptainCredentialsUpdatedEmail(
         updated.email,
         updated.displayName,
         { emailChanged, passwordChanged, newPassword: parsed.data.password }
