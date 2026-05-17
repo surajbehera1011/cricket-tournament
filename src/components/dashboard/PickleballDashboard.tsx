@@ -329,11 +329,13 @@ export function PickleballDashboard() {
         <CategoryModal cat={openCatData} entries={openCatData.entries} onClose={() => setOpenCat(null)} />
       )}
 
-      {startDate && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4 flex justify-center">
-          <Countdown targetDate={startDate} />
+      {/* Tournament Ended Banner */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4 flex justify-center">
+        <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-full px-5 py-2">
+          <span className="text-lg">🏆</span>
+          <span className="text-sm text-amber-400 font-bold">Tournament Ended — Congratulations to all winners!</span>
         </div>
-      )}
+      </div>
 
       {/* Venue */}
       {venue && (

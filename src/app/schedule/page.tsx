@@ -123,7 +123,7 @@ function genPbBracket(entries: PbReg[], cat: string, startNum: number) {
 
 export default function SchedulePage() {
   const { toast } = useToast();
-  const [sport, setSport] = useState<Sport>("pickleball");
+  const [sport, setSport] = useState<Sport>("cricket");
   const [teams, setTeams] = useState<Team[]>([]);
   const [pbRegs, setPbRegs] = useState<PbReg[]>([]);
   const [settings, setSettings] = useState<Settings>({ targetCricketTeams: 12, cricketGroupCount: 4 });
@@ -246,11 +246,11 @@ function HeroSection({ sport, setSport }: { sport: Sport; setSport: (s: Sport) =
         <h1 className="text-3xl md:text-5xl font-black text-white tracking-[0.2em] uppercase mb-2">Align Sports League</h1>
         <p className="text-sm md:text-base text-slate-400 tracking-widest uppercase mb-8">Tournament Fixtures &amp; Brackets &bull; 2026</p>
         <div className="inline-flex gap-1.5 bg-dark-400/80 backdrop-blur-xl p-1.5 rounded-2xl border border-white/[0.06] shadow-xl">
-          <button onClick={() => setSport("pickleball")} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${sport === "pickleball" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "text-slate-400 hover:text-white hover:bg-white/[0.06]"}`}>
-            Pickleball
-          </button>
           <button onClick={() => setSport("cricket")} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${sport === "cricket" ? "bg-pitch-500 text-white shadow-lg shadow-pitch-500/30" : "text-slate-400 hover:text-white hover:bg-white/[0.06]"}`}>
             Cricket
+          </button>
+          <button onClick={() => setSport("pickleball")} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${sport === "pickleball" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "text-slate-400 hover:text-white hover:bg-white/[0.06]"}`}>
+            Pickleball
           </button>
         </div>
       </div>

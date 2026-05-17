@@ -115,8 +115,8 @@ function DashboardContent() {
       {sport === "cricket" && <CricketDashboard tvMode={tvMode} />}
       {sport === "pickleball" && <PickleballDashboard />}
 
-      {/* Persistent live scores widget */}
-      <LiveScoresWidget />
+      {/* Persistent live scores widget — only show for pickleball */}
+      {sport === "pickleball" && <LiveScoresWidget />}
     </div>
   );
 }
