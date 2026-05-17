@@ -12,9 +12,9 @@ import { Suspense } from "react";
 
 type Sport = "cricket" | "pickleball";
 
-const SPORTS: { id: Sport; label: string; icon: string; active: string }[] = [
-  { id: "pickleball", label: "Pickleball", icon: "🏓", active: "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25" },
+const SPORTS: { id: Sport; label: string; icon: string; active: string; ended?: boolean }[] = [
   { id: "cricket", label: "Cricket", icon: "🏏", active: "bg-pitch-500 text-white shadow-lg shadow-pitch-500/25" },
+  { id: "pickleball", label: "Pickleball", icon: "🏓", active: "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25", ended: true },
 ];
 
 function DashboardContent() {
@@ -22,7 +22,7 @@ function DashboardContent() {
   const router = useRouter();
   const tvMode = searchParams.get("tv") === "true";
   const sportParam = searchParams.get("sport");
-  const initialSport: Sport = sportParam === "cricket" ? "cricket" : "pickleball";
+  const initialSport: Sport = sportParam === "pickleball" ? "pickleball" : "cricket";
   const [sport, setSport] = useState<Sport>(initialSport);
   const [tourOpen, setTourOpen] = useState(false);
 
@@ -104,6 +104,7 @@ function DashboardContent() {
               >
                 <span className="text-lg">{s.icon}</span>
                 {s.label}
+                {s.ended && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-bold uppercase tracking-wider">Ended</span>}
               </button>
             ))}
           </div>

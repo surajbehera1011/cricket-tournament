@@ -37,7 +37,7 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const currentSport = searchParams.get("sport") || "pickleball";
+  const currentSport = searchParams.get("sport") || "cricket";
   const isAdmin = session?.user?.role === "ADMIN";
   const isAdminPage = adminDropdownLinks.some((l) => pathname === l.href);
 
@@ -49,9 +49,9 @@ export function Navbar() {
     // If current sport is open, use it
     if (currentSport === "cricket" && registration.cricketOpen) return "/register?sport=cricket";
     if (currentSport === "pickleball" && registration.pickleballOpen) return "/register?sport=pickleball";
-    // Otherwise, prefer pickleball if open, then cricket
-    if (registration.pickleballOpen) return "/register?sport=pickleball";
+    // Otherwise, prefer cricket if open, then pickleball
     if (registration.cricketOpen) return "/register?sport=cricket";
+    if (registration.pickleballOpen) return "/register?sport=pickleball";
     return "/register";
   };
 
