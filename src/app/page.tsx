@@ -22,9 +22,16 @@ function DashboardContent() {
   const router = useRouter();
   const tvMode = searchParams.get("tv") === "true";
   const sportParam = searchParams.get("sport");
-  const initialSport: Sport = sportParam === "pickleball" ? "pickleball" : "cricket";
-  const [sport, setSport] = useState<Sport>(initialSport);
+  const [sport, setSport] = useState<Sport>(sportParam === "pickleball" ? "pickleball" : "cricket");
   const [tourOpen, setTourOpen] = useState(false);
+
+  // Sync sport state with URL params on navigation
+  useEffect(() => {
+    const sp = searchParams.get("sport");
+    if (sp === "pickleball" || sp === "cricket") {
+      setSport(sp);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!localStorage.getItem("asl-tour-completed")) {
