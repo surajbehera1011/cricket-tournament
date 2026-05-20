@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { decryptEmail } from "@/lib/crypto";
 
-export const revalidate = 30;
+export const revalidate = 300;
 
 export async function GET(request: NextRequest) {
   try {
