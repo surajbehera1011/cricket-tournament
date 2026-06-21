@@ -1,4 +1,4 @@
-export const revalidate = 300;
+export const revalidate = 60;
 
 import { prisma } from "@/lib/prisma";
 import { PoolStatus } from "@prisma/client";
