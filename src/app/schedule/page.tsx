@@ -177,7 +177,7 @@ export default function SchedulePage() {
       const tData = await tRes.json(); const pData = await pRes.json(); const sData = await sRes.json();
       const fcData = await fcRes.json(); const fpData = await fpRes.json();
       const list = tData.teams ?? tData;
-      if (Array.isArray(list)) setTeams(list.filter((t: Team) => t.status === "READY"));
+      if (Array.isArray(list)) setTeams(list);
       const pbList = pData.registrations ?? (Array.isArray(pData) ? pData : []);
       setPbRegs(pbList);
       setSettings({ targetCricketTeams: sData.targetCricketTeams ?? 12, cricketGroupCount: sData.cricketGroupCount ?? 4 });

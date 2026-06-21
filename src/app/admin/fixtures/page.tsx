@@ -177,7 +177,7 @@ export default function AdminFixturesPage() {
       const tRes = await fetch("/api/teams");
       const tData = await tRes.json();
       const list = tData.teams ?? tData;
-      if (Array.isArray(list)) setTeams(list.filter((t: TeamInfo & { status: string }) => t.status === "READY"));
+      if (Array.isArray(list)) setTeams(list);
 
       const pRes = await fetch("/api/pickleball");
       const pData = await pRes.json();
