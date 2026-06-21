@@ -121,6 +121,41 @@ function genPbBracket(entries: PbReg[], cat: string, startNum: number) {
   return { matches, nextNum: num };
 }
 
+/** Generate a client-side single elimination preview bracket for cricket teams */
+function genCricketSingleEliminationPreview(teams: Team[]): MatchData[] {
+  if (teams.length < 2) return [];
+  const size = nextPow2(teams.length);
+  const slots: (string | null)[] = new Array(size).fill(null);
+  const order = seedOrderClient(size);
+  for (let i = 0; i < teams.length; i++) slots[order[i]] = teams[i].id;
+
+  const matches: MatchData[] = [];
+  let num = 1;
+  let current = slots;
+  let round = 1;
+
+  while (current.length > 1) {
+    const next: (string | null)[] = [];
+    for (let i = 0; i < current.length; i += 2) {
+      const a = current[i], b = current[i + 1];
+      if (a === null && b === null) { next.push(null); continue; }
+      if ((a !== null && b === null) || (a === null && b !== null)) {
+        const present = a ?? b;
+        matches.push({ id: `ck-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: round, matchNumber: num, category: null, team1Id: present, team2Id: null, entry1Id: null, entry2Id: null, score1: null, score2: null, winnerId: present, status: "COMPLETED", scheduledDate: null, venue: null });
+        next.push(present);
+        num++;
+        continue;
+      }
+      matches.push({ id: `ck-${num}`, stage: "KNOCKOUT", groupName: null, roundNumber: round, matchNumber: num, category: null, team1Id: a, team2Id: b, entry1Id: null, entry2Id: null, score1: null, score2: null, winnerId: null, status: "SCHEDULED", scheduledDate: null, venue: null });
+      next.push(`WINNER_M${num}`);
+      num++;
+    }
+    round++;
+    current = next;
+  }
+  return matches;
+}
+
 export default function SchedulePage() {
   const { toast } = useToast();
   const [sport, setSport] = useState<Sport>("cricket");
@@ -158,8 +193,15 @@ export default function SchedulePage() {
   const groups = genCricketGroups(readyTeams, settings.targetCricketTeams, settings.cricketGroupCount);
   const { matches: groupMatches, nextNum } = genGroupMatches(groups);
   const knockoutMatches = genCricketKnockout(groups, nextNum);
-  const cricketMatches = frozenCricket ?? [...groupMatches, ...knockoutMatches];
-  const cGroups = [...new Set(cricketMatches.filter(m => m.stage === "GROUP").map(m => m.groupName))].sort();
+
+  // For cricket: use frozen data if available, otherwise generate a client-side preview bracket
+  let cricketMatches: MatchData[];
+  if (frozenCricket) {
+    cricketMatches = frozenCricket;
+  } else {
+    // Generate a client-side single elimination preview (similar to pickleball)
+    cricketMatches = genCricketSingleEliminationPreview(readyTeams);
+  }
   const cKnockout = cricketMatches.filter(m => m.stage === "KNOCKOUT");
 
   const pbMatchesByCategory: Record<string, MatchData[]> = {};
@@ -221,11 +263,10 @@ export default function SchedulePage() {
         <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-10">
           <div className="flex items-center justify-between">
             <div />
-            <PrintButton targetRef={cricketRef} title="Cricket Schedule" subtitle="Group Stage & Knockout Fixtures" />
+            <PrintButton targetRef={cricketRef} title="Cricket Schedule" subtitle="Single Elimination Bracket" />
           </div>
           <div ref={cricketRef}>
           <ProgressBar current={readyTeams.length} total={settings.targetCricketTeams} pct={pct} />
-          <div className="mt-10"><GroupStage groups={cGroups} matches={cricketMatches} teamLabel={teamLabel} teamColor={teamColor} isTbd={isTbd} /></div>
           <div className="mt-10"><KnockoutStage matches={cKnockout} teamLabel={teamLabel} teamColor={teamColor} isTbd={isTbd} /></div>
           </div>
         </div>

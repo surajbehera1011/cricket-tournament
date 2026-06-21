@@ -3,9 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
-  generateCricketFixtures,
+  generateCricketSingleElimination,
   generateAllPickleballFixtures,
-  type TeamSlot,
   type PbEntrySlot,
 } from "@/lib/fixture-generator";
 
@@ -41,16 +40,9 @@ export async function POST(request: NextRequest) {
 
     if (sportUpper === "CRICKET") {
       const teams = await prisma.team.findMany({
-        where: { status: "READY" },
-        orderBy: { createdAt: "asc" },
+        select: { id: true, name: true },
       });
-      const slots: TeamSlot[] = teams.map((t) => ({
-        id: t.id,
-        name: t.name,
-        color: t.color,
-        captainName: t.captainName,
-      }));
-      matches = generateCricketFixtures(slots, targetTeams, gCount);
+      matches = generateCricketSingleElimination(teams);
     } else {
       const frozenCats = existing?.frozenCategories || [];
       const regs = await prisma.pickleballRegistration.findMany({
@@ -73,6 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     const frozenCats = existing?.frozenCategories || [];
+    const fixtureGroupCount = sportUpper === "CRICKET" ? 0 : gCount;
     if (existing) {
       if (sportUpper === "PICKLEBALL" && frozenCats.length > 0) {
         const allCats = ["MENS_SINGLES", "WOMENS_SINGLES", "MENS_DOUBLES", "WOMENS_DOUBLES", "MIXED_DOUBLES"];
@@ -83,7 +76,7 @@ export async function POST(request: NextRequest) {
       }
       await prisma.fixture.update({
         where: { id: existing.id },
-        data: { groupCount: gCount, updatedAt: new Date() },
+        data: { groupCount: fixtureGroupCount, updatedAt: new Date() },
       });
       if (matches.length > 0) {
         await prisma.match.createMany({
@@ -108,7 +101,7 @@ export async function POST(request: NextRequest) {
       await prisma.fixture.create({
         data: {
           sport: sportUpper as "CRICKET" | "PICKLEBALL",
-          groupCount: gCount,
+          groupCount: fixtureGroupCount,
           matches: {
             create: matches.map((m) => ({
               sport: sportUpper as "CRICKET" | "PICKLEBALL",

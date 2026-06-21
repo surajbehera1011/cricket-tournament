@@ -164,6 +164,37 @@ export function generateCricketFixtures(
   return allMatches;
 }
 
+// ─── Cricket: Single Elimination Bracket ────────────────────
+
+/**
+ * Fisher-Yates shuffle (in-place).
+ */
+function shuffleArray<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Generate a single elimination bracket for cricket teams.
+ * Shuffles teams randomly, creates byes where needed, and produces
+ * the full bracket with WINNER_M{n} placeholders for later rounds.
+ */
+export function generateCricketSingleElimination(
+  teams: { id: string; name: string }[]
+): GeneratedMatch[] {
+  if (teams.length < 2) {
+    throw new Error("At least 2 teams required to generate bracket");
+  }
+
+  const shuffled = shuffleArray([...teams]);
+  const teamIds: (string | null)[] = shuffled.map((t) => t.id);
+
+  return generateSingleElimination(teamIds, 1, true);
+}
+
 // ─── Pickleball: Single-Elimination Knockout ────────────────
 
 function nextPowerOf2(n: number): number {
